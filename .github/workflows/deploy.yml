@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - development
 
 jobs:
   build-and-deploy:
@@ -24,11 +23,7 @@ jobs:
 
       - name: 🏗 Inject Environment Variables
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
-          else
-            echo "VITE_API_BASE_URL=http://dev-titaneye.duckdns.org/api" > .env.production
-          fi
+          echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
@@ -58,18 +53,11 @@ jobs:
 
           script: |
             echo "🚀 Starting deployment..."
+            echo "📦 PRODUCTION DEPLOY"
 
-            if [ "${{ github.ref_name }}" = "main" ]; then
-              echo "📦 PRODUCTION DEPLOY"
-              APP_DIR="/var/www/titan/prod"
-              PORT=3000
-              APP_NAME="titan-prod"
-            else
-              echo "🧪 STAGING DEPLOY"
-              APP_DIR="/var/www/titan/dev"
-              PORT=3001
-              APP_NAME="titan-staging"
-            fi
+            APP_DIR="/var/www/titan/prod"
+            PORT=3000
+            APP_NAME="titan-prod"
 
             mkdir -p $APP_DIR
             cd $APP_DIR
