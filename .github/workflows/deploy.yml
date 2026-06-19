@@ -52,7 +52,7 @@ jobs:
             echo "🚀 Starting deployment..."
             echo "📦 PRODUCTION DEPLOY"
 
-            APP_DIR="/var/www/titan/prod"
+            APP_DIR="/home/ec2-user/titan"
             PORT=3000
             APP_NAME="titan-prod"
 
