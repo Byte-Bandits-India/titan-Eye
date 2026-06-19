@@ -140,12 +140,22 @@ export function OptemPatientDetails({
     onBack();
   };
 
+  // Detect mobile/tablet — server.js local agent cannot run on phones/tablets
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
   const handleInitiateCall = () => {
     toast({
       title: 'Video Call',
       description: `Initiating video consultation with patient ${form.name}...`,
       type: 'info',
     });
+
+    if (isMobile) {
+      // On mobile: open Teams via deep link (opens the Teams app if installed)
+      window.open('https://teams.microsoft.com/', '_blank');
+      return;
+    }
+
     fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teams`, { method: 'POST' })
       .then((res) => {
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
@@ -153,7 +163,7 @@ export function OptemPatientDetails({
       .catch(() => {
         toast({
           title: 'Local Agent Not Running',
-          description: 'Please start the local service on this machine: run "node server.js" in the project folder, then try again.',
+          description: 'Please run "node server.js" in the project folder on this desktop machine, then try again.',
           type: 'error',
         });
       });
@@ -165,6 +175,17 @@ export function OptemPatientDetails({
       description: `Opening TeamViewer connection...`,
       type: 'info',
     });
+
+    if (isMobile) {
+      // On mobile: open TeamViewer via deep link (opens the TeamViewer app if installed)
+      window.open('teamviewer://', '_blank');
+      // Fallback: open TeamViewer download page after short delay if app not installed
+      setTimeout(() => {
+        window.open('https://www.teamviewer.com/en/download/', '_blank');
+      }, 2500);
+      return;
+    }
+
     fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teamviewer`, { method: 'POST' })
       .then((res) => {
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
@@ -172,7 +193,8 @@ export function OptemPatientDetails({
       .catch(() => {
         toast({
           title: 'Local Agent Not Running',
-          description: 'Please start the local service on this machine: run "node server.js" in the project folder, then try again.',
+          description: 'Please run "node server.js" in the project folder on this desktop machine, then try again.',
+
           type: 'error',
         });
       });
