@@ -23,6 +23,7 @@ jobs:
 
       - name: 🏗 Inject Environment Variables
         run: |
+          echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
 
       - name: 🏗 Build Vite App
