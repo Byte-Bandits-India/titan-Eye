@@ -75,15 +75,10 @@ jobs:
             echo "📦 Installing production dependencies..."
             npm install --omit=dev --build-from-source
 
-            echo "🔁 Restarting PM2 static site (titan-prod)..."
-            pm2 describe $APP_NAME > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-              pm2 restart $APP_NAME --update-env
-            else
-              pm2 serve dist $PORT --spa --name "$APP_NAME"
-            fi
+            echo "🧹 Stopping and cleaning up redundant titan-prod static process..."
+            pm2 delete titan-prod > /dev/null 2>&1 || true
 
-            echo "🔁 Restarting PM2 local agent (titan-agent)..."
+            echo "🔁 Restarting PM2 agent (titan-agent)..."
             pm2 describe $AGENT_NAME > /dev/null 2>&1
             if [ $? -eq 0 ]; then
               pm2 restart $AGENT_NAME --update-env

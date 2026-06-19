@@ -575,5 +575,22 @@ app.post('/api/open-teamviewer', (req, res) => {
   })
   res.json({ ok: true })
 })
+// Serve static files from Vite build directory
+const distPath = path.resolve('dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  // For any other request, send back index.html (supports client-side routing)
+  app.get('/*splat', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next()
+    }
+    res.sendFile(path.join(distPath, 'index.html'), (err) => {
+      if (err) {
+        console.error('res.sendFile error:', err)
+        next(err)
+      }
+    })
+  })
+}
 
 app.listen(3001, () => console.log('API server running on http://localhost:3001'))
