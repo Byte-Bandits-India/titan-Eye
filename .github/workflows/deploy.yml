@@ -43,6 +43,8 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "deploy.tar.gz"
           target: "/tmp/"
+          timeout: 120s
+          debug: true
 
       - name: 🚀 Deploy on Server
         uses: appleboy/ssh-action@v1.0.3
@@ -50,6 +52,8 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 120s
+          debug: true
 
           script: |
             echo "🚀 Starting deployment..."
