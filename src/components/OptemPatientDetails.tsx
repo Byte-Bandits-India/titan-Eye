@@ -151,8 +151,13 @@ export function OptemPatientDetails({
     });
 
     if (isMobile) {
-      // On mobile: open Teams via deep link (opens the Teams app if installed)
-      window.open('https://teams.microsoft.com/', '_blank');
+      // Use msteams:// protocol to open the native Teams app directly
+      // window.location.href bypasses popup blockers on mobile
+      window.location.href = 'msteams://';
+      // Fallback: open web Teams after 2s if app is not installed
+      setTimeout(() => {
+        window.open('https://teams.microsoft.com/v2/', '_blank');
+      }, 2000);
       return;
     }
 
@@ -161,11 +166,8 @@ export function OptemPatientDetails({
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
       })
       .catch(() => {
-        toast({
-          title: 'Local Agent Not Running',
-          description: 'Please run "node server.js" in the project folder on this desktop machine, then try again.',
-          type: 'error',
-        });
+        // Desktop fallback: try msteams:// protocol (works if Teams desktop app is installed)
+        window.location.href = 'msteams://';
       });
   };
 
@@ -177,9 +179,9 @@ export function OptemPatientDetails({
     });
 
     if (isMobile) {
-      // On mobile: open TeamViewer via deep link (opens the TeamViewer app if installed)
-      window.open('teamviewer://', '_blank');
-      // Fallback: open TeamViewer download page after short delay if app not installed
+      // Use teamviewer:// protocol to open the native TeamViewer app directly
+      window.location.href = 'teamviewer://';
+      // Fallback: open download page after 2.5s if app is not installed
       setTimeout(() => {
         window.open('https://www.teamviewer.com/en/download/', '_blank');
       }, 2500);
@@ -191,12 +193,8 @@ export function OptemPatientDetails({
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
       })
       .catch(() => {
-        toast({
-          title: 'Local Agent Not Running',
-          description: 'Please run "node server.js" in the project folder on this desktop machine, then try again.',
-
-          type: 'error',
-        });
+        // Desktop fallback: try teamviewer:// protocol directly
+        window.location.href = 'teamviewer://';
       });
   };
 
