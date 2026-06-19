@@ -35,6 +35,7 @@ jobs:
         run: |
           tar -czf deploy.tar.gz \
             dist \
+            server.js \
             package.json \
             package-lock.json
 
@@ -58,24 +59,36 @@ jobs:
             APP_DIR="/home/ec2-user/titan"
             PORT=3000
             APP_NAME="titan-prod"
+            AGENT_NAME="titan-agent"
+            AGENT_PORT=3001
 
             mkdir -p $APP_DIR
             cd $APP_DIR
 
             echo "🧹 Cleaning old files..."
-            rm -rf dist node_modules package.json package-lock.json
+            rm -rf dist node_modules package.json package-lock.json server.js
 
             echo "📦 Extracting new build..."
             tar -xzf /tmp/deploy.tar.gz -C $APP_DIR
             rm -f /tmp/deploy.tar.gz
 
-            echo "🔁 Restarting PM2..."
+            echo "📦 Installing production dependencies..."
+            npm install --omit=dev
 
-            pm2 describe $APP_NAME > /dev/null
+            echo "🔁 Restarting PM2 static site (titan-prod)..."
+            pm2 describe $APP_NAME > /dev/null 2>&1
             if [ $? -eq 0 ]; then
               pm2 restart $APP_NAME --update-env
             else
               pm2 serve dist $PORT --spa --name "$APP_NAME"
+            fi
+
+            echo "🔁 Restarting PM2 local agent (titan-agent)..."
+            pm2 describe $AGENT_NAME > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+              pm2 restart $AGENT_NAME --update-env
+            else
+              pm2 start server.js --name "$AGENT_NAME"
             fi
 
             pm2 save
