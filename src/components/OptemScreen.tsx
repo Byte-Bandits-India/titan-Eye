@@ -193,16 +193,18 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[80px] font-bold text-xs uppercase text-gray-400">ID</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Store Name</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Name</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Age</TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">Language</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Pref. Lang 1</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Pref. Lang 2</TableHead>
                       <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-400">
                           No pending requests in queue.
                         </TableCell>
                       </TableRow>
@@ -221,12 +223,22 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                           }`}
                         >
                           <TableCell className="font-semibold text-blue-600 text-xs py-3">{req.id}</TableCell>
+                          <TableCell className="text-gray-600 text-xs py-3">{req.storeName || '—'}</TableCell>
                           <TableCell className="font-semibold text-gray-800 text-xs py-3">{req.name}</TableCell>
                           <TableCell className="text-gray-600 text-xs py-3">{req.age}</TableCell>
                           <TableCell className="py-3">
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-semibold rounded">
                               {req.preferredLanguage}
                             </span>
+                          </TableCell>
+                          <TableCell className="py-3">
+                            {req.preferredLanguage2 && req.preferredLanguage2 !== 'None' ? (
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold rounded">
+                                {req.preferredLanguage2}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300 text-[10px]">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="py-3 text-right">
                             <Button

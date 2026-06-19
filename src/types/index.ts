@@ -27,7 +27,9 @@ export interface Customer {
   gender: string;
   mobile: string;
   customerType: string;
+  storeName: string;
   preferredLanguage: string;
+  preferredLanguage2: string;
   storeFeedback: string;
   optumFeedback: string;
   status: CustomerStatus;

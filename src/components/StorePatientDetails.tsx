@@ -37,7 +37,9 @@ export function StorePatientDetails({
     gender: 'Male',
     mobile: '',
     customerType: 'New',
+    storeName: '',
     preferredLanguage: 'English',
+    preferredLanguage2: 'None',
     storeFeedback: '',
     optumFeedback: '',
     status: 'Initiated' as CustomerStatus,
@@ -59,7 +61,9 @@ export function StorePatientDetails({
         gender: selectedCustomer.gender || 'Male',
         mobile: selectedCustomer.mobile || '',
         customerType: selectedCustomer.customerType || 'New',
+        storeName: selectedCustomer.storeName || '',
         preferredLanguage: selectedCustomer.preferredLanguage || 'English',
+        preferredLanguage2: selectedCustomer.preferredLanguage2 || 'None',
         storeFeedback: selectedCustomer.storeFeedback || '',
         optumFeedback: selectedCustomer.optumFeedback || '',
         status: selectedCustomer.status,
@@ -78,7 +82,9 @@ export function StorePatientDetails({
         gender: 'Male',
         mobile: '',
         customerType: 'New',
+        storeName: '',
         preferredLanguage: 'English',
+        preferredLanguage2: 'None',
         storeFeedback: '',
         optumFeedback: '',
         status: 'Initiated',
@@ -144,7 +150,9 @@ export function StorePatientDetails({
         gender: form.gender,
         mobile: form.mobile,
         customerType: form.customerType,
+        storeName: form.storeName,
         preferredLanguage: form.preferredLanguage,
+        preferredLanguage2: form.preferredLanguage2,
         storeFeedback: form.storeFeedback,
         optumFeedback: '',
         status: form.status,
@@ -175,7 +183,9 @@ export function StorePatientDetails({
                 gender: form.gender,
                 mobile: form.mobile,
                 customerType: form.customerType,
+                storeName: form.storeName,
                 preferredLanguage: form.preferredLanguage,
+                preferredLanguage2: form.preferredLanguage2,
                 storeFeedback: form.storeFeedback,
                 status: form.status,
                 activeProfile: form.activeProfile,
@@ -292,7 +302,19 @@ export function StorePatientDetails({
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Preferred Language *</label>
+                <label className="text-xs font-bold text-gray-600">Store Name</label>
+                <Input
+                  type="text"
+                  value={form.storeName}
+                  onChange={(e) => setField('storeName')(e.target.value)}
+                  placeholder="Enter store name"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-600">Preferred Language 1 *</label>
                 <Select
                   value={form.preferredLanguage}
                   onChange={(e) => setField('preferredLanguage')(e.target.value)}
@@ -302,6 +324,29 @@ export function StorePatientDetails({
                     { value: 'Tamil', label: 'Tamil' },
                     { value: 'Telugu', label: 'Telugu' },
                     { value: 'Kannada', label: 'Kannada' },
+                    { value: 'Malayalam', label: 'Malayalam' },
+                    { value: 'Marathi', label: 'Marathi' },
+                    { value: 'Bengali', label: 'Bengali' },
+                    { value: 'Gujarati', label: 'Gujarati' },
+                  ]}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-600">Preferred Language 2</label>
+                <Select
+                  value={form.preferredLanguage2}
+                  onChange={(e) => setField('preferredLanguage2')(e.target.value)}
+                  options={[
+                    { value: 'None', label: 'None' },
+                    { value: 'English', label: 'English' },
+                    { value: 'Hindi', label: 'Hindi' },
+                    { value: 'Tamil', label: 'Tamil' },
+                    { value: 'Telugu', label: 'Telugu' },
+                    { value: 'Kannada', label: 'Kannada' },
+                    { value: 'Malayalam', label: 'Malayalam' },
+                    { value: 'Marathi', label: 'Marathi' },
+                    { value: 'Bengali', label: 'Bengali' },
+                    { value: 'Gujarati', label: 'Gujarati' },
                   ]}
                 />
               </div>
