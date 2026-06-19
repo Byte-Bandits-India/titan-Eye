@@ -24,11 +24,7 @@ export default function App() {
     const saved = localStorage.getItem('titan_customers');
     if (saved) {
       try {
-        const parsed: Customer[] = JSON.parse(saved);
-        // Merge saved records with initialCustomers defaults so that new
-        // fields added to mockData.ts are backfilled into old saved records
-        const defaultsMap = Object.fromEntries(initialCustomers.map((c) => [c.id, c]));
-        return parsed.map((c) => ({ ...defaultsMap[c.id], ...c }));
+        return JSON.parse(saved);
       } catch {
         return initialCustomers;
       }

@@ -160,19 +160,13 @@ export function OptemPatientDetails({
       return;
     }
 
-    // Desktop: Try opening through local agent (which launches Chrome app mode side-by-side).
-    // If the local agent isn't running, fall back to opening the web client directly
-    // in a new tab, which completely bypasses the browser's native app prompt.
-    fetch(`${localAgentUrl}/open-teams`, { method: 'POST' })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Local agent failed');
-        }
-      })
-      .catch(() => {
-        // Fallback to Teams Web client (normal https link, no prompt)
-        window.open('https://teams.microsoft.com/v2/', '_blank');
-      });
+    // Desktop: fire URI scheme immediately (guaranteed to open app if installed)
+    window.location.href = 'msteams://';
+
+    // Also call server.js in parallel for Chrome PWA window positioning
+    fetch(`${localAgentUrl}/open-teams`, { method: 'POST' }).catch(() => {
+      // server.js not running — URI scheme above already handled it, nothing to do
+    });
   };
 
   const handleOpenTeamViewer = () => {

@@ -6,19 +6,25 @@ import path from 'path'
 
 const app = express()
 
-// Chrome Private Network Access: allow public sites to call localhost
-// Required since Chrome 94+ — without this, titaneye.duckdns.org → localhost is blocked
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Private-Network', 'true')
-  next()
-})
-
 // Allow cross-origin requests from any origin (needed for production site → localhost calls)
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
 }))
+
+// Chrome Private Network Access: allow public sites to call localhost
+// Required since Chrome 94+ — without this, titaneye.duckdns.org → localhost is blocked
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Private-Network', 'true')
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    return res.status(204).end()
+  }
+  next()
+})
 
 function getScreenSize(callback) {
   if (process.platform === 'darwin') {
