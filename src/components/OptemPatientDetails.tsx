@@ -146,14 +146,17 @@ export function OptemPatientDetails({
       description: `Initiating video consultation with patient ${form.name}...`,
       type: 'info',
     });
-    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teams`, { method: 'POST' }).catch((err) => {
-      console.error('Failed to open Teams:', err);
-      toast({
-        title: 'Call Error',
-        description: 'Failed to communicate with local service to open Teams.',
-        type: 'error',
+    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teams`, { method: 'POST' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      })
+      .catch(() => {
+        toast({
+          title: 'Local Agent Not Running',
+          description: 'Please start the local service on this machine: run "node server.js" in the project folder, then try again.',
+          type: 'error',
+        });
       });
-    });
   };
 
   const handleOpenTeamViewer = () => {
@@ -162,14 +165,17 @@ export function OptemPatientDetails({
       description: `Opening TeamViewer connection...`,
       type: 'info',
     });
-    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teamviewer`, { method: 'POST' }).catch((err) => {
-      console.error('Failed to open TeamViewer:', err);
-      toast({
-        title: 'Remote Control Error',
-        description: 'Failed to communicate with local service to open TeamViewer.',
-        type: 'error',
+    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teamviewer`, { method: 'POST' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      })
+      .catch(() => {
+        toast({
+          title: 'Local Agent Not Running',
+          description: 'Please start the local service on this machine: run "node server.js" in the project folder, then try again.',
+          type: 'error',
+        });
       });
-    });
   };
 
   return (
