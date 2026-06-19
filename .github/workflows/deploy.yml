@@ -24,7 +24,9 @@ jobs:
       - name: 🏗 Inject Environment Variables
         run: |
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env
+          echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
+          echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build

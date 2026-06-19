@@ -146,7 +146,7 @@ export function OptemPatientDetails({
       description: `Initiating video consultation with patient ${form.name}...`,
       type: 'info',
     });
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/open-teams`, { method: 'POST' }).catch((err) => {
+    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teams`, { method: 'POST' }).catch((err) => {
       console.error('Failed to open Teams:', err);
       toast({
         title: 'Call Error',
@@ -162,7 +162,7 @@ export function OptemPatientDetails({
       description: `Opening TeamViewer connection...`,
       type: 'info',
     });
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/open-teamviewer`, { method: 'POST' }).catch((err) => {
+    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teamviewer`, { method: 'POST' }).catch((err) => {
       console.error('Failed to open TeamViewer:', err);
       toast({
         title: 'Remote Control Error',
