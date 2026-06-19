@@ -178,15 +178,28 @@ export function OptemPatientDetails({
 
     if (isMobile) {
       if (isAndroid) {
-        // Android: intent URL with package name — opens app or redirects to Play Store
+        // Android: launch TeamViewer app by package name
+        // If app is installed → opens it. If not → falls back to Play Store.
         window.location.href =
-          'intent://teamviewer.com/#Intent;scheme=https;package=com.teamviewer.teamviewer.market.mobile;end';
+          'intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.teamviewer.teamviewer.market.mobile;end';
+
+        // Smart fallback: if page is still visible after 2.5s, app wasn't opened
+        // document.hidden becomes true when an app takes over the foreground
+        setTimeout(() => {
+          if (!document.hidden) {
+            window.open(
+              'https://play.google.com/store/apps/details?id=com.teamviewer.teamviewer.market.mobile',
+              '_blank'
+            );
+          }
+        }, 2500);
       } else {
         // iOS: teamviewer:// is registered by the TeamViewer iOS app
         window.location.href = 'teamviewer://';
-        // Fallback to App Store after 2.5s if not installed
         setTimeout(() => {
-          window.open('https://apps.apple.com/app/teamviewer-remote-control/id692045981', '_blank');
+          if (!document.hidden) {
+            window.open('https://apps.apple.com/app/teamviewer-remote-control/id692045981', '_blank');
+          }
         }, 2500);
       }
       return;
