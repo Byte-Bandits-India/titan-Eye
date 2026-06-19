@@ -142,6 +142,8 @@ export function OptemPatientDetails({
 
   // Detect mobile/tablet — server.js local agent cannot run on phones/tablets
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const localAgentUrl = import.meta.env.VITE_LOCAL_SERVICE_URL || 'http://localhost:3001/api';
 
   const handleInitiateCall = () => {
     toast({
@@ -151,24 +153,20 @@ export function OptemPatientDetails({
     });
 
     if (isMobile) {
-      // Use msteams:// protocol to open the native Teams app directly
-      // window.location.href bypasses popup blockers on mobile
+      // Mobile: msteams:// opens Teams app directly (bypasses popup blockers)
       window.location.href = 'msteams://';
-      // Fallback: open web Teams after 2s if app is not installed
-      setTimeout(() => {
-        window.open('https://teams.microsoft.com/v2/', '_blank');
-      }, 2000);
+      // Fallback to web Teams after 2s if app is not installed
+      setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
       return;
     }
 
-    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teams`, { method: 'POST' })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server responded ${res.status}`);
-      })
-      .catch(() => {
-        // Desktop fallback: try msteams:// protocol (works if Teams desktop app is installed)
-        window.location.href = 'msteams://';
-      });
+    // Desktop: fire URI scheme immediately (guaranteed to open app if installed)
+    window.location.href = 'msteams://';
+
+    // Also call server.js in parallel for Chrome PWA window positioning
+    fetch(`${localAgentUrl}/open-teams`, { method: 'POST' }).catch(() => {
+      // server.js not running — URI scheme above already handled it, nothing to do
+    });
   };
 
   const handleOpenTeamViewer = () => {
@@ -179,16 +177,14 @@ export function OptemPatientDetails({
     });
 
     if (isMobile) {
-      const isAndroid = /Android/i.test(navigator.userAgent);
       if (isAndroid) {
-        // Android: use intent URL with explicit package name
-        // Falls back to Play Store automatically if app is not installed
+        // Android: intent URL with package name — opens app or redirects to Play Store
         window.location.href =
           'intent://teamviewer.com/#Intent;scheme=https;package=com.teamviewer.teamviewer.market.mobile;end';
       } else {
         // iOS: teamviewer:// is registered by the TeamViewer iOS app
         window.location.href = 'teamviewer://';
-        // Fallback to App Store if not installed
+        // Fallback to App Store after 2.5s if not installed
         setTimeout(() => {
           window.open('https://apps.apple.com/app/teamviewer-remote-control/id692045981', '_blank');
         }, 2500);
@@ -196,15 +192,15 @@ export function OptemPatientDetails({
       return;
     }
 
-    fetch(`${import.meta.env.VITE_LOCAL_SERVICE_URL}/open-teamviewer`, { method: 'POST' })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server responded ${res.status}`);
-      })
-      .catch(() => {
-        // Desktop fallback: teamviewer:// works on Windows & Mac if app is installed
-        window.location.href = 'teamviewer://';
-      });
+    // Desktop: fire teamviewer:// immediately (registered on Windows & Mac by TeamViewer)
+    window.location.href = 'teamviewer://';
+
+    // Also call server.js in parallel for window auto-positioning
+    fetch(`${localAgentUrl}/open-teamviewer`, { method: 'POST' }).catch(() => {
+      // server.js not running — URI scheme above already handled it, nothing to do
+    });
   };
+
 
   return (
     <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
