@@ -89,24 +89,70 @@ function getTeamViewerPath() {
   }
 }
 
-// Teams (Chrome PWA) supports --window-position and --window-size flags directly
+// Teams: launch native app and position it
 app.post('/api/open-teams', (req, res) => {
+  let command = ''
+  if (process.platform === 'darwin') {
+    command = 'open msteams://'
+  } else if (process.platform === 'win32') {
+    command = 'start msteams://'
+  } else {
+    command = 'xdg-open msteams://'
+  }
+
+  exec(command, (err) => {
+    if (err) {
+      console.error('Failed to launch native Teams app:', err.message)
+    }
+  })
+
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2)
-    const chromePath = getChromePath()
     
-    const proc = spawn(chromePath, [
-      `--profile-directory=Profile 54`,
-      `--app=https://teams.microsoft.com/`,
-      `--window-position=0,0`,
-      `--window-size=${half},${sh}`,
-    ], { detached: true, stdio: 'ignore' })
-
-    proc.on('error', (err) => {
-      console.error('Failed to launch Teams Chrome app:', err.message)
-    })
-    proc.unref()
+    if (process.platform === 'darwin') {
+      setTimeout(() => {
+        const appleScript = `
+          tell application "System Events"
+            set procName to ""
+            if exists process "Microsoft Teams" then
+              set procName to "Microsoft Teams"
+            else if exists process "Microsoft Teams (work or school)" then
+              set procName to "Microsoft Teams (work or school)"
+            else if exists process "Teams" then
+              set procName to "Teams"
+            end if
+            
+            if procName is not "" then
+              tell process procName
+                if exists window 1 then
+                  set position of window 1 to {0, 22}
+                  set size of window 1 to {${half}, ${sh - 22}}
+                end if
+              end tell
+            end if
+          end tell
+        `
+        exec(`osascript -e '${appleScript}'`, (errScript) => {
+          if (errScript) console.error('AppleScript Teams window position failed:', errScript.message)
+        })
+      }, 3000)
+    } else if (process.platform === 'win32') {
+      setTimeout(() => {
+        const psScript = `
+          $definition = '[DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);';
+          $type = Add-Type -MemberDefinition $definition -Name "Win32MoveWindow" -Namespace "Win32" -PassThru;
+          $process = Get-Process | Where-Object { $_.ProcessName -like "*Teams*" } | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1;
+          if ($process) {
+              $type::MoveWindow($process.MainWindowHandle, 0, 0, ${half}, ${sh}, $true);
+          }
+        `
+        exec(`powershell -command "${psScript.replace(/\n/g, ' ')}"`, (errScript) => {
+          if (errScript) console.error('PowerShell Teams window position failed:', errScript.message)
+        })
+      }, 3000)
+    }
   })
+
   res.json({ ok: true })
 })
 
