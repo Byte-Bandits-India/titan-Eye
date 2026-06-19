@@ -179,12 +179,20 @@ export function OptemPatientDetails({
     });
 
     if (isMobile) {
-      // Use teamviewer:// protocol to open the native TeamViewer app directly
-      window.location.href = 'teamviewer://';
-      // Fallback: open download page after 2.5s if app is not installed
-      setTimeout(() => {
-        window.open('https://www.teamviewer.com/en/download/', '_blank');
-      }, 2500);
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        // Android: use intent URL with explicit package name
+        // Falls back to Play Store automatically if app is not installed
+        window.location.href =
+          'intent://teamviewer.com/#Intent;scheme=https;package=com.teamviewer.teamviewer.market.mobile;end';
+      } else {
+        // iOS: teamviewer:// is registered by the TeamViewer iOS app
+        window.location.href = 'teamviewer://';
+        // Fallback to App Store if not installed
+        setTimeout(() => {
+          window.open('https://apps.apple.com/app/teamviewer-remote-control/id692045981', '_blank');
+        }, 2500);
+      }
       return;
     }
 
@@ -193,7 +201,7 @@ export function OptemPatientDetails({
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
       })
       .catch(() => {
-        // Desktop fallback: try teamviewer:// protocol directly
+        // Desktop fallback: teamviewer:// works on Windows & Mac if app is installed
         window.location.href = 'teamviewer://';
       });
   };
