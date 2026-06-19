@@ -1,0 +1,94 @@
+name: 🚀 Build & Deploy Titan React App
+
+on:
+  push:
+    branches:
+      - main
+      - development
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🏗 Inject Environment Variables
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
+          else
+            echo "VITE_API_BASE_URL=http://dev-titaneye.duckdns.org/api" > .env.production
+          fi
+
+      - name: 🏗 Build Vite App
+        run: npm run build
+
+      - name: 📦 Create Deployment Package
+        run: |
+          tar -czf deploy.tar.gz \
+            dist \
+            package.json \
+            package-lock.json
+
+      - name: 📤 Upload to Server (SCP)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy.tar.gz"
+          target: "/var/www/"
+
+      - name: 🚀 Deploy on Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+          script: |
+            echo "🚀 Starting deployment..."
+
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              echo "📦 PRODUCTION DEPLOY"
+              APP_DIR="/var/www/titan/prod"
+              PORT=3000
+              APP_NAME="titan-prod"
+            else
+              echo "🧪 STAGING DEPLOY"
+              APP_DIR="/var/www/titan/dev"
+              PORT=3001
+              APP_NAME="titan-staging"
+            fi
+
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+
+            echo "🧹 Cleaning old files..."
+            rm -rf dist node_modules package.json package-lock.json
+
+            echo "📦 Extracting new build..."
+            tar -xzf /var/www/deploy.tar.gz -C $APP_DIR
+
+            echo "🔁 Restarting PM2..."
+
+            pm2 describe $APP_NAME > /dev/null
+            if [ $? -eq 0 ]; then
+              pm2 restart $APP_NAME --update-env
+            else
+              pm2 serve dist $PORT --spa --name "$APP_NAME"
+            fi
+
+            pm2 save
+
+            echo "✅ Deployment completed!"

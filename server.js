@@ -1,60 +1,186 @@
 import express from 'express'
 import cors from 'cors'
 import { exec, spawn } from 'child_process'
+import fs from 'fs'
+import path from 'path'
 
 const app = express()
 app.use(cors())
 
 function getScreenSize(callback) {
-  exec('DISPLAY=:0 xdotool getdisplaygeometry', (err, out) => {
-    if (err) return callback(1920, 1080)
-    const [w, h] = out.trim().split(' ').map(Number)
-    callback(w, h)
-  })
+  if (process.platform === 'darwin') {
+    // macOS: Use AppleScript to find desktop window bounds
+    exec('osascript -e "tell application \\"Finder\\" to get bounds of window of desktop"', (err, out) => {
+      if (err) return callback(1920, 1080)
+      const parts = out.trim().split(',').map(Number)
+      if (parts.length >= 4) {
+        const w = parts[2]
+        const h = parts[3]
+        return callback(w, h)
+      }
+      callback(1920, 1080)
+    })
+  } else if (process.platform === 'win32') {
+    // Windows: Use PowerShell to get primary screen size
+    const command = `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width; [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height"`
+    exec(command, (err, out) => {
+      if (err) return callback(1920, 1080)
+      const parts = out.trim().split(/\r?\n/).map(Number)
+      if (parts.length >= 2) {
+        return callback(parts[0], parts[1])
+      }
+      callback(1920, 1080)
+    })
+  } else {
+    // Linux: Use xdotool
+    exec('DISPLAY=:0 xdotool getdisplaygeometry', (err, out) => {
+      if (err) return callback(1920, 1080)
+      const [w, h] = out.trim().split(' ').map(Number)
+      callback(w, h)
+    })
+  }
+}
+
+function getChromePath() {
+  if (process.platform === 'win32') {
+    const paths = [
+      path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Google\\Chrome\\Application\\chrome.exe'),
+      path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Google\\Chrome\\Application\\chrome.exe'),
+      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe')
+    ]
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p
+    }
+    return 'chrome.exe'
+  } else if (process.platform === 'darwin') {
+    return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+  } else {
+    return 'google-chrome'
+  }
+}
+
+function getTeamViewerPath() {
+  if (process.platform === 'win32') {
+    const paths = [
+      path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'TeamViewer\\TeamViewer.exe'),
+      path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'TeamViewer\\TeamViewer.exe')
+    ]
+    for (const p of paths) {
+      if (fs.existsSync(p)) return p
+    }
+    return 'TeamViewer.exe'
+  } else if (process.platform === 'darwin') {
+    return 'TeamViewer' // opened via 'open -a TeamViewer'
+  } else {
+    return 'teamviewer' // Linux
+  }
 }
 
 // Teams (Chrome PWA) supports --window-position and --window-size flags directly
 app.post('/api/open-teams', (req, res) => {
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2)
-    spawn('/opt/google/chrome/google-chrome', [
+    const chromePath = getChromePath()
+    
+    const proc = spawn(chromePath, [
       `--profile-directory=Profile 54`,
-      `--app-id=ompifgpmddkgmclendfeacglnodjjndh`,
+      `--app=https://teams.microsoft.com/`,
       `--window-position=0,0`,
       `--window-size=${half},${sh}`,
-    ], { detached: true, stdio: 'ignore' }).unref()
+    ], { detached: true, stdio: 'ignore' })
+
+    proc.on('error', (err) => {
+      console.error('Failed to launch Teams Chrome app:', err.message)
+    })
+    proc.unref()
   })
   res.json({ ok: true })
 })
 
-// TeamViewer: launch then track by PID and position via xdotool
+// TeamViewer: launch then track window and position
 app.post('/api/open-teamviewer', (req, res) => {
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2)
     const x = half
 
-    const proc = spawn('teamviewer', [], { detached: true, stdio: 'ignore' })
-    proc.unref()
-    const pid = proc.pid
-
-    // Wait for window to appear, search by pid
-    let attempts = 0
-    const interval = setInterval(() => {
-      attempts++
-      exec(`DISPLAY=:0 xdotool search --pid ${pid} 2>/dev/null | head -1`, (err, wid) => {
-        wid = wid?.trim()
-        if (wid) {
-          clearInterval(interval)
-          exec(`DISPLAY=:0 xdotool windowstate --remove MAXIMIZED_VERT --remove MAXIMIZED_HORZ ${wid}`, () => {
-            setTimeout(() => {
-              exec(`DISPLAY=:0 xdotool windowmove --sync ${wid} ${x} 0`)
-              exec(`DISPLAY=:0 xdotool windowsize --sync ${wid} ${half} ${sh}`)
-            }, 500)
-          })
-        }
-        if (attempts > 20) clearInterval(interval) // give up after 10s
+    if (process.platform === 'darwin') {
+      // macOS: Launch using open command for TeamViewer only
+      const proc = spawn('open', ['-a', 'TeamViewer'], { detached: true, stdio: 'ignore' })
+      proc.on('error', (err) => {
+        console.error('Failed to execute open command for TeamViewer:', err.message)
       })
-    }, 500)
+      proc.unref()
+
+      // macOS AppleScript to position TeamViewer window 
+      setTimeout(() => {
+        const appleScript = `
+          tell application "System Events"
+            tell process "TeamViewer"
+              if exists window 1 then
+                set position of window 1 to {${x}, 22}
+                set size of window 1 to {${half}, ${sh - 22}}
+              end if
+            end tell
+          end tell
+        `
+        exec(`osascript -e '${appleScript}'`, (errScript) => {
+          if (errScript) console.error('AppleScript TeamViewer window position failed:', errScript.message)
+        })
+      }, 2000)
+
+    } else if (process.platform === 'win32') {
+      // Windows: Launch TeamViewer
+      const tvPath = getTeamViewerPath()
+      const proc = spawn(tvPath, [], { detached: true, stdio: 'ignore' })
+      proc.on('error', (err) => {
+        console.error('Failed to spawn TeamViewer on Windows:', err.message)
+      })
+      proc.unref()
+
+      // Position the window using PowerShell and Win32 MoveWindow API
+      setTimeout(() => {
+        const psScript = `
+          $definition = '[DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);';
+          $type = Add-Type -MemberDefinition $definition -Name "Win32MoveWindow" -Namespace "Win32" -PassThru;
+          $process = Get-Process -Name "TeamViewer" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1;
+          if ($process) {
+              $type::MoveWindow($process.MainWindowHandle, ${x}, 0, ${half}, ${sh}, $true);
+          }
+        `
+        exec(`powershell -command "${psScript.replace(/\n/g, ' ')}"`, (errScript) => {
+          if (errScript) console.error('PowerShell TeamViewer window position failed:', errScript.message)
+        })
+      }, 2000)
+
+    } else {
+      // Linux: Launch and track via xdotool
+      const proc = spawn('teamviewer', [], { detached: true, stdio: 'ignore' })
+      proc.on('error', (err) => {
+        console.error('Failed to spawn teamviewer binary:', err.message)
+      })
+      proc.unref()
+      
+      const pid = proc.pid
+      if (pid) {
+        let attempts = 0
+        const interval = setInterval(() => {
+          attempts++
+          exec(`DISPLAY=:0 xdotool search --pid ${pid} 2>/dev/null | head -1`, (err, wid) => {
+            wid = wid?.trim()
+            if (wid) {
+              clearInterval(interval)
+              exec(`DISPLAY=:0 xdotool windowstate --remove MAXIMIZED_VERT --remove MAXIMIZED_HORZ ${wid}`, () => {
+                setTimeout(() => {
+                  exec(`DISPLAY=:0 xdotool windowmove --sync ${wid} ${x} 0`)
+                  exec(`DISPLAY=:0 xdotool windowsize --sync ${wid} ${half} ${sh}`)
+                }, 500)
+              })
+            }
+            if (attempts > 20) clearInterval(interval)
+          })
+        }, 500)
+      }
+    }
   })
   res.json({ ok: true })
 })
