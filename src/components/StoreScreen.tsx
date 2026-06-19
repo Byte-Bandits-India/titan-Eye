@@ -69,11 +69,16 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
 
   // Stats derivation
   const stats = React.useMemo(() => {
-    const active = customers.filter((c) => c.status === 'Initiated' || c.status === 'Pending').length;
-    const pending = customers.filter((c) => c.status === 'Pending').length;
+    const active = customers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted').length;
+    const pending = customers.filter((c) => c.status === 'Initiated').length;
     const completed = customers.filter((c) => c.status === 'Completed').length;
+    const todayStr = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
     const today = customers.filter(
-      (c) => c.lastUpdatedOn?.includes('Jun 19, 2026')
+      (c) => c.lastUpdatedOn?.includes(todayStr)
     ).length;
 
     return { active, pending, completed, today };

@@ -45,14 +45,20 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
     // Large counts matching screenshot:
     // Active Tests: 477, Pending Review: 455, Completed: 6, Today's Patients: 1
     // We add dynamic adjustments based on local mock edits:
-    const active = 470 + customers.filter((c) => c.status === 'Initiated' || c.status === 'Pending').length;
-    const pending = 450 + customers.filter((c) => c.status === 'Pending').length;
-    const completed = 5 + customers.filter((c) => c.status === 'Completed').length;
+    const active = customers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted').length;
+    const pending = customers.filter((c) => c.status === 'Initiated').length;
+    const completed = customers.filter((c) => c.status === 'Completed').length;
+    
+    const todayStr = new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
     const today = customers.filter(
-      (c) => c.lastUpdatedOn?.includes('Jun 19, 2026')
+      (c) => c.lastUpdatedOn?.includes(todayStr)
     ).length;
 
-    return { active, pending, completed, today: Math.max(1, today) };
+    return { active, pending, completed, today };
   }, [customers]);
 
   // Filter incoming requests (usually Initiated/Pending, or let's show all for the live feed)

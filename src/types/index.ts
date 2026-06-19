@@ -1,4 +1,4 @@
-export type CustomerStatus = 'Initiated' | 'Accepted' | 'Pending' | 'Rejected' | 'Completed';
+export type CustomerStatus = 'Initiated' | 'Accepted' | 'Completed';
 
 export interface RxValues {
   sph: string;

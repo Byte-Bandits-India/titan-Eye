@@ -17,7 +17,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -31,45 +31,43 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
     setIsLoading(true);
 
-    // Simulate network authentication latency
-    setTimeout(() => {
-      setIsLoading(false);
-      
-      const cleanEmail = email.trim().toLowerCase();
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-      // Check credentials
-      if (cleanEmail === 'store@gmail.com' && password === 'pass@123') {
-        const user: User = {
-          email: 'store@gmail.com',
-          name: 'Meena',
-          role: 'store',
-        };
+    try {
+      const response = await fetch(`${apiBaseUrl}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      setIsLoading(false);
+
+      if (response.ok) {
+        const data = await response.json();
         toast({
           title: 'Success',
-          description: 'Logged into Store Portal successfully.',
+          description: `Logged in as ${data.user.name} successfully.`,
           type: 'success',
         });
-        onLoginSuccess(user);
-      } else if (cleanEmail === 'optem@gmail.com' && password === 'pass@123') {
-        const user: User = {
-          email: 'optem@gmail.com',
-          name: 'Dr. Priya',
-          role: 'optem',
-        };
-        toast({
-          title: 'Success',
-          description: 'Logged into Optem Portal successfully.',
-          type: 'success',
-        });
-        onLoginSuccess(user);
+        onLoginSuccess(data.user);
       } else {
+        const data = await response.json().catch(() => ({}));
         toast({
           title: 'Authentication Failed',
-          description: 'Invalid email or password. Please use store@gmail.com or optem@gmail.com with password pass@123.',
+          description: data.error || 'Invalid email or password.',
           type: 'error',
         });
       }
-    }, 900);
+    } catch (err) {
+      setIsLoading(false);
+      toast({
+        title: 'Network Error',
+        description: 'Failed to connect to the authentication server.',
+        type: 'error',
+      });
+    }
   };
 
   return (

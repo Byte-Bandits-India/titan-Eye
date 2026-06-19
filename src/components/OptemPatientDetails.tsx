@@ -100,44 +100,60 @@ export function OptemPatientDetails({
     e.preventDefault();
     if (!selectedCustomer) return;
 
-    setCustomers((prev) =>
-      prev.map((c) =>
-        c.id === selectedCustomer.id
-          ? {
-              ...c,
-              name: form.name,
-              age: form.age,
-              gender: form.gender,
-              mobile: form.mobile,
-              customerType: form.customerType,
-              preferredLanguage: form.preferredLanguage,
-              storeFeedback: form.storeFeedback,
-              optumFeedback: form.optumFeedback,
-              status: form.status,
-              activeProfile: form.activeProfile,
-              rxData: rxForm,
-              optomRxData: optomRxForm,
-              lastUpdatedOn: new Date().toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true,
-              }),
-            }
-          : c
-      )
-    );
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-    toast({
-      title: 'Success',
-      description: 'Customer assessment and feedback updated successfully.',
-      type: 'success',
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
     });
 
-    onBack();
+    const updatedCustomer: Customer = {
+      ...selectedCustomer,
+      name: form.name,
+      age: form.age,
+      gender: form.gender,
+      mobile: form.mobile,
+      customerType: form.customerType,
+      preferredLanguage: form.preferredLanguage,
+      storeFeedback: form.storeFeedback,
+      optumFeedback: form.optumFeedback,
+      status: form.status,
+      activeProfile: form.activeProfile,
+      rxData: rxForm,
+      optomRxData: optomRxForm,
+      lastUpdatedOn: timestamp,
+    };
+
+    fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedCustomer),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to update database');
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === selectedCustomer.id ? updatedCustomer : c))
+        );
+        toast({
+          title: 'Success',
+          description: 'Customer assessment and feedback updated successfully.',
+          type: 'success',
+        });
+        onBack();
+      })
+      .catch((err) => {
+        console.error(err);
+        toast({
+          title: 'Error Saving Assessment',
+          description: 'Failed to connect to backend database.',
+          type: 'error',
+        });
+      });
   };
 
   // Detect mobile/tablet — server.js local agent cannot run on phones/tablets
@@ -545,9 +561,7 @@ export function OptemPatientDetails({
                 onChange={(e) => setField('status')(e.target.value as CustomerStatus)}
                 options={[
                   { value: 'Initiated', label: 'Initiated' },
-                  { value: 'Pending', label: 'Pending' },
                   { value: 'Accepted', label: 'Accepted' },
-                  { value: 'Rejected', label: 'Rejected' },
                   { value: 'Completed', label: 'Completed' },
                 ]}
               />

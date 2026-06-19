@@ -135,6 +135,8 @@ export function StorePatientDetails({
       hour12: true,
     });
 
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
     if (isAddingNew) {
       // Generate new ID
       const numericIds = customers
@@ -161,48 +163,75 @@ export function StorePatientDetails({
         rxData: rxForm,
       };
 
-      setCustomers((prev) => [newCustomer, ...prev]);
-      setSelectedCustomerId(newId);
-      onBack();
-
-      toast({
-        title: 'Patient Registered',
-        description: `Successfully added ${form.name} with ID ${newId}`,
-        type: 'success',
-      });
+      fetch(`${apiBaseUrl}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newCustomer),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to save to database');
+          setCustomers((prev) => [newCustomer, ...prev]);
+          setSelectedCustomerId(newId);
+          onBack();
+          toast({
+            title: 'Patient Registered',
+            description: `Successfully added ${form.name} with ID ${newId}`,
+            type: 'success',
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          toast({
+            title: 'Error Saving Patient',
+            description: 'Failed to connect to backend database.',
+            type: 'error',
+          });
+        });
     } else {
       if (!selectedCustomer) return;
 
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === selectedCustomer.id
-            ? {
-                ...c,
-                name: form.name,
-                age: form.age,
-                gender: form.gender,
-                mobile: form.mobile,
-                customerType: form.customerType,
-                storeName: form.storeName,
-                preferredLanguage: form.preferredLanguage,
-                preferredLanguage2: form.preferredLanguage2,
-                storeFeedback: form.storeFeedback,
-                status: form.status,
-                activeProfile: form.activeProfile,
-                lastUpdatedOn: `${timestamp}`,
-                rxData: rxForm,
-              }
-            : c
-        )
-      );
+      const updatedCustomer: Customer = {
+        ...selectedCustomer,
+        name: form.name,
+        age: form.age,
+        gender: form.gender,
+        mobile: form.mobile,
+        customerType: form.customerType,
+        storeName: form.storeName,
+        preferredLanguage: form.preferredLanguage,
+        preferredLanguage2: form.preferredLanguage2,
+        storeFeedback: form.storeFeedback,
+        status: form.status,
+        activeProfile: form.activeProfile,
+        lastUpdatedOn: `${timestamp}`,
+        rxData: rxForm,
+      };
 
-      onBack();
-
-      toast({
-        title: 'Profile Updated',
-        description: `Patient details for ${form.name} have been updated.`,
-        type: 'success',
-      });
+      fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedCustomer),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to update database');
+          setCustomers((prev) =>
+            prev.map((c) => (c.id === selectedCustomer.id ? updatedCustomer : c))
+          );
+          onBack();
+          toast({
+            title: 'Profile Updated',
+            description: `Patient details for ${form.name} have been updated.`,
+            type: 'success',
+          });
+        })
+        .catch((err) => {
+          console.error(err);
+          toast({
+            title: 'Error Updating Patient',
+            description: 'Failed to connect to backend database.',
+            type: 'error',
+          });
+        });
     }
   };
 
