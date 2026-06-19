@@ -44,11 +44,11 @@ jobs:
 
       - name: 📤 Upload to Server (SCP)
         run: |
-          scp -i ~/.ssh/id_rsa deploy.tar.gz ubuntu@${{ secrets.SERVER_IP }}:/tmp/
+          scp -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
 
       - name: 🚀 Deploy on Server (SSH)
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
             echo "🚀 Starting deployment..."
             echo "📦 PRODUCTION DEPLOY"
 
