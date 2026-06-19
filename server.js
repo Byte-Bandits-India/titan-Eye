@@ -309,7 +309,10 @@ async function initDb() {
 }
 initDb().catch(console.error);
 
-// --- API Endpoints for Data Persistence ---
+// Ping endpoint for latency measurement
+app.get('/api/ping', (req, res) => {
+  res.sendStatus(200)
+})
 
 // User Login Authentication
 app.post('/api/login', async (req, res) => {

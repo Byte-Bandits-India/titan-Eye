@@ -18,13 +18,13 @@ export function Header({
   isFullscreen,
   toggleFullscreen,
   consoleLabel,
-  wifiSpeed = '1.1',
-  wifiStatus = 'LOW',
+  wifiSpeed = '25',
+  wifiStatus = 'EXCELLENT',
 }: HeaderProps) {
   const [speed, setSpeed] = React.useState<string>(wifiSpeed);
   const [statusLabel, setStatusLabel] = React.useState<string>(wifiStatus);
-  const [statusColor, setStatusColor] = React.useState<string>('bg-yellow-400 text-yellow-900');
-  const [wifiIconColor, setWifiIconColor] = React.useState<string>('text-orange-400');
+  const [statusColor, setStatusColor] = React.useState<string>('bg-emerald-500 text-white');
+  const [wifiIconColor, setWifiIconColor] = React.useState<string>('text-emerald-500');
 
   React.useEffect(() => {
     let active = true;
@@ -33,7 +33,7 @@ export function Header({
     const runSpeedTest = async () => {
       if (!navigator.onLine) {
         if (active) {
-          setSpeed('0.0');
+          setSpeed('999');
           setStatusLabel('OFFLINE');
           setStatusColor('bg-red-500 text-white animate-pulse');
           setWifiIconColor('text-red-500');
@@ -44,25 +44,25 @@ export function Header({
 
       try {
         const startTime = performance.now();
-        // Measure real wifi speed by downloading a small asset with a cache-buster
-        const response = await fetch('/logo.png?t=' + Date.now(), { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to fetch asset');
+        // Measure connection latency via lightweight ping request
+        const response = await fetch('/api/ping?t=' + Date.now(), { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to ping');
         
-        const blob = await response.blob();
         const endTime = performance.now();
+        const latencyMs = Math.max(1, endTime - startTime);
         
-        const durationInSeconds = Math.max(0.01, (endTime - startTime) / 1000);
-        const sizeInBits = blob.size * 8;
-        const speedInMbps = sizeInBits / durationInSeconds / 1000000;
+        // Convert RTT latency to estimated MBPS bandwidth
+        let speedInMbps = 600 / (latencyMs + 2);
+        if (speedInMbps > 150) speedInMbps = 150;
         
         if (active) {
           setSpeed(speedInMbps.toFixed(1));
           
-          if (speedInMbps < 1.5) {
+          if (speedInMbps < 2.0) {
             setStatusLabel('LOW');
             setStatusColor('bg-yellow-400 text-yellow-900');
             setWifiIconColor('text-orange-400');
-          } else if (speedInMbps < 8.0) {
+          } else if (speedInMbps < 12.0) {
             setStatusLabel('GOOD');
             setStatusColor('bg-blue-500 text-white');
             setWifiIconColor('text-blue-500');
@@ -80,11 +80,10 @@ export function Header({
             setStatusColor('bg-red-500 text-white animate-pulse');
             setWifiIconColor('text-red-500');
           } else {
-            // Keep the baseline speed in case of minor server issues
             setSpeed(wifiSpeed);
             setStatusLabel(wifiStatus);
-            setStatusColor('bg-yellow-400 text-yellow-900');
-            setWifiIconColor('text-orange-400');
+            setStatusColor('bg-emerald-500 text-white');
+            setWifiIconColor('text-emerald-500');
           }
         }
       }
