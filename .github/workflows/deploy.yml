@@ -35,27 +35,20 @@ jobs:
             package.json \
             package-lock.json
 
+      - name: 🔑 Configure SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+
       - name: 📤 Upload to Server (SCP)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "deploy.tar.gz"
-          target: "/tmp/"
-          timeout: 120s
-          debug: true
+        run: |
+          scp -i ~/.ssh/id_rsa deploy.tar.gz root@${{ secrets.SERVER_IP }}:/tmp/
 
-      - name: 🚀 Deploy on Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          timeout: 120s
-          debug: true
-
-          script: |
+      - name: 🚀 Deploy on Server (SSH)
+        run: |
+          ssh -i ~/.ssh/id_rsa root@${{ secrets.SERVER_IP }} << 'EOF'
             echo "🚀 Starting deployment..."
             echo "📦 PRODUCTION DEPLOY"
 
@@ -85,3 +78,4 @@ jobs:
             pm2 save
 
             echo "✅ Deployment completed!"
+          EOF
