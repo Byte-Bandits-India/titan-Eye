@@ -73,7 +73,7 @@ jobs:
             rm -f /tmp/deploy.tar.gz
 
             echo "📦 Installing production dependencies..."
-            npm install --omit=dev
+            npm install --omit=dev --build-from-source
 
             echo "🔁 Restarting PM2 static site (titan-prod)..."
             pm2 describe $APP_NAME > /dev/null 2>&1
