@@ -734,15 +734,31 @@ export function OptemPatientDetails({
                   Initiate Call
                 </Button>
               )}
-              <Button
-                type="button"
-                onClick={handleOpenTeamViewer}
-                className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
-                title="Open TeamViewer Remote Control"
-              >
-                <Monitor size={16} />
-                Open TeamViewer
-              </Button>
+              {selectedCustomer?.callActive ? (
+                <Button
+                  type="button"
+                  disabled
+                  className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0"
+                  title={
+                    selectedCustomer.callTakenBy === (localStorage.getItem('titan_user') ? JSON.parse(localStorage.getItem('titan_user') || '{}').name : '')
+                      ? "TeamViewer blocked: Call active"
+                      : `TeamViewer blocked: call taken by ${selectedCustomer.callTakenBy}`
+                  }
+                >
+                  <Monitor size={16} />
+                  Open TeamViewer
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleOpenTeamViewer}
+                  className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
+                  title="Open TeamViewer Remote Control"
+                >
+                  <Monitor size={16} />
+                  Open TeamViewer
+                </Button>
+              )}
               <Button
                 type="submit"
                 className="rounded-xl px-4 h-10 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
