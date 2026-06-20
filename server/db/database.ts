@@ -83,15 +83,18 @@ export async function initDb(): Promise<void> {
     FROM customers
   `);
 
-  // Seed default users if empty
-  const userCount = await get('SELECT COUNT(*) as count FROM users');
-  if (userCount.count === 0) {
-    await run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-      'store@gmail.com', 'Meena', 'store', 'pass@123'
-    ]);
-    await run('INSERT INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-      'optem@gmail.com', 'Dr. Priya', 'optem', 'pass@123'
-    ]);
-    console.log('Seeded default users.');
-  }
+  // Seed default users if they do not exist
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'store@gmail.com', 'Meena', 'store', 'pass@123'
+  ]);
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'store2@gmail.com', 'Rahul', 'store', 'pass@123'
+  ]);
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'store3@gmail.com', 'Sonia', 'store', 'pass@123'
+  ]);
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'optem@gmail.com', 'Dr. Priya', 'optem', 'pass@123'
+  ]);
+  console.log('Seeded default users.');
 }
