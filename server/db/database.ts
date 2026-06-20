@@ -96,5 +96,11 @@ export async function initDb(): Promise<void> {
   await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
     'optem@gmail.com', 'Dr. Priya', 'optem', 'pass@123'
   ]);
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'optem2@gmail.com', 'Dr. Amit', 'optem', 'pass@123'
+  ]);
+  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
+    'optem3@gmail.com', 'Dr. Vikram', 'optem', 'pass@123'
+  ]);
   console.log('Seeded default users.');
 }

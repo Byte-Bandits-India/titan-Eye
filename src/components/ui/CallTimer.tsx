@@ -31,6 +31,10 @@ export function CallTimer({ startTime, active }: CallTimerProps) {
         return;
       }
       const diffSecs = Math.floor(diffMs / 1000);
+      if (diffSecs >= 3599) {
+        setElapsed('59m:59s');
+        return;
+      }
       const minutes = Math.floor(diffSecs / 60);
       const seconds = diffSecs % 60;
       

@@ -138,8 +138,8 @@ function SseListener({ apiBaseUrl, user, customers, setCustomers }: SseListenerP
           
           if (data.callActive && (!oldCust || !oldCust.callActive)) {
             toast({
-              title: 'Call Active',
-              description: `Video call active for ${data.name} (ID: ${data.id}), initiated by ${data.callTakenBy}.`,
+              title: 'Call Initiated',
+              description: `Call initiated by ${data.storeName} for ${data.name}.`,
               type: 'info',
             });
           } else if (!data.callActive && oldCust && oldCust.callActive) {

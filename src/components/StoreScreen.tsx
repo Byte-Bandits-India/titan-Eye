@@ -38,6 +38,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [loadingCallId, setLoadingCallId] = React.useState<string | null>(null);
+  const [collisionModalData, setCollisionModalData] = React.useState<{ id: string; name: string; takenBy: string } | null>(null);
   const itemsPerPage = 8;
   const { toast } = useToast();
 
@@ -69,6 +70,9 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
       }
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Session expired or unauthorized. Please log out and log in again.');
+        }
         throw new Error('Failed to initiate call');
       }
 
@@ -93,11 +97,11 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         }
       }).catch(() => {});
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast({
         title: 'System Error',
-        description: 'Failed to connect to the server to initiate call.',
+        description: err.message || 'Failed to connect to the server to initiate call.',
         type: 'error',
       });
     } finally {
@@ -119,24 +123,23 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         },
       });
 
-      if (response.ok) {
-        toast({
-          title: 'Call Ended',
-          description: 'The call session has been closed successfully.',
-          type: 'info',
-        });
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to terminate call session on the server.',
-          type: 'error',
-        });
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Session expired or unauthorized. Please log out and log in again.');
+        }
+        throw new Error('Failed to terminate call session on the server.');
       }
-    } catch (err) {
+
+      toast({
+        title: 'Call Ended',
+        description: 'The call session has been closed successfully.',
+        type: 'info',
+      });
+    } catch (err: any) {
       console.error(err);
       toast({
         title: 'System Error',
-        description: 'Failed to connect to the server to end call.',
+        description: err.message || 'Failed to connect to the server to end call.',
         type: 'error',
       });
     } finally {
@@ -397,15 +400,13 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                                   <Button
                                     onClick={() => handleEndCall(cust.id)}
                                     disabled={loadingCallId === cust.id}
-                                    className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
+                                    className="h-8 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border border-gray-300"
                                     title="End Call Session"
                                   >
                                     {loadingCallId === cust.id ? (
-                                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                                    )}
-                                    End Call
+                                      <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : null}
+                                    Call Initiated
                                   </Button>
                                 ) : (
                                   <Button
@@ -439,8 +440,12 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                               size="sm"
                               className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
                               onClick={() => {
-                                handleSelectCustomer(cust.id);
-                                setIsEditing(true);
+                                if (cust.callActive && cust.callTakenBy && cust.callTakenBy !== user.name) {
+                                  setCollisionModalData({ id: cust.id, name: cust.name, takenBy: cust.callTakenBy });
+                                } else {
+                                  handleSelectCustomer(cust.id);
+                                  setIsEditing(true);
+                                }
                               }}
                             >
                               View
@@ -498,6 +503,38 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
           <span className="text-blue-600 font-bold hover:underline cursor-pointer">titan.co.in</span>
         </div>
       </footer>
+
+      {collisionModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[2px]">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h3 className="text-base font-bold text-gray-900 mb-2">Call Already Taken</h3>
+            <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+              This call is already taken by <strong className="text-gray-800">{collisionModalData.takenBy}</strong>. Do you want to view the data?
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-4 text-xs font-bold rounded-xl"
+                onClick={() => setCollisionModalData(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 px-4 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => {
+                  handleSelectCustomer(collisionModalData.id);
+                  setIsEditing(true);
+                  setCollisionModalData(null);
+                }}
+              >
+                View Data
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

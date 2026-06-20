@@ -700,15 +700,13 @@ export function OptemPatientDetails({
                     type="button"
                     onClick={handleEndCall}
                     disabled={isCallLoading}
-                    className="rounded-xl px-4 h-10 bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border-0"
+                    className="rounded-xl px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-300"
                     title="End Call Session"
                   >
                     {isCallLoading ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                    )}
-                    End Call
+                      <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                    ) : null}
+                    Call Initiated
                   </Button>
                 ) : (
                   <Button

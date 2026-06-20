@@ -38,7 +38,7 @@ export function Header({
           setStatusColor('bg-red-500 text-white animate-pulse');
           setWifiIconColor('text-red-500');
         }
-        timeoutId = setTimeout(runSpeedTest, 5000);
+        timeoutId = setTimeout(runSpeedTest, 1000);
         return;
       }
 
