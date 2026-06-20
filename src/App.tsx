@@ -23,10 +23,23 @@ export default function App() {
 
   const [customers, setCustomers] = React.useState<Customer[]>([]);
 
+  const handleLogout = React.useCallback(() => {
+    setUser(null);
+  }, []);
+
   // Fetch customers from SQLite backend
   const fetchCustomers = React.useCallback(async () => {
+    if (!user || !user.token) return;
     try {
-      const response = await fetch(`${apiBaseUrl}/customers`);
+      const response = await fetch(`${apiBaseUrl}/customers`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
+      });
+      if (response.status === 401) {
+        handleLogout();
+        return;
+      }
       if (response.ok) {
         const data = await response.json();
         setCustomers(data);
@@ -36,7 +49,7 @@ export default function App() {
     } catch (err) {
       console.error('Error fetching customers:', err);
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, user, handleLogout]);
 
   // Fetch whenever user logs in or mounts
   React.useEffect(() => {
@@ -56,10 +69,6 @@ export default function App() {
 
   const handleLoginSuccess = (loggedInUser: User) => {
     setUser(loggedInUser);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
   };
 
   return (

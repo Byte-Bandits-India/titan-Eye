@@ -4,6 +4,48 @@ import { exec, spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import sqlite3 from 'sqlite3'
+import crypto from 'crypto'
+
+const JWT_SECRET = 'titan-eye-secret-key-987654321'
+
+function generateToken(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 24 * 60 * 60 * 1000 })).toString('base64url')
+  const signature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url')
+  return `${header}.${body}.${signature}`
+}
+
+function verifyToken(token) {
+  try {
+    const [header, body, signature] = token.split('.')
+    if (!header || !body || !signature) return null
+    const expectedSignature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url')
+    if (signature !== expectedSignature) return null
+    
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
+    if (payload.exp && Date.now() > payload.exp) return null
+    return payload
+  } catch (err) {
+    return null
+  }
+}
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization']
+  const token = authHeader && authHeader.split(' ')[1]
+  
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' })
+  }
+  
+  const user = verifyToken(token)
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid or expired token' })
+  }
+  
+  req.user = user
+  next()
+}
 
 const app = express()
 
@@ -16,7 +58,7 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
 // Enable JSON body parsing for API requests
@@ -77,6 +119,16 @@ async function initDb() {
       rxData TEXT,
       optomRxData TEXT
     )
+  `);
+
+  // Drop old view to ensure it is updated with all columns
+  await run(`DROP VIEW IF EXISTS customer_summary`);
+
+  // Create Customer Summary View
+  await run(`
+    CREATE VIEW IF NOT EXISTS customer_summary AS
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback, status, activeProfile, lastUpdatedOn, rxData, optomRxData
+    FROM customers
   `);
 
   // Seed default users if empty
@@ -323,7 +375,8 @@ app.post('/api/login', async (req, res) => {
     }
     const user = await get('SELECT email, name, role FROM users WHERE LOWER(email) = LOWER(?) AND password = ?', [email.trim(), password])
     if (user) {
-      res.json({ user })
+      const token = generateToken({ email: user.email, name: user.name, role: user.role })
+      res.json({ user: { ...user, token } })
     } else {
       res.status(401).json({ error: 'Invalid email or password' })
     }
@@ -334,9 +387,9 @@ app.post('/api/login', async (req, res) => {
 })
 
 // Fetch all customers
-app.get('/api/customers', async (req, res) => {
+app.get('/api/customers', authenticateToken, async (req, res) => {
   try {
-    const rows = await all('SELECT * FROM customers ORDER BY lastUpdatedOn DESC')
+    const rows = await all('SELECT * FROM customer_summary ORDER BY lastUpdatedOn DESC')
     const customers = rows.map(c => ({
       ...c,
       activeProfile: c.activeProfile === 1,
@@ -351,7 +404,7 @@ app.get('/api/customers', async (req, res) => {
 })
 
 // Create a new customer
-app.post('/api/customers', async (req, res) => {
+app.post('/api/customers', authenticateToken, async (req, res) => {
   try {
     const c = req.body
     await run(`
@@ -375,7 +428,7 @@ app.post('/api/customers', async (req, res) => {
 })
 
 // Update an existing customer
-app.put('/api/customers/:id', async (req, res) => {
+app.put('/api/customers/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params
     const c = req.body
@@ -471,7 +524,7 @@ function getTeamViewerPath() {
 }
 
 // Teams (Chrome PWA) supports --window-position and --window-size flags directly
-app.post('/api/open-teams', (req, res) => {
+app.post('/api/open-teams', authenticateToken, (req, res) => {
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2)
     const chromePath = getChromePath()
@@ -492,7 +545,7 @@ app.post('/api/open-teams', (req, res) => {
 })
 
 // TeamViewer: launch then track window and position
-app.post('/api/open-teamviewer', (req, res) => {
+app.post('/api/open-teamviewer', authenticateToken, (req, res) => {
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2)
     const x = half

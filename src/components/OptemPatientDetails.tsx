@@ -129,9 +129,15 @@ export function OptemPatientDetails({
       lastUpdatedOn: timestamp,
     };
 
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+
     fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(updatedCustomer),
     })
       .then((res) => {
@@ -179,8 +185,16 @@ export function OptemPatientDetails({
     // Desktop: fire URI scheme immediately (guaranteed to open app if installed)
     window.location.href = 'msteams://';
 
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+
     // Also call server.js in parallel for Chrome PWA window positioning
-    fetch(`${localAgentUrl}/open-teams`, { method: 'POST' }).catch(() => {
+    fetch(`${localAgentUrl}/open-teams`, { 
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).catch(() => {
       // server.js not running — URI scheme above already handled it, nothing to do
     });
   };
@@ -224,8 +238,16 @@ export function OptemPatientDetails({
     // Desktop: fire teamviewer:// immediately (registered on Windows & Mac by TeamViewer)
     window.location.href = 'teamviewer://';
 
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+
     // Also call server.js in parallel for window auto-positioning
-    fetch(`${localAgentUrl}/open-teamviewer`, { method: 'POST' }).catch(() => {
+    fetch(`${localAgentUrl}/open-teamviewer`, { 
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).catch(() => {
       // server.js not running — URI scheme above already handled it, nothing to do
     });
   };

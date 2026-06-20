@@ -53,6 +53,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  token?: string;
 }
 
 export interface Session {

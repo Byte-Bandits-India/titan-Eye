@@ -163,9 +163,15 @@ export function StorePatientDetails({
         rxData: rxForm,
       };
 
+      const savedUser = localStorage.getItem('titan_user');
+      const token = savedUser ? JSON.parse(savedUser).token : '';
+
       fetch(`${apiBaseUrl}/customers`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(newCustomer),
       })
         .then((res) => {
@@ -207,9 +213,15 @@ export function StorePatientDetails({
         rxData: rxForm,
       };
 
+      const savedUser = localStorage.getItem('titan_user');
+      const token = savedUser ? JSON.parse(savedUser).token : '';
+
       fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(updatedCustomer),
       })
         .then((res) => {
