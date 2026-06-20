@@ -51,11 +51,19 @@ export default function App() {
     }
   }, [apiBaseUrl, user, handleLogout]);
 
-  // Fetch whenever user logs in or mounts
+  // Fetch whenever user logs in or mounts, and poll periodically for real-time synchronization fallback
   React.useEffect(() => {
-    if (user) {
+    if (!user) return;
+    
+    fetchCustomers();
+
+    const interval = setInterval(() => {
       fetchCustomers();
-    }
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, [user, fetchCustomers]);
 
   // SSE events are processed in the SseListener component child of ToastProvider to allow triggering notifications.

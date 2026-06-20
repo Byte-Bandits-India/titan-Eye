@@ -42,9 +42,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
   const itemsPerPage = 8;
   const { toast } = useToast();
 
-  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  const localAgentUrl = import.meta.env.VITE_LOCAL_SERVICE_URL || 'http://localhost:3001/api';
-
   const handleInitiateCall = async (customerId: string, customerName: string) => {
     const savedUser = localStorage.getItem('titan_user');
     const token = savedUser ? JSON.parse(savedUser).token : '';
@@ -82,64 +79,11 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         type: 'success',
       });
 
-      if (isMobile) {
-        window.location.href = 'msteams://';
-        setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
-        return;
-      }
-
-      window.location.href = 'msteams://';
-
-      fetch(`${localAgentUrl}/open-teams`, { 
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }).catch(() => {});
-
     } catch (err: any) {
       console.error(err);
       toast({
         title: 'System Error',
         description: err.message || 'Failed to connect to the server to initiate call.',
-        type: 'error',
-      });
-    } finally {
-      setLoadingCallId(null);
-    }
-  };
-
-  const handleEndCall = async (customerId: string) => {
-    const savedUser = localStorage.getItem('titan_user');
-    const token = savedUser ? JSON.parse(savedUser).token : '';
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
-
-    setLoadingCallId(customerId);
-    try {
-      const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(customerId)}/end-call`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('Session expired or unauthorized. Please log out and log in again.');
-        }
-        throw new Error('Failed to terminate call session on the server.');
-      }
-
-      toast({
-        title: 'Call Ended',
-        description: 'The call session has been closed successfully.',
-        type: 'info',
-      });
-    } catch (err: any) {
-      console.error(err);
-      toast({
-        title: 'System Error',
-        description: err.message || 'Failed to connect to the server to end call.',
         type: 'error',
       });
     } finally {
@@ -396,27 +340,13 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                           <TableCell className="py-3 text-center" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-center">
                               {cust.callActive ? (
-                                cust.callTakenBy === user.name ? (
-                                  <Button
-                                    onClick={() => handleEndCall(cust.id)}
-                                    disabled={loadingCallId === cust.id}
-                                    className="h-8 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border border-gray-300"
-                                    title="End Call Session"
-                                  >
-                                    {loadingCallId === cust.id ? (
-                                      <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                                    ) : null}
-                                    Call Initiated
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    disabled
-                                    className="h-8 px-4 bg-gray-200 text-gray-500 text-xs font-bold rounded-full flex items-center gap-1.5 cursor-not-allowed border-0 opacity-100"
-                                    title={`Call taken by ${cust.callTakenBy}`}
-                                  >
-                                    Taken by {cust.callTakenBy}
-                                  </Button>
-                                )
+                                <Button
+                                  disabled
+                                  className="h-8 px-4 bg-gray-200 text-gray-500 text-xs font-bold rounded-full flex items-center gap-1.5 cursor-not-allowed border-0 opacity-100"
+                                  title="Call Initiated"
+                                >
+                                  Call Initiated
+                                </Button>
                               ) : (
                                 <Button
                                   onClick={() => handleInitiateCall(cust.id, cust.name)}
@@ -436,12 +366,12 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                           </TableCell>
                           <TableCell className="text-right py-3 pr-4" onClick={(e) => e.stopPropagation()}>
                             <Button
-                              variant={selectedCustomerId === cust.id && !isAddingNew ? 'default' : 'outline'}
+                              variant='default'
                               size="sm"
                               className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
                               onClick={() => {
-                                if (cust.callActive && cust.callTakenBy && cust.callTakenBy !== user.name) {
-                                  setCollisionModalData({ id: cust.id, name: cust.name, takenBy: cust.callTakenBy });
+                                if (cust.callActive && cust.storeName !== user.name) {
+                                  setCollisionModalData({ id: cust.id, name: cust.name, takenBy: cust.callTakenBy || 'another agent' });
                                 } else {
                                   handleSelectCustomer(cust.id);
                                   setIsEditing(true);

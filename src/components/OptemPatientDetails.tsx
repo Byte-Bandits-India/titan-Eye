@@ -30,6 +30,13 @@ export function OptemPatientDetails({
   toast,
 }: OptemPatientDetailsProps) {
   const [isCallLoading, setIsCallLoading] = React.useState(false);
+  const titanUserStr = localStorage.getItem('titan_user');
+  const currentUser = titanUserStr ? JSON.parse(titanUserStr) : null;
+  const currentUserName = currentUser?.name || '';
+
+  const isCallActive = selectedCustomer?.callActive;
+  const isTakenByOptom = selectedCustomer?.callTakenBy?.startsWith('Dr. ');
+  const isTakenByMe = selectedCustomer?.callTakenBy === currentUserName;
   const [form, setForm] = React.useState({
     name: '',
     age: '',
@@ -156,7 +163,7 @@ export function OptemPatientDetails({
       preferredLanguage: form.preferredLanguage,
       storeFeedback: form.storeFeedback,
       optumFeedback: form.optumFeedback,
-      status: 'Completed',
+      status: form.status,
       activeProfile: form.activeProfile,
       rxData: rxForm,
       optomRxData: optomRxForm,
@@ -232,6 +239,13 @@ export function OptemPatientDetails({
         throw new Error('Failed to initiate call');
       }
 
+      const resData = await response.json();
+      if (resData.customer) {
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === selectedCustomer.id ? resData.customer : c))
+        );
+      }
+
       toast({
         title: 'Video Call',
         description: `Initiating video consultation with patient ${form.name}...`,
@@ -281,6 +295,12 @@ export function OptemPatientDetails({
       });
 
       if (response.ok) {
+        const resData = await response.json();
+        if (resData.customer) {
+          setCustomers((prev) =>
+            prev.map((c) => (c.id === selectedCustomer.id ? resData.customer : c))
+          );
+        }
         toast({
           title: 'Call Ended',
           description: 'The call session has been closed successfully.',
@@ -302,6 +322,85 @@ export function OptemPatientDetails({
       });
     } finally {
       setIsCallLoading(false);
+    }
+  };
+
+  const handleUpdateStatusOnly = async () => {
+    if (!selectedCustomer) {
+      console.warn('handleUpdateStatusOnly: selectedCustomer is null');
+      return;
+    }
+
+    console.log('handleUpdateStatusOnly: starting status update to', form.status);
+
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    const updatedCustomer: Customer = {
+      ...selectedCustomer,
+      name: form.name,
+      age: form.age,
+      gender: form.gender,
+      mobile: form.mobile,
+      customerType: form.customerType,
+      preferredLanguage: form.preferredLanguage,
+      storeFeedback: form.storeFeedback,
+      optumFeedback: form.optumFeedback,
+      status: form.status,
+      activeProfile: form.activeProfile,
+      rxData: rxForm,
+      optomRxData: optomRxForm,
+      lastUpdatedOn: timestamp,
+    };
+
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+    const requestUrl = `${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}`;
+    console.log('handleUpdateStatusOnly: sending PUT request to', requestUrl, 'with payload:', updatedCustomer);
+
+    try {
+      const res = await fetch(requestUrl, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedCustomer),
+      });
+
+      console.log('handleUpdateStatusOnly: response status =', res.status, 'ok =', res.ok);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('handleUpdateStatusOnly: server error response:', errorText);
+        throw new Error('Failed to update status');
+      }
+
+      setCustomers((prev) =>
+        prev.map((c) => (c.id === selectedCustomer.id ? updatedCustomer : c))
+      );
+
+      toast({
+        title: 'Status Updated',
+        description: `Customer status manually updated to ${form.status}.`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      console.error('handleUpdateStatusOnly error:', err);
+      toast({
+        title: 'Error Updating Status',
+        description: `Failed to update status: ${err.message || 'Database error'}`,
+        type: 'error',
+      });
     }
   };
 
@@ -681,44 +780,31 @@ export function OptemPatientDetails({
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1.5 w-full sm:max-w-xs">
               <label className="text-xs font-bold text-gray-600">Status</label>
-              <Select
-                value={form.status}
-                onChange={(e) => setField('status')(e.target.value)}
-                options={[
-                  { value: 'Created', label: 'Created' },
-                  { value: 'Initiated', label: 'Initiated' },
-                  { value: 'Accepted', label: 'Accepted' },
-                  { value: 'Completed', label: 'Completed' },
-                ]}
-              />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Select
+                    value={form.status}
+                    onChange={(e) => setField('status')(e.target.value)}
+                    options={[
+                      { value: 'Created', label: 'Created' },
+                      { value: 'Initiated', label: 'Initiated' },
+                      { value: 'Accepted', label: 'Accepted' },
+                      { value: 'Completed', label: 'Completed' },
+                    ]}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleUpdateStatusOnly}
+                  className="rounded-xl px-4 h-10 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold shadow-sm transition-all active:scale-98 cursor-pointer whitespace-nowrap"
+                >
+                  Update
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end pt-5 sm:pt-0">
-              {selectedCustomer?.callActive ? (
-                selectedCustomer.callTakenBy === (localStorage.getItem('titan_user') ? JSON.parse(localStorage.getItem('titan_user') || '{}').name : '') ? (
-                  <Button
-                    type="button"
-                    onClick={handleEndCall}
-                    disabled={isCallLoading}
-                    className="rounded-xl px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-300"
-                    title="End Call Session"
-                  >
-                    {isCallLoading ? (
-                      <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                    ) : null}
-                    Call Initiated
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    disabled
-                    className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0"
-                    title={`Call already taken by ${selectedCustomer.callTakenBy}`}
-                  >
-                    Taken by {selectedCustomer.callTakenBy}
-                  </Button>
-                )
-              ) : (
+              {(!isCallActive || (isCallActive && !isTakenByOptom)) ? (
                 <Button
                   type="button"
                   onClick={handleInitiateCall}
@@ -733,6 +819,28 @@ export function OptemPatientDetails({
                   )}
                   Initiate Call
                 </Button>
+              ) : isTakenByMe ? (
+                <Button
+                  type="button"
+                  onClick={handleEndCall}
+                  disabled={isCallLoading}
+                  className="rounded-xl px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-300"
+                  title="End Call Session"
+                >
+                  {isCallLoading ? (
+                    <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                  ) : null}
+                  Call Initiated
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  disabled
+                  className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0"
+                  title={`Call already taken by ${selectedCustomer?.callTakenBy || ''}`}
+                >
+                  Taken by {selectedCustomer?.callTakenBy || ''}
+                </Button>
               )}
               {selectedCustomer?.callActive ? (
                 <Button
@@ -740,9 +848,9 @@ export function OptemPatientDetails({
                   disabled
                   className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0"
                   title={
-                    selectedCustomer.callTakenBy === (localStorage.getItem('titan_user') ? JSON.parse(localStorage.getItem('titan_user') || '{}').name : '')
+                    selectedCustomer?.callTakenBy === (localStorage.getItem('titan_user') ? JSON.parse(localStorage.getItem('titan_user') || '{}').name : '')
                       ? "TeamViewer blocked: Call active"
-                      : `TeamViewer blocked: call taken by ${selectedCustomer.callTakenBy}`
+                      : `TeamViewer blocked: call taken by ${selectedCustomer?.callTakenBy || ''}`
                   }
                 >
                   <Monitor size={16} />

@@ -63,10 +63,9 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
     return { active, pending, completed, today };
   }, [customers]);
 
-  // Filter incoming requests (usually Initiated/Pending, or let's show all for the live feed)
+  // Filter incoming requests to show initiated, accepted, and completed calls
   const incomingRequests = React.useMemo(() => {
-    // Optem prioritizes incoming requests that need review (Initiated, Pending, Accepted)
-    return customers;
+    return customers.filter((c) => c.status !== 'Created');
   }, [customers]);
 
   // Pagination
@@ -250,11 +249,11 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                           </TableCell>
                           <TableCell className="py-3 text-right">
                             <Button
-                              variant={selectedCustomerId === req.id ? 'default' : 'outline'}
+                              variant='default'
                               size="sm"
                               className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
                               onClick={() => {
-                                if (req.callActive && req.callTakenBy && req.callTakenBy !== user.name) {
+                                if (req.callActive && req.callTakenBy && req.callTakenBy.startsWith('Dr. ') && req.callTakenBy !== user.name) {
                                   setCollisionModalData({ id: req.id, name: req.name, takenBy: req.callTakenBy });
                                 } else {
                                   setSelectedCustomerId(req.id);

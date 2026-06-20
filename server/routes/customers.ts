@@ -68,11 +68,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const c = req.body;
     
-    // Auto-transition status to Completed if update is done by an Optom role
     let finalStatus = c.status;
-    if (req.user && req.user.role === 'optem') {
-      finalStatus = 'Completed';
-    }
 
     await run(`
       UPDATE customers SET
@@ -119,7 +115,15 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       return res.status(404).json({ error: 'Customer not found' });
     }
     if (customer.callActive === 1) {
-      return res.status(409).json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
+      const currentHolder = await get('SELECT role FROM users WHERE name = ?', [customer.callTakenBy]);
+      const requesterRole = req.user ? req.user.role : '';
+
+      const isStoreHolder = currentHolder && currentHolder.role === 'store';
+      const isOptomRequester = requesterRole === 'optem';
+
+      if (!(isStoreHolder && isOptomRequester)) {
+        return res.status(409).json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
+      }
     }
 
     const timestamp = new Date().toLocaleString('en-US', {
@@ -137,7 +141,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
     await run(`
       UPDATE customers SET
         callActive = 1,
-        callStartTime = ?,
+        callStartTime = COALESCE(callStartTime, ?),
         callTakenBy = ?,
         status = 'Initiated',
         lastUpdatedOn = ?
@@ -148,7 +152,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
     const updatedCustomer = {
       ...updatedRow,
       activeProfile: updatedRow.activeProfile === 1,
-      callActive: true,
+      callActive: updatedRow.callActive === 1,
       rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
       optomRxData: updatedRow.optomRxData ? JSON.parse(updatedRow.optomRxData) : undefined
     };
