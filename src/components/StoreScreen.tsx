@@ -37,6 +37,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
   const [currentPage, setCurrentPage] = React.useState(1);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [loadingCallId, setLoadingCallId] = React.useState<string | null>(null);
   const itemsPerPage = 8;
   const { toast } = useToast();
 
@@ -48,6 +49,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
     const token = savedUser ? JSON.parse(savedUser).token : '';
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+    setLoadingCallId(customerId);
     try {
       const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(customerId)}/initiate-call`, {
         method: 'POST',
@@ -98,6 +100,8 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         description: 'Failed to connect to the server to initiate call.',
         type: 'error',
       });
+    } finally {
+      setLoadingCallId(null);
     }
   };
 
@@ -106,6 +110,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
     const token = savedUser ? JSON.parse(savedUser).token : '';
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+    setLoadingCallId(customerId);
     try {
       const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(customerId)}/end-call`, {
         method: 'POST',
@@ -134,6 +139,8 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         description: 'Failed to connect to the server to end call.',
         type: 'error',
       });
+    } finally {
+      setLoadingCallId(null);
     }
   };
 
@@ -389,10 +396,15 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                                 cust.callTakenBy === user.name ? (
                                   <Button
                                     onClick={() => handleEndCall(cust.id)}
+                                    disabled={loadingCallId === cust.id}
                                     className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
                                     title="End Call Session"
                                   >
-                                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                    {loadingCallId === cust.id ? (
+                                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                    )}
                                     End Call
                                   </Button>
                                 ) : (
@@ -407,10 +419,15 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                               ) : (
                                 <Button
                                   onClick={() => handleInitiateCall(cust.id, cust.name)}
+                                  disabled={loadingCallId === cust.id}
                                   className="h-8 px-4 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
                                   title="Initiate Call"
                                 >
-                                  <Video size={14} />
+                                  {loadingCallId === cust.id ? (
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Video size={14} />
+                                  )}
                                   Initiate Call
                                 </Button>
                               )}

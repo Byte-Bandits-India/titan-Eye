@@ -29,6 +29,7 @@ export function OptemPatientDetails({
   setCustomers,
   toast,
 }: OptemPatientDetailsProps) {
+  const [isCallLoading, setIsCallLoading] = React.useState(false);
   const [form, setForm] = React.useState({
     name: '',
     age: '',
@@ -189,7 +190,7 @@ export function OptemPatientDetails({
         console.error(err);
         toast({
           title: 'Error Saving Assessment',
-          description: 'Failed to connect to backend database.',
+          description: 'Failed to connect to the backend database.',
           type: 'error',
         });
       });
@@ -208,6 +209,7 @@ export function OptemPatientDetails({
     const token = userObj?.token || '';
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+    setIsCallLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}/initiate-call`, {
         method: 'POST',
@@ -258,6 +260,8 @@ export function OptemPatientDetails({
         description: 'Failed to connect to the server to initiate call.',
         type: 'error',
       });
+    } finally {
+      setIsCallLoading(false);
     }
   };
 
@@ -267,6 +271,7 @@ export function OptemPatientDetails({
     const token = savedUser ? JSON.parse(savedUser).token : '';
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
+    setIsCallLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}/end-call`, {
         method: 'POST',
@@ -295,6 +300,8 @@ export function OptemPatientDetails({
         description: 'Failed to connect to the server to end call.',
         type: 'error',
       });
+    } finally {
+      setIsCallLoading(false);
     }
   };
 
@@ -693,10 +700,15 @@ export function OptemPatientDetails({
                   <Button
                     type="button"
                     onClick={handleEndCall}
+                    disabled={isCallLoading}
                     className="rounded-xl px-4 h-10 bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border-0"
                     title="End Call Session"
                   >
-                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    {isCallLoading ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    )}
                     End Call
                   </Button>
                 ) : (
@@ -713,10 +725,15 @@ export function OptemPatientDetails({
                 <Button
                   type="button"
                   onClick={handleInitiateCall}
+                  disabled={isCallLoading}
                   className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
                   title="Initiate Microsoft Teams Call"
                 >
-                  <Video size={16} />
+                  {isCallLoading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Video size={16} />
+                  )}
                   Initiate Call
                 </Button>
               )}
