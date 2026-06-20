@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ToastProvider } from './components/ui/toast';
+import { ToastProvider, useToast } from './components/ui/toast';
 import { LoginScreen } from './components/LoginScreen';
 import { StoreScreen } from './components/StoreScreen';
 import { OptemScreen } from './components/OptemScreen';
@@ -58,6 +58,8 @@ export default function App() {
     }
   }, [user, fetchCustomers]);
 
+  // SSE events are processed in the SseListener component child of ToastProvider to allow triggering notifications.
+
   // Save user session only
   React.useEffect(() => {
     if (user) {
@@ -73,6 +75,7 @@ export default function App() {
 
   return (
     <ToastProvider>
+      <SseListener apiBaseUrl={apiBaseUrl} user={user} customers={customers} setCustomers={setCustomers} />
       <div className="min-h-screen flex flex-col font-sans select-none antialiased">
         {!user ? (
           <LoginScreen onLoginSuccess={handleLoginSuccess} />
@@ -94,4 +97,86 @@ export default function App() {
       </div>
     </ToastProvider>
   );
+}
+
+interface SseListenerProps {
+  apiBaseUrl: string;
+  user: User | null;
+  customers: Customer[];
+  setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
+}
+
+function SseListener({ apiBaseUrl, user, customers, setCustomers }: SseListenerProps) {
+  const { toast } = useToast();
+  const customersRef = React.useRef(customers);
+
+  React.useEffect(() => {
+    customersRef.current = customers;
+  }, [customers]);
+
+  React.useEffect(() => {
+    if (!user || !user.token) return;
+
+    const eventSource = new EventSource(`${apiBaseUrl}/events`);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const { type, data } = JSON.parse(event.data);
+        const currentCustomers = customersRef.current;
+        
+        if (type === 'CUSTOMER_CREATED') {
+          if (currentCustomers.some((c) => c.id === data.id)) return;
+          
+          toast({
+            title: 'Patient Registered',
+            description: `Successfully added ${data.name} with ID ${data.id}.`,
+            type: 'success',
+          });
+          setCustomers((prev) => [data, ...prev]);
+        } else if (type === 'CUSTOMER_UPDATED') {
+          const oldCust = currentCustomers.find((c) => c.id === data.id);
+          
+          if (data.callActive && (!oldCust || !oldCust.callActive)) {
+            toast({
+              title: 'Call Active',
+              description: `Video call active for ${data.name} (ID: ${data.id}), initiated by ${data.callTakenBy}.`,
+              type: 'info',
+            });
+          } else if (!data.callActive && oldCust && oldCust.callActive) {
+            toast({
+              title: 'Call Ended',
+              description: `Call session ended for ${data.name} (ID: ${data.id}).`,
+              type: 'info',
+            });
+          } else if (data.status === 'Completed' && (!oldCust || oldCust.status !== 'Completed')) {
+            toast({
+              title: 'Assessment Complete',
+              description: `Clinical assessment submitted for ${data.name} (ID: ${data.id}).`,
+              type: 'success',
+            });
+          } else if (data.status === 'Accepted' && oldCust && oldCust.status === 'Initiated' && !data.callActive) {
+            toast({
+              title: 'Assessment Accepted',
+              description: `Patient assessment status updated to Accepted.`,
+              type: 'success',
+            });
+          }
+
+          setCustomers((prev) => prev.map((c) => (c.id === data.id ? data : c)));
+        }
+      } catch (err) {
+        console.error('Error handling SSE message:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('SSE connection error:', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [apiBaseUrl, user, toast, setCustomers]);
+
+  return null;
 }

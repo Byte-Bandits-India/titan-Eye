@@ -25,19 +25,26 @@ jobs:
         run: |
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env
+          echo "JWT_SECRET=titan-eye-secret-key-987654321" >> .env
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
+          echo "JWT_SECRET=titan-eye-secret-key-987654321" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
+
+      - name: 🏗 Build Server App
+        run: npx tsc -p tsconfig.server.json
 
       - name: 📦 Create Deployment Package
         run: |
           tar -czf deploy.tar.gz \
             dist \
+            dist-server \
             server.js \
             package.json \
-            package-lock.json
+            package-lock.json \
+            .env
 
       - name: 🔑 Configure SSH Key
         run: |
@@ -66,7 +73,7 @@ jobs:
             cd $APP_DIR
 
             echo "🧹 Cleaning old files..."
-            rm -rf dist node_modules package.json package-lock.json server.js
+            rm -rf dist dist-server node_modules package.json package-lock.json server.js .env
 
             echo "📦 Extracting new build..."
             tar -xzf /tmp/deploy.tar.gz -C $APP_DIR

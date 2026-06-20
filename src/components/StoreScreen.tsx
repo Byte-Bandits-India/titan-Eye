@@ -9,6 +9,7 @@ import {
   UserPlus,
   ChevronRight,
   ChevronLeft,
+  Video,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
@@ -19,6 +20,7 @@ import { useToast } from './ui/toast';
 import { Customer, User as UserType } from '../types';
 import { StorePatientDetails } from './StorePatientDetails';
 import { Header } from './Header';
+import { CallTimer } from './ui/CallTimer';
 
 interface StoreScreenProps {
   user: UserType;
@@ -37,6 +39,103 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
   const [isSyncing, setIsSyncing] = React.useState(false);
   const itemsPerPage = 8;
   const { toast } = useToast();
+
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const localAgentUrl = import.meta.env.VITE_LOCAL_SERVICE_URL || 'http://localhost:3001/api';
+
+  const handleInitiateCall = async (customerId: string, customerName: string) => {
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(customerId)}/initiate-call`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 409) {
+        const errorData = await response.json();
+        toast({
+          title: 'Call Collision',
+          description: errorData.error || 'This call is already taken by another agent.',
+          type: 'error',
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate call');
+      }
+
+      toast({
+        title: 'Video Call',
+        description: `Initiating video consultation with patient ${customerName}...`,
+        type: 'success',
+      });
+
+      if (isMobile) {
+        window.location.href = 'msteams://';
+        setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
+        return;
+      }
+
+      window.location.href = 'msteams://';
+
+      fetch(`${localAgentUrl}/open-teams`, { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(() => {});
+
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'System Error',
+        description: 'Failed to connect to the server to initiate call.',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleEndCall = async (customerId: string) => {
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(customerId)}/end-call`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Call Ended',
+          description: 'The call session has been closed successfully.',
+          type: 'info',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to terminate call session on the server.',
+          type: 'error',
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'System Error',
+        description: 'Failed to connect to the server to end call.',
+        type: 'error',
+      });
+    }
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -69,8 +168,8 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
 
   // Stats derivation
   const stats = React.useMemo(() => {
-    const active = customers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted').length;
-    const pending = customers.filter((c) => c.status === 'Initiated').length;
+    const active = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Accepted').length;
+    const pending = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated').length;
     const completed = customers.filter((c) => c.status === 'Completed').length;
     const todayStr = new Date().toLocaleDateString('en-US', {
       month: 'short',
@@ -136,6 +235,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
       {/* Main Content Area */}
       {isAddingNew || isEditing ? (
         <StorePatientDetails
+          user={user}
           isAddingNew={isAddingNew}
           selectedCustomer={selectedCustomer}
           onBack={() => {
@@ -234,7 +334,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
           </div>
 
           {/* Split Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <div>
             {/* Left Table Panel */}
             <div className="lg:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
@@ -247,15 +347,17 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[80px] font-bold text-xs uppercase text-gray-400">ID</TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">Name</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Patient Name</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Status</TableHead>
-                      <TableHead className="w-[40px]"></TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Time Started</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400 text-center">Initiate Call</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400 text-right pr-4">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedCustomers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-gray-400">
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-400">
                           No transactions found.
                         </TableCell>
                       </TableRow>
@@ -278,15 +380,54 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                           <TableCell className="py-3">
                             <Badge variant={cust.status}>{cust.status.toUpperCase()}</Badge>
                           </TableCell>
-                          <TableCell className="text-right py-3 pr-4">
-                            <ChevronRight
-                              size={14}
-                              className={`transition-transform text-gray-400 ${
-                                selectedCustomerId === cust.id && !isAddingNew
-                                  ? 'translate-x-1 text-blue-600'
-                                  : ''
-                              }`}
-                            />
+                          <TableCell className="text-gray-600 text-xs py-3">
+                            <CallTimer startTime={cust.callStartTime || cust.lastUpdatedOn} active={cust.callActive || cust.status === 'Initiated'} />
+                          </TableCell>
+                          <TableCell className="py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center">
+                              {cust.callActive ? (
+                                cust.callTakenBy === user.name ? (
+                                  <Button
+                                    onClick={() => handleEndCall(cust.id)}
+                                    className="h-8 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
+                                    title="End Call Session"
+                                  >
+                                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                    End Call
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    disabled
+                                    className="h-8 px-4 bg-gray-200 text-gray-500 text-xs font-bold rounded-full flex items-center gap-1.5 cursor-not-allowed border-0 opacity-100"
+                                    title={`Call taken by ${cust.callTakenBy}`}
+                                  >
+                                    Taken by {cust.callTakenBy}
+                                  </Button>
+                                )
+                              ) : (
+                                <Button
+                                  onClick={() => handleInitiateCall(cust.id, cust.name)}
+                                  className="h-8 px-4 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
+                                  title="Initiate Call"
+                                >
+                                  <Video size={14} />
+                                  Initiate Call
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right py-3 pr-4" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              variant={selectedCustomerId === cust.id && !isAddingNew ? 'default' : 'outline'}
+                              size="sm"
+                              className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
+                              onClick={() => {
+                                handleSelectCustomer(cust.id);
+                                setIsEditing(true);
+                              }}
+                            >
+                              View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -325,20 +466,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Right Empty Connection Panel */}
-            <div className="lg:col-span-7 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-              {/* Header */}
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
-                <div className="text-sm font-bold text-gray-800">optem id</div>
-                <div className="flex items-center gap-3">
-                  <div className="text-[10px] text-gray-400 font-semibold uppercase">Store: Meena</div>
-                </div>
-              </div>
-
-              {/* Empty Panel Content */}
-              <div className="flex-1 bg-white" />
             </div>
           </div>
         </main>

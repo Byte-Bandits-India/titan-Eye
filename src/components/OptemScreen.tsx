@@ -15,6 +15,7 @@ import { useToast } from './ui/toast';
 import { Customer, User as UserType } from '../types';
 import { OptemPatientDetails } from './OptemPatientDetails';
 import { Header } from './Header';
+import { CallTimer } from './ui/CallTimer';
 
 interface OptemScreenProps {
   user: UserType;
@@ -45,8 +46,8 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
     // Large counts matching screenshot:
     // Active Tests: 477, Pending Review: 455, Completed: 6, Today's Patients: 1
     // We add dynamic adjustments based on local mock edits:
-    const active = customers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted').length;
-    const pending = customers.filter((c) => c.status === 'Initiated').length;
+    const active = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Accepted').length;
+    const pending = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated').length;
     const completed = customers.filter((c) => c.status === 'Completed').length;
     
     const todayStr = new Date().toLocaleDateString('en-US', {
@@ -200,7 +201,8 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                     <TableRow>
                       <TableHead className="w-[80px] font-bold text-xs uppercase text-gray-400">ID</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Store Name</TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">Name</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Time Started</TableHead>
+                      <TableHead className="font-bold text-xs uppercase text-gray-400">Patient Name</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Age</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Pref. Lang 1</TableHead>
                       <TableHead className="font-bold text-xs uppercase text-gray-400">Pref. Lang 2</TableHead>
@@ -210,7 +212,7 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                   <TableBody>
                     {paginatedRequests.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-400">
+                        <TableCell colSpan={8} className="text-center py-8 text-gray-400">
                           No pending requests in queue.
                         </TableCell>
                       </TableRow>
@@ -218,11 +220,7 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                       paginatedRequests.map((req) => (
                         <TableRow
                           key={req.id}
-                          onClick={() => {
-                            setSelectedCustomerId(req.id);
-                            setIsEditing(true);
-                          }}
-                          className={`cursor-pointer transition-colors ${
+                          className={`transition-colors ${
                             selectedCustomerId === req.id
                               ? 'bg-blue-50/50 hover:bg-blue-50/70'
                               : 'hover:bg-slate-50/50'
@@ -230,6 +228,9 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                         >
                           <TableCell className="font-semibold text-blue-600 text-xs py-3">{req.id}</TableCell>
                           <TableCell className="text-gray-600 text-xs py-3">{req.storeName || '—'}</TableCell>
+                          <TableCell className="text-gray-600 text-xs py-3">
+                            <CallTimer startTime={req.callStartTime || req.lastUpdatedOn} active={req.callActive || req.status === 'Initiated'} />
+                          </TableCell>
                           <TableCell className="font-semibold text-gray-800 text-xs py-3">{req.name}</TableCell>
                           <TableCell className="text-gray-600 text-xs py-3">{req.age}</TableCell>
                           <TableCell className="py-3">
@@ -250,9 +251,8 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                             <Button
                               variant={selectedCustomerId === req.id ? 'default' : 'outline'}
                               size="sm"
-                              className="h-7 px-3 text-[10px] font-bold rounded cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
+                              onClick={() => {
                                 setSelectedCustomerId(req.id);
                                 setIsEditing(true);
                               }}

@@ -13,7 +13,7 @@ export const initialCustomers: Customer[] = [
     preferredLanguage2: 'English',
     storeFeedback: 'Routine eye checkup. Suggested progressive lenses.',
     optumFeedback: '',
-    status: 'Initiated',
+    status: 'Created',
     activeProfile: true,
     lastUpdatedOn: 'Jun 19, 2026, 10:15:32 AM',
   },

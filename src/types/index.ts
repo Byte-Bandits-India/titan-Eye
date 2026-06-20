@@ -1,4 +1,4 @@
-export type CustomerStatus = 'Initiated' | 'Accepted' | 'Completed';
+export type CustomerStatus = 'Created' | 'Initiated' | 'Accepted' | 'Completed';
 
 export interface RxValues {
   sph: string;
@@ -35,6 +35,9 @@ export interface Customer {
   status: CustomerStatus;
   activeProfile: boolean;
   lastUpdatedOn?: string;
+  callStartTime?: string;
+  callActive?: boolean;
+  callTakenBy?: string;
   rxData?: {
     autoRefRe: RxValues;
     autoRefLe: RxValues;

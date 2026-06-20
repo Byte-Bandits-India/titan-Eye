@@ -13,6 +13,7 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Select } from './ui/select';
 import { Badge } from './ui/badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
 import { Customer, CustomerStatus, RxValues, OptomRxValues } from '../types';
 
 interface OptemPatientDetailsProps {
@@ -37,7 +38,7 @@ export function OptemPatientDetails({
     preferredLanguage: 'English',
     storeFeedback: '',
     optumFeedback: '',
-    status: 'Initiated' as CustomerStatus,
+    status: 'Created' as CustomerStatus,
     activeProfile: false,
   });
 
@@ -87,11 +88,13 @@ export function OptemPatientDetails({
   };
 
   const setOptomRxField = (eye: 're' | 'le', field: keyof OptomRxValues, val: string) => {
+    // Only allow numbers and special characters (no letters)
+    const cleanVal = val.replace(/[a-zA-Z]/g, '');
     setOptomRxForm((prev) => ({
       ...prev,
       [eye]: {
         ...prev[eye],
-        [field]: val,
+        [field]: cleanVal,
       },
     }));
   };
@@ -99,6 +102,36 @@ export function OptemPatientDetails({
   const handleUpdateDetails = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer) return;
+
+    // Validate Optom RE required fields (Sph, Cyl, Axis, VA)
+    if (
+      !optomRxForm.re.sph ||
+      !optomRxForm.re.cyl ||
+      !optomRxForm.re.axis ||
+      !optomRxForm.re.va
+    ) {
+      toast({
+        title: 'Validation Error',
+        description: 'Sph, Cyl, Axis, and VA are required fields for Optom R E.',
+        type: 'error',
+      });
+      return;
+    }
+
+    // Validate Optom LE required fields (Sph, Cyl, Axis, VA)
+    if (
+      !optomRxForm.le.sph ||
+      !optomRxForm.le.cyl ||
+      !optomRxForm.le.axis ||
+      !optomRxForm.le.va
+    ) {
+      toast({
+        title: 'Validation Error',
+        description: 'Sph, Cyl, Axis, and VA are required fields for Optom L E.',
+        type: 'error',
+      });
+      return;
+    }
 
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
@@ -122,7 +155,7 @@ export function OptemPatientDetails({
       preferredLanguage: form.preferredLanguage,
       storeFeedback: form.storeFeedback,
       optumFeedback: form.optumFeedback,
-      status: form.status,
+      status: 'Completed',
       activeProfile: form.activeProfile,
       rxData: rxForm,
       optomRxData: optomRxForm,
@@ -167,36 +200,102 @@ export function OptemPatientDetails({
   const isAndroid = /Android/i.test(navigator.userAgent);
   const localAgentUrl = import.meta.env.VITE_LOCAL_SERVICE_URL || 'http://localhost:3001/api';
 
-  const handleInitiateCall = () => {
-    toast({
-      title: 'Video Call',
-      description: `Initiating video consultation with patient ${form.name}...`,
-      type: 'info',
-    });
-
-    if (isMobile) {
-      // Mobile: msteams:// opens Teams app directly (bypasses popup blockers)
-      window.location.href = 'msteams://';
-      // Fallback to web Teams after 2s if app is not installed
-      setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
-      return;
-    }
-
-    // Desktop: fire URI scheme immediately (guaranteed to open app if installed)
-    window.location.href = 'msteams://';
+  const handleInitiateCall = async () => {
+    if (!selectedCustomer) return;
 
     const savedUser = localStorage.getItem('titan_user');
-    const token = savedUser ? JSON.parse(savedUser).token : '';
+    const userObj = savedUser ? JSON.parse(savedUser) : null;
+    const token = userObj?.token || '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-    // Also call server.js in parallel for Chrome PWA window positioning
-    fetch(`${localAgentUrl}/open-teams`, { 
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}/initiate-call`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 409) {
+        const errorData = await response.json();
+        toast({
+          title: 'Call Collision',
+          description: errorData.error || 'This call is already taken by another agent.',
+          type: 'error',
+        });
+        return;
       }
-    }).catch(() => {
-      // server.js not running — URI scheme above already handled it, nothing to do
-    });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate call');
+      }
+
+      toast({
+        title: 'Video Call',
+        description: `Initiating video consultation with patient ${form.name}...`,
+        type: 'success',
+      });
+
+      if (isMobile) {
+        window.location.href = 'msteams://';
+        setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
+        return;
+      }
+
+      window.location.href = 'msteams://';
+
+      fetch(`${localAgentUrl}/open-teams`, { 
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(() => {});
+
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'System Error',
+        description: 'Failed to connect to the server to initiate call.',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleEndCall = async () => {
+    if (!selectedCustomer) return;
+    const savedUser = localStorage.getItem('titan_user');
+    const token = savedUser ? JSON.parse(savedUser).token : '';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/customers/${encodeURIComponent(selectedCustomer.id)}/end-call`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Call Ended',
+          description: 'The call session has been closed successfully.',
+          type: 'info',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to terminate call session.',
+          type: 'error',
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'System Error',
+        description: 'Failed to connect to the server to end call.',
+        type: 'error',
+      });
+    }
   };
 
   const handleOpenTeamViewer = () => {
@@ -321,7 +420,8 @@ export function OptemPatientDetails({
                 <Input
                   type="text"
                   value={form.name}
-                  onChange={(e) => setField('name')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed"
                   placeholder="Enter full name"
                   icon={User}
                   required
@@ -332,7 +432,8 @@ export function OptemPatientDetails({
                 <Input
                   type="number"
                   value={form.age}
-                  onChange={(e) => setField('age')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed"
                   placeholder="Age"
                   required
                 />
@@ -341,7 +442,8 @@ export function OptemPatientDetails({
                 <label className="text-xs font-bold text-gray-600">Gender *</label>
                 <Select
                   value={form.gender}
-                  onChange={(e) => setField('gender')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100"
                   options={[
                     { value: 'Male', label: 'Male' },
                     { value: 'Female', label: 'Female' },
@@ -357,7 +459,8 @@ export function OptemPatientDetails({
                 <Input
                   type="tel"
                   value={form.mobile}
-                  onChange={(e) => setField('mobile')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed"
                   placeholder="Enter mobile number"
                   icon={Phone}
                   required
@@ -367,7 +470,8 @@ export function OptemPatientDetails({
                 <label className="text-xs font-bold text-gray-600">Customer Type *</label>
                 <Select
                   value={form.customerType}
-                  onChange={(e) => setField('customerType')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100"
                   options={[
                     { value: 'New', label: 'New' },
                     { value: 'Existing', label: 'Existing' },
@@ -379,7 +483,8 @@ export function OptemPatientDetails({
                 <label className="text-xs font-bold text-gray-600">Preferred Language *</label>
                 <Select
                   value={form.preferredLanguage}
-                  onChange={(e) => setField('preferredLanguage')(e.target.value)}
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100"
                   options={[
                     { value: 'English', label: 'English' },
                     { value: 'Hindi', label: 'Hindi' },
@@ -395,96 +500,87 @@ export function OptemPatientDetails({
           {/* Section 2: Store Login RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
-              <table className="w-full border-collapse text-center text-xs">
-                <thead>
-                  <tr>
-                    <th colSpan={9} className="border-b border-slate-400 py-2.5 font-extrabold text-sm text-slate-900 uppercase tracking-wider bg-slate-100">
+              <Table className="w-full border-collapse text-center text-xs">
+                <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
+                  <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={9} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider">
                       Store Login
-                    </th>
-                  </tr>
-                  <tr className="bg-slate-50/30">
-                    <th colSpan={2} className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-b border-slate-400"></th>
-                  </tr>
-                  <tr className="bg-slate-100/70">
-                    <th colSpan={2} className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e] uppercase tracking-wider">RX</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Sph</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Cyl</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Axis</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">PD</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Prism</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Base</th>
-                    <th className="border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">ADD</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                  <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={2} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Sph</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Cyl</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Axis</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">PD</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Prism</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Base</TableHead>
+                    <TableHead className="px-3 py-2 font-black text-xs text-[#1a2b6e] text-center">ADD</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {/* Auto Ref */}
-                  <tr>
-                    <td rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 w-[100px]">Auto Ref</td>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 w-[60px]">RE</td>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 w-[100px] text-center animate-none">Auto Ref</TableCell>
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 w-[60px] whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.autoRefRe[field as keyof RxValues] || ''}
                           disabled
-                          className="w-full h-full text-center bg-slate-50 border-0 outline-none py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                  <tr>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">LE</td>
+                  </TableRow>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.autoRefLe[field as keyof RxValues] || ''}
                           disabled
-                          className="w-full h-full text-center bg-slate-50 border-0 outline-none py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
 
                   {/* PGP */}
-                  <tr>
-                    <td rowSpan={2} className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4">PGP</td>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">RE</td>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 text-center animate-none">PGP</TableCell>
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.pgpRe[field as keyof RxValues] || ''}
                           disabled
-                          className="w-full h-full text-center bg-slate-50 border-0 outline-none py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                  <tr>
-                    <td className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">LE</td>
+                  </TableRow>
+                  <TableRow className="border-0">
+                    <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.pgpLe[field as keyof RxValues] || ''}
                           disabled
-                          className="w-full h-full text-center bg-slate-50 border-0 outline-none py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                </tbody>
-              </table>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
+
 
           {/* Section 3: Store Action / Feedback */}
           <div className="space-y-1.5">
@@ -500,65 +596,65 @@ export function OptemPatientDetails({
           {/* Section 4: Optom Login RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
-              <table className="w-full border-collapse text-center text-xs">
-                <thead>
-                  <tr>
-                    <th colSpan={8} className="border-b border-slate-400 py-2.5 font-extrabold text-sm text-slate-900 uppercase tracking-wider bg-slate-100">
+              <Table className="w-full border-collapse text-center text-xs">
+                <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
+                  <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider bg-slate-100">
                       Optom Login
-                    </th>
-                  </tr>
-                  <tr className="bg-slate-50/30">
-                    <th className="border-r border-b border-slate-400 w-[100px]"></th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-b border-slate-400"></th>
-                  </tr>
-                  <tr className="bg-slate-100/70">
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e] uppercase tracking-wider">RX</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Sph</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Cyl</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Axis</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Prism</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Base</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">VA</th>
-                    <th className="border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">ADD</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                  <TableRow className="bg-slate-100/50 border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                  </TableRow>
+                  <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Sph</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Cyl</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Axis</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Prism</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Base</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">VA</TableHead>
+                    <TableHead className="px-3 py-2 font-black text-xs text-[#1a2b6e] text-center">ADD</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {/* RE row */}
-                  <tr>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">RE</td>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={optomRxForm.re[field as keyof OptomRxValues] || ''}
                           onChange={(e) => setOptomRxField('re', field as keyof OptomRxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
                   {/* LE row */}
-                  <tr>
-                    <td className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">LE</td>
+                  <TableRow className="border-0">
+                    <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
-                      <td key={field} className={`p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={optomRxForm.le[field as keyof OptomRxValues] || ''}
                           onChange={(e) => setOptomRxField('le', field as keyof OptomRxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                </tbody>
-              </table>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
@@ -580,8 +676,10 @@ export function OptemPatientDetails({
               <label className="text-xs font-bold text-gray-600">Status</label>
               <Select
                 value={form.status}
-                onChange={(e) => setField('status')(e.target.value as CustomerStatus)}
+                disabled
+                className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100"
                 options={[
+                  { value: 'Created', label: 'Created' },
                   { value: 'Initiated', label: 'Initiated' },
                   { value: 'Accepted', label: 'Accepted' },
                   { value: 'Completed', label: 'Completed' },
@@ -590,15 +688,38 @@ export function OptemPatientDetails({
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end pt-5 sm:pt-0">
-              <Button
-                type="button"
-                onClick={handleInitiateCall}
-                className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
-                title="Initiate Microsoft Teams Call"
-              >
-                <Video size={16} />
-                Initiate Call
-              </Button>
+              {selectedCustomer?.callActive ? (
+                selectedCustomer.callTakenBy === (localStorage.getItem('titan_user') ? JSON.parse(localStorage.getItem('titan_user') || '{}').name : '') ? (
+                  <Button
+                    type="button"
+                    onClick={handleEndCall}
+                    className="rounded-xl px-4 h-10 bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border-0"
+                    title="End Call Session"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    End Call
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    disabled
+                    className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0"
+                    title={`Call already taken by ${selectedCustomer.callTakenBy}`}
+                  >
+                    Taken by {selectedCustomer.callTakenBy}
+                  </Button>
+                )
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleInitiateCall}
+                  className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer"
+                  title="Initiate Microsoft Teams Call"
+                >
+                  <Video size={16} />
+                  Initiate Call
+                </Button>
+              )}
               <Button
                 type="button"
                 onClick={handleOpenTeamViewer}

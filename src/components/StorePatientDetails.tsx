@@ -9,10 +9,11 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Select } from './ui/select';
-import { Switch } from './ui/switch';
-import { Customer, CustomerStatus, RxValues } from '../types';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './ui/table';
+import { Customer, CustomerStatus, RxValues, OptomRxValues, User as UserType } from '../types';
 
 interface StorePatientDetailsProps {
+  user: UserType;
   isAddingNew: boolean;
   selectedCustomer: Customer | null;
   onBack: () => void;
@@ -23,6 +24,7 @@ interface StorePatientDetailsProps {
 }
 
 export function StorePatientDetails({
+  user,
   isAddingNew,
   selectedCustomer,
   onBack,
@@ -42,7 +44,7 @@ export function StorePatientDetails({
     preferredLanguage2: 'None',
     storeFeedback: '',
     optumFeedback: '',
-    status: 'Initiated' as CustomerStatus,
+    status: 'Created' as CustomerStatus,
     activeProfile: false,
   });
 
@@ -53,6 +55,11 @@ export function StorePatientDetails({
     pgpLe: { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' },
   });
 
+  const [optomRxForm, setOptomRxForm] = React.useState({
+    re: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+    le: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+  });
+
   React.useEffect(() => {
     if (selectedCustomer && !isAddingNew) {
       setForm({
@@ -61,7 +68,7 @@ export function StorePatientDetails({
         gender: selectedCustomer.gender || 'Male',
         mobile: selectedCustomer.mobile || '',
         customerType: selectedCustomer.customerType || 'New',
-        storeName: selectedCustomer.storeName || '',
+        storeName: selectedCustomer.storeName || user.name || '',
         preferredLanguage: selectedCustomer.preferredLanguage || 'English',
         preferredLanguage2: selectedCustomer.preferredLanguage2 || 'None',
         storeFeedback: selectedCustomer.storeFeedback || '',
@@ -75,6 +82,17 @@ export function StorePatientDetails({
         pgpRe: { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' },
         pgpLe: { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' },
       });
+      if (selectedCustomer.optomRxData) {
+        setOptomRxForm({
+          re: { ...selectedCustomer.optomRxData.re },
+          le: { ...selectedCustomer.optomRxData.le },
+        });
+      } else {
+        setOptomRxForm({
+          re: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+          le: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+        });
+      }
     } else if (isAddingNew) {
       setForm({
         name: '',
@@ -82,12 +100,12 @@ export function StorePatientDetails({
         gender: 'Male',
         mobile: '',
         customerType: 'New',
-        storeName: '',
+        storeName: user.name || '',
         preferredLanguage: 'English',
         preferredLanguage2: 'None',
         storeFeedback: '',
         optumFeedback: '',
-        status: 'Initiated',
+        status: 'Created',
         activeProfile: true,
       });
       setRxForm({
@@ -96,19 +114,25 @@ export function StorePatientDetails({
         pgpRe: { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' },
         pgpLe: { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' },
       });
+      setOptomRxForm({
+        re: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+        le: { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' },
+      });
     }
-  }, [selectedCustomer, isAddingNew]);
+  }, [selectedCustomer, isAddingNew, user]);
 
   const setField = (key: string) => (val: any) => {
     setForm((f) => ({ ...f, [key]: val }));
   };
 
   const setRxField = (row: 'autoRefRe' | 'autoRefLe' | 'pgpRe' | 'pgpLe', field: keyof RxValues, val: string) => {
+    // Only allow numbers and special characters (no letters)
+    const cleanVal = val.replace(/[a-zA-Z]/g, '');
     setRxForm((prev) => ({
       ...prev,
       [row]: {
         ...prev[row],
-        [field]: val,
+        [field]: cleanVal,
       },
     }));
   };
@@ -123,6 +147,82 @@ export function StorePatientDetails({
         type: 'error',
       });
       return;
+    }
+
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(form.mobile)) {
+      toast({
+        title: 'Validation Error',
+        description: 'Mobile number must be exactly 10 digits.',
+        type: 'error',
+      });
+      return;
+    }
+
+    // Validate Auto Ref RE required fields (Sph, Cyl, Axis, PD)
+    if (
+      !rxForm.autoRefRe.sph ||
+      !rxForm.autoRefRe.cyl ||
+      !rxForm.autoRefRe.axis ||
+      !rxForm.autoRefRe.pd
+    ) {
+      toast({
+        title: 'Validation Error',
+        description: 'Sph, Cyl, Axis, and PD are required fields for Auto Ref R E.',
+        type: 'error',
+      });
+      return;
+    }
+
+    // Validate Auto Ref LE required fields (Sph, Cyl, Axis, PD)
+    if (
+      !rxForm.autoRefLe.sph ||
+      !rxForm.autoRefLe.cyl ||
+      !rxForm.autoRefLe.axis ||
+      !rxForm.autoRefLe.pd
+    ) {
+      toast({
+        title: 'Validation Error',
+        description: 'Sph, Cyl, Axis, and PD are required fields for Auto Ref L E.',
+        type: 'error',
+      });
+      return;
+    }
+
+    // If any PGP RE field is filled, validate all required PGP RE fields (Sph, Cyl, Axis, PD)
+    const hasPgpRe = Object.values(rxForm.pgpRe).some(v => v !== '');
+    if (hasPgpRe) {
+      if (
+        !rxForm.pgpRe.sph ||
+        !rxForm.pgpRe.cyl ||
+        !rxForm.pgpRe.axis ||
+        !rxForm.pgpRe.pd
+      ) {
+        toast({
+          title: 'Validation Error',
+          description: 'Sph, Cyl, Axis, and PD are required fields for PGP R E.',
+          type: 'error',
+        });
+        return;
+      }
+    }
+
+    // If any PGP LE field is filled, validate all required PGP LE fields (Sph, Cyl, Axis, PD)
+    const hasPgpLe = Object.values(rxForm.pgpLe).some(v => v !== '');
+    if (hasPgpLe) {
+      if (
+        !rxForm.pgpLe.sph ||
+        !rxForm.pgpLe.cyl ||
+        !rxForm.pgpLe.axis ||
+        !rxForm.pgpLe.pd
+      ) {
+        toast({
+          title: 'Validation Error',
+          description: 'Sph, Cyl, Axis, and PD are required fields for PGP L E.',
+          type: 'error',
+        });
+        return;
+      }
     }
 
     const timestamp = new Date().toLocaleString('en-US', {
@@ -176,7 +276,10 @@ export function StorePatientDetails({
       })
         .then((res) => {
           if (!res.ok) throw new Error('Failed to save to database');
-          setCustomers((prev) => [newCustomer, ...prev]);
+          setCustomers((prev) => {
+            if (prev.some((c) => c.id === newCustomer.id)) return prev;
+            return [newCustomer, ...prev];
+          });
           setSelectedCustomerId(newId);
           onBack();
           toast({
@@ -324,7 +427,7 @@ export function StorePatientDetails({
                 <Input
                   type="tel"
                   value={form.mobile}
-                  onChange={(e) => setField('mobile')(e.target.value)}
+                  onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   placeholder="Enter mobile number"
                   icon={Phone}
                   required
@@ -347,8 +450,9 @@ export function StorePatientDetails({
                 <Input
                   type="text"
                   value={form.storeName}
-                  onChange={(e) => setField('storeName')(e.target.value)}
-                  placeholder="Enter store name"
+                  disabled
+                  className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed"
+                  placeholder="Store Name"
                 />
               </div>
             </div>
@@ -397,96 +501,153 @@ export function StorePatientDetails({
           {/* Section 2: RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
-              <table className="w-full border-collapse text-center text-xs">
-                <thead>
-                  <tr>
-                    <th colSpan={9} className="border-b border-slate-400 py-2.5 font-extrabold text-sm text-slate-900 uppercase tracking-wider bg-slate-100">
+              <Table className="w-full border-collapse text-center text-xs">
+                <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
+                  <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={9} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider bg-slate-100 animate-none">
                       Store Login
-                    </th>
-                  </tr>
-                  <tr className="bg-slate-50/30">
-                    <th colSpan={2} className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400 py-1 text-blue-600 font-extrabold text-[14px]">*</th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-r border-b border-slate-400"></th>
-                    <th className="border-b border-slate-400"></th>
-                  </tr>
-                  <tr className="bg-slate-100/70">
-                    <th colSpan={2} className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e] uppercase tracking-wider">RX</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Sph</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Cyl</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Axis</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">PD</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Prism</th>
-                    <th className="border-r border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">Base</th>
-                    <th className="border-b border-slate-400 py-2 font-black text-xs text-[#1a2b6e]">ADD</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                  <TableRow className="bg-slate-100/50 border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={2} className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                    <TableHead className="py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                  </TableRow>
+                  <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
+                    <TableHead colSpan={2} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Sph</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Cyl</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Axis</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">PD</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Prism</TableHead>
+                    <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Base</TableHead>
+                    <TableHead className="px-3 py-2 font-black text-xs text-[#1a2b6e] text-center">ADD</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {/* Auto Ref */}
-                  <tr>
-                    <td rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 w-[100px]">Auto Ref</td>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 w-[60px]">RE</td>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 w-[100px] text-center animate-none">Auto Ref</TableCell>
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 w-[60px] whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.autoRefRe[field as keyof RxValues] || ''}
                           onChange={(e) => setRxField('autoRefRe', field as keyof RxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                  <tr>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">LE</td>
+                  </TableRow>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.autoRefLe[field as keyof RxValues] || ''}
                           onChange={(e) => setRxField('autoRefLe', field as keyof RxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
+                  </TableRow>
 
                   {/* PGP */}
-                  <tr>
-                    <td rowSpan={2} className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4">PGP</td>
-                    <td className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">RE</td>
+                  <TableRow className="border-b border-slate-400">
+                    <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 text-center animate-none">PGP</TableCell>
+                    <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.pgpRe[field as keyof RxValues] || ''}
                           onChange={(e) => setRxField('pgpRe', field as keyof RxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                  <tr>
-                    <td className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3">LE</td>
+                  </TableRow>
+                  <TableRow className="border-0">
+                    <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'].map((field, idx) => (
-                      <td key={field} className={`p-0 ${idx < 6 ? 'border-r' : ''}`}>
+                      <TableCell key={field} className={`p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
                         <input
                           type="text"
                           value={rxForm.pgpLe[field as keyof RxValues] || ''}
                           onChange={(e) => setRxField('pgpLe', field as keyof RxValues, e.target.value)}
-                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 py-2.5 text-xs text-gray-900 font-medium"
+                          className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                         />
-                      </td>
+                      </TableCell>
                     ))}
-                  </tr>
-                </tbody>
-              </table>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
+
+          {/* Section 2.5: Optom RX Table (View Only) */}
+          {!isAddingNew && (
+            <div className="space-y-4">
+              <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
+                <Table className="w-full border-collapse text-center text-xs">
+                  <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
+                    <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
+                      <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider">
+                        Optom Login
+                      </TableHead>
+                    </TableRow>
+                    <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Sph</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Cyl</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Axis</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Prism</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">Base</TableHead>
+                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e]">VA</TableHead>
+                      <TableHead className="px-3 py-2 font-black text-xs text-[#1a2b6e] text-center">ADD</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* RE row */}
+                    <TableRow className="border-b border-slate-400">
+                      <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
+                      {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
+                        <TableCell key={field} className={`border-b border-slate-400 p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
+                          <input
+                            type="text"
+                            value={optomRxForm.re[field as keyof OptomRxValues] || ''}
+                            disabled
+                            className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {/* LE row */}
+                    <TableRow className="border-0">
+                      <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
+                      {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
+                        <TableCell key={field} className={`p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
+                          <input
+                            type="text"
+                            value={optomRxForm.le[field as keyof OptomRxValues] || ''}
+                            disabled
+                            className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                          />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
 
           {/* Section 3: Store Action / Feedback */}
           <div className="space-y-1.5">
@@ -503,16 +664,6 @@ export function StorePatientDetails({
           {/* Section 4: Status & Active Profile Toggle & Create Button */}
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3 select-none">
-                <Switch
-                  checked={form.activeProfile}
-                  onCheckedChange={(checked) => setField('activeProfile')(checked)}
-                  id="page-active-profile"
-                />
-                <label htmlFor="page-active-profile" className="text-xs font-bold text-gray-600 cursor-pointer">
-                  Active Profile
-                </label>
-              </div>
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
