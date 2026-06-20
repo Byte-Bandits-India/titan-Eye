@@ -683,8 +683,7 @@ export function OptemPatientDetails({
               <label className="text-xs font-bold text-gray-600">Status</label>
               <Select
                 value={form.status}
-                disabled
-                className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100"
+                onChange={(e) => setField('status')(e.target.value)}
                 options={[
                   { value: 'Created', label: 'Created' },
                   { value: 'Initiated', label: 'Initiated' },
