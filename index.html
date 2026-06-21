@@ -1,61 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Open TeamViewer</title>
-<style>
-  body {
-    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
-    background: #f3f2f1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    margin: 0;
-  }
-  .card {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    padding: 40px 48px;
-    text-align: center;
-  }
-  .card p {
-    color: #616161;
-    margin-bottom: 24px;
-  }
-  button {
-    background: #1d6fb8;
-    color: white;
-    border: none;
-    padding: 12px 28px;
-    font-size: 16px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  button:hover {
-    background: #155186;
-  }
-  .note {
-    margin-top: 16px;
-    font-size: 13px;
-    color: #a19f9d;
-  }
-</style>
-</head>
-<body>
-  <div class="card">
-    <p>Open the TeamViewer app on this computer</p>
-    <button onclick="openTeamViewer()">Open TeamViewer</button>
-    <div class="note">Launches your installed TeamViewer app (Windows).</div>
-  </div>
-
-<script>
-  function openTeamViewer() {
-    // Registered in HKEY_CLASSES_ROOT\teamviewer10 by the Windows installer.
-    // Just launches the app — no device ID or session attached.
-    window.location.href = "teamviewer10://";
-  }
-</script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Titan Eye</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

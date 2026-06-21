@@ -432,12 +432,8 @@ export function OptemPatientDetails({
       return;
     }
 
-    // Desktop: use hidden iframe so the page doesn't navigate away
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = 'teamviewer://';
-    document.body.appendChild(iframe);
-    setTimeout(() => document.body.removeChild(iframe), 2000);
+    // Desktop: teamviewer10:// is the registered Windows protocol handler
+    window.location.href = 'teamviewer10://';
   };
 
 
