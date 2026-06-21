@@ -206,7 +206,6 @@ export function OptemPatientDetails({
   // Detect mobile/tablet — server.js local agent cannot run on phones/tablets
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
-  const localAgentUrl = import.meta.env.VITE_LOCAL_SERVICE_URL || 'http://localhost:3001/api';
 
   const handleInitiateCall = async () => {
     if (!selectedCustomer) return;
@@ -252,20 +251,13 @@ export function OptemPatientDetails({
         type: 'success',
       });
 
-      if (isMobile) {
-        window.location.href = 'msteams://';
-        setTimeout(() => window.open('https://teams.microsoft.com/v2/', '_blank'), 2000);
-        return;
-      }
-
-      window.location.href = 'msteams://';
-
-      fetch(`${localAgentUrl}/open-teams`, { 
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }).catch(() => {});
+      const teamsUser = 'sannadurai@neuroiq.ai';
+      const appLink = `msteams:/l/call/0/0?users=${teamsUser}`;
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = appLink;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 2000);
 
     } catch (err) {
       console.error(err);
@@ -440,21 +432,12 @@ export function OptemPatientDetails({
       return;
     }
 
-    // Desktop: fire teamviewer:// immediately (registered on Windows & Mac by TeamViewer)
-    window.location.href = 'teamviewer://';
-
-    const savedUser = localStorage.getItem('titan_user');
-    const token = savedUser ? JSON.parse(savedUser).token : '';
-
-    // Also call server.js in parallel for window auto-positioning
-    fetch(`${localAgentUrl}/open-teamviewer`, { 
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    }).catch(() => {
-      // server.js not running — URI scheme above already handled it, nothing to do
-    });
+    // Desktop: use hidden iframe so the page doesn't navigate away
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'teamviewer://';
+    document.body.appendChild(iframe);
+    setTimeout(() => document.body.removeChild(iframe), 2000);
   };
 
 
