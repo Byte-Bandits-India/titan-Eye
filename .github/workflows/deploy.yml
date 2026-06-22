@@ -57,7 +57,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo "${{ secrets.SERVER_IP }} ${{ secrets.SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_HOST_KEY }}" | while read -r line || [ -n "$line" ]; do
+            # Skip empty lines
+            [ -z "$line" ] && continue
+            WORD_COUNT=$(echo "$line" | wc -w)
+            if [ "$WORD_COUNT" -eq 2 ]; then
+              echo "${{ secrets.SERVER_IP }} $line" >> ~/.ssh/known_hosts
+            elif [ "$WORD_COUNT" -gt 2 ]; then
+              KEY_DATA=$(echo "$line" | cut -d' ' -f2-)
+              echo "${{ secrets.SERVER_IP }} $KEY_DATA" >> ~/.ssh/known_hosts
+            fi
+          done
 
       - name: 📤 Upload to Server (SCP)
         run: |
