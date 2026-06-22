@@ -19,7 +19,7 @@ router.post('/login', async (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 24 * 60 * 60 * 1000
       });
       return res.json({ user: { email: user.email, name: user.name, role: user.role, storeName: user.storeName, token } });
     } else {
@@ -32,7 +32,6 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  // Extract the token from cookie or Authorization header
   let token = req.cookies?.token;
   if (!token) {
     const authHeader = req.headers['authorization'];
@@ -43,7 +42,6 @@ router.post('/logout', (req, res) => {
     revokeToken(token);
   }
 
-  // Clear the httpOnly cookie
   res.clearCookie('token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

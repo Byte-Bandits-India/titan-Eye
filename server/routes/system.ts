@@ -5,7 +5,6 @@ import { getScreenSize, getChromePath, getTeamViewerPath } from '../utils/system
 
 const router = Router();
 
-// Teams (Chrome PWA) supports --window-position and --window-size flags directly
 router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
     return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
@@ -13,7 +12,7 @@ router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);
     const chromePath = getChromePath();
-    
+
     const proc = spawn(chromePath, [
       '--profile-directory=Profile 54',
       '--app=https://teams.microsoft.com/',
@@ -29,7 +28,6 @@ router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
   return res.json({ ok: true });
 });
 
-// TeamViewer: launch then track window and position
 router.post('/open-teamviewer', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
     return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
@@ -89,7 +87,7 @@ router.post('/open-teamviewer', async (req: AuthenticatedRequest, res: Response)
         console.error('Failed to spawn teamviewer binary:', err.message);
       });
       proc.unref();
-      
+
       const pid = proc.pid;
       if (pid) {
         let attempts = 0;

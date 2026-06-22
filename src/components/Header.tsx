@@ -44,14 +44,12 @@ export function Header({
 
       try {
         const startTime = performance.now();
-        // Measure connection latency via lightweight ping request
         const response = await fetch('/api/ping?t=' + Date.now(), { cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to ping');
         
         const endTime = performance.now();
         const latencyMs = Math.max(1, endTime - startTime);
         
-        // Convert RTT latency to estimated MBPS bandwidth
         let speedInMbps = 600 / (latencyMs + 2);
         if (speedInMbps > 150) speedInMbps = 150;
         

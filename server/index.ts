@@ -12,7 +12,6 @@ import { authenticateToken } from './middleware/auth.js';
 import { addSseClient, removeSseClient } from './utils/sse.js';
 import { verifyToken } from './config/jwt.js';
 
-// Import routers
 import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
 import webhooksRouter from './routes/webhooks.js';
@@ -63,12 +62,10 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Ping endpoint
 app.get('/api/ping', (req: Request, res: Response) => {
   res.sendStatus(200);
 });
 
-// SSE Events endpoint
 app.get('/api/events', (req: Request, res: Response) => {
   const token = req.query.token as string;
   if (!token) {
@@ -97,18 +94,15 @@ app.get('/api/events', (req: Request, res: Response) => {
   });
 });
 
-// Register routers
 app.use('/api/login', authLimiter);
 app.use('/api', authRouter);
 app.use('/api/customers', apiLimiter, authenticateToken as any, customersRouter);
 app.use('/api/webhooks', apiLimiter, webhooksRouter);
 app.use('/api', apiLimiter, authenticateToken as any, systemRouter);
 
-// Serve static files from Vite build directory
 const distPath = path.resolve('dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
-  // For any other request, send back index.html (supports client-side routing)
   app.get('/*splat', (req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api')) {
       return next();
@@ -122,7 +116,6 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-// Start database and server
 const PORT = 3001;
 initDb()
   .then(() => {

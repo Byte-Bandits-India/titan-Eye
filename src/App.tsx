@@ -7,7 +7,6 @@ import { User, Customer } from './types';
 
 export default function App() {
   const [user, setUser] = React.useState<User | null>(() => {
-    // Optional: Load session from localStorage for persistence
     const saved = localStorage.getItem('titan_user');
     if (saved) {
       try {
@@ -27,7 +26,6 @@ export default function App() {
     setUser(null);
   }, []);
 
-  // Fetch customers from SQLite backend
   const fetchCustomers = React.useCallback(async () => {
     if (!user || !user.token) return;
     try {
@@ -52,13 +50,11 @@ export default function App() {
     }
   }, [apiBaseUrl, user, handleLogout]);
 
-  // Fetch once when user logs in or mounts. SSE is used for real-time updates.
   React.useEffect(() => {
     if (!user) return;
     fetchCustomers();
   }, [user, fetchCustomers]);
 
-  // Save user session only
   React.useEffect(() => {
     if (user) {
       localStorage.setItem('titan_user', JSON.stringify(user));

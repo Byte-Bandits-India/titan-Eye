@@ -121,7 +121,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
     setSelectedCustomerId(id);
   };
 
-  // Stats derivation
   const stats = React.useMemo(() => {
     const active = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Accepted').length;
     const pending = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated').length;
@@ -138,7 +137,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
     return { active, pending, completed, today };
   }, [customers]);
 
-  // Filter customers
   const filteredCustomers = React.useMemo(() => {
     return customers.filter((c) => {
       const matchText = searchTerm.trim().toLowerCase();
@@ -151,7 +149,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
     });
   }, [customers, searchTerm]);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / itemsPerPage));
   const paginatedCustomers = React.useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -187,7 +184,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         wifiStatus="LOW"
       />
 
-      {/* Main Content Area */}
       {isAddingNew || isEditing ? (
         <StorePatientDetails
           user={user}
@@ -203,9 +199,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
           toast={toast}
         />
       ) : (
-        /* Dashboard Layout Content */
         <main className="flex-1 px-8 py-6 space-y-6 w-full">
-          {/* Page Header */}
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold text-gray-900">Store Overview</h1>
             <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 tracking-wider">
@@ -220,9 +214,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
             </div>
           </div>
 
-          {/* Top Cards Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Active Tests */}
             <Card className="p-4 border-[1.5px] border-blue-400/70 bg-white shadow-[0_2px_12px_rgba(59,130,246,0.08)] hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
                 <FlaskConical size={20} />
@@ -233,7 +225,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
               </div>
             </Card>
 
-            {/* Card 2: Pending Review */}
             <Card className="p-4 border-[1.5px] border-orange-400/70 bg-white shadow-[0_2px_12px_rgba(249,115,22,0.08)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
                 <Clock size={20} />
@@ -244,7 +235,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
               </div>
             </Card>
 
-            {/* Card 3: Completed */}
             <Card className="p-4 border-[1.5px] border-green-400/70 bg-white shadow-[0_2px_12px_rgba(34,197,94,0.08)] hover:shadow-[0_4px_20px_rgba(34,197,94,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-green-500 shrink-0">
                 <CheckCircle2 size={20} />
@@ -255,7 +245,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
               </div>
             </Card>
 
-            {/* Card 4: Today's Patients */}
             <Card className="p-4 border-[1.5px] border-teal-400/70 bg-white shadow-[0_2px_12px_rgba(20,184,166,0.08)] hover:shadow-[0_4px_20px_rgba(20,184,166,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-500 shrink-0">
                 <Users2 size={20} />
@@ -267,7 +256,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
             </Card>
           </div>
 
-          {/* Action Row */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="w-full sm:max-w-md">
               <Input
@@ -288,9 +276,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
             </Button>
           </div>
 
-          {/* Split Grid */}
           <div>
-            {/* Left Table Panel */}
             <div className="lg:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
                 <div className="text-sm font-bold text-gray-800">Recent Customers & Transactions</div>
@@ -385,7 +371,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                 </Table>
               </div>
 
-              {/* Pagination controls */}
               <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-slate-50/50">
                 <span className="font-medium">Items per page: {itemsPerPage}</span>
                 <div className="flex items-center gap-4">
@@ -420,7 +405,6 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         </main>
       )}
 
-      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 px-8 py-4 mt-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] text-gray-400">
           <span>© 2026 Titan Company Limited. All Rights Reserved.</span>

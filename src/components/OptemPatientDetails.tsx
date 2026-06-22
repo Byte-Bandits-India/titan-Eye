@@ -96,7 +96,6 @@ export function OptemPatientDetails({
   };
 
   const setOptomRxField = (eye: 're' | 'le', field: keyof OptomRxValues, val: string) => {
-    // Only allow numbers and special characters (no letters)
     const cleanVal = val.replace(/[a-zA-Z]/g, '');
     setOptomRxForm((prev) => ({
       ...prev,
@@ -111,7 +110,6 @@ export function OptemPatientDetails({
     e.preventDefault();
     if (!selectedCustomer) return;
 
-    // Validate Optom RE required fields (Sph, Cyl, Axis, VA)
     if (
       !optomRxForm.re.sph ||
       !optomRxForm.re.cyl ||
@@ -126,7 +124,6 @@ export function OptemPatientDetails({
       return;
     }
 
-    // Validate Optom LE required fields (Sph, Cyl, Axis, VA)
     if (
       !optomRxForm.le.sph ||
       !optomRxForm.le.cyl ||
@@ -204,7 +201,6 @@ export function OptemPatientDetails({
       });
   };
 
-  // Detect mobile/tablet — server.js local agent cannot run on phones/tablets
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const isAndroid = /Android/i.test(navigator.userAgent);
 
@@ -409,13 +405,9 @@ export function OptemPatientDetails({
 
     if (isMobile) {
       if (isAndroid) {
-        // Android: launch TeamViewer app by package name
-        // If app is installed → opens it. If not → falls back to Play Store.
         window.location.href =
           'intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.teamviewer.teamviewer.market.mobile;end';
 
-        // Smart fallback: if page is still visible after 2.5s, app wasn't opened
-        // document.hidden becomes true when an app takes over the foreground
         setTimeout(() => {
           if (!document.hidden) {
             window.open(
@@ -425,7 +417,6 @@ export function OptemPatientDetails({
           }
         }, 2500);
       } else {
-        // iOS: teamviewer:// is registered by the TeamViewer iOS app
         window.location.href = 'teamviewer://';
         setTimeout(() => {
           if (!document.hidden) {
@@ -436,14 +427,12 @@ export function OptemPatientDetails({
       return;
     }
 
-    // Desktop: teamviewer10:// is the registered Windows protocol handler
     window.location.href = 'teamviewer10://';
   };
 
 
   return (
     <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
-      {/* Page Title Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md animate-pulse">
@@ -489,10 +478,8 @@ export function OptemPatientDetails({
         </div>
       </div>
 
-      {/* Customer Details Form & Table Card */}
       <Card className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
         <form onSubmit={handleUpdateDetails} className="space-y-8">
-          {/* Section 1: Customer Details */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Customer Details</h2>
@@ -586,7 +573,6 @@ export function OptemPatientDetails({
             </div>
           </div>
 
-          {/* Section 2: Store Login RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
               <Table className="w-full border-collapse text-center text-xs">
@@ -670,8 +656,6 @@ export function OptemPatientDetails({
             </div>
           </div>
 
-
-          {/* Section 3: Store Action / Feedback */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-600">Store Action / Feedback</label>
             <textarea
@@ -682,7 +666,6 @@ export function OptemPatientDetails({
             />
           </div>
 
-          {/* Section 4: Optom Login RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
               <Table className="w-full border-collapse text-center text-xs">
@@ -714,7 +697,6 @@ export function OptemPatientDetails({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {/* RE row */}
                   <TableRow className="border-b border-slate-400">
                     <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
                     {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
@@ -728,8 +710,7 @@ export function OptemPatientDetails({
                       </TableCell>
                     ))}
                   </TableRow>
-                  {/* LE row */}
-                  <TableRow className="border-0">
+=                  <TableRow className="border-0">
                     <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                     {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
                       <TableCell key={field} className={`p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
@@ -747,7 +728,6 @@ export function OptemPatientDetails({
             </div>
           </div>
 
-          {/* Section 5: Optum Action / Feedback */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-600">Optum Action / Feedback</label>
             <textarea
@@ -759,7 +739,6 @@ export function OptemPatientDetails({
             />
           </div>
 
-          {/* Section 6: Status & Footer Buttons */}
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1.5 w-full sm:max-w-xs">
               <label className="text-xs font-bold text-gray-600">Status</label>

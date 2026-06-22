@@ -35,7 +35,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
   const [isEditing, setIsEditing] = React.useState(false);
   const [collisionModalData, setCollisionModalData] = React.useState<{ id: string; name: string; takenBy: string } | null>(null);
 
-  // Derive selected customer
   const selectedCustomer = React.useMemo(() => {
     return customers.find((c) => c.id === selectedCustomerId) || null;
   }, [customers, selectedCustomerId]);
@@ -44,9 +43,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
 
   // Stats derivation
   const stats = React.useMemo(() => {
-    // Large counts matching screenshot:
-    // Active Tests: 477, Pending Review: 455, Completed: 6, Today's Patients: 1
-    // We add dynamic adjustments based on local mock edits:
     const active = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Accepted').length;
     const pending = customers.filter((c) => c.status === 'Created' || c.status === 'Initiated').length;
     const completed = customers.filter((c) => c.status === 'Completed').length;
@@ -63,12 +59,10 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
     return { active, pending, completed, today };
   }, [customers]);
 
-  // Filter incoming requests to show initiated, accepted, and completed calls
   const incomingRequests = React.useMemo(() => {
     return customers.filter((c) => c.status !== 'Created');
   }, [customers]);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(incomingRequests.length / itemsPerPage));
   const paginatedRequests = React.useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -121,11 +115,8 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
           toast={toast}
         />
       ) : (
-        /* Main Layout Content */
         <main className="flex-1 px-8 py-6 space-y-6 w-full">
-          {/* Top Cards Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Active Tests */}
             <Card className="p-4 border-[1.5px] border-blue-400/70 bg-white shadow-[0_2px_12px_rgba(59,130,246,0.08)] hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
                 <FlaskConical size={20} />
@@ -136,7 +127,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
               </div>
             </Card>
 
-            {/* Card 2: Pending Review */}
             <Card className="p-4 border-[1.5px] border-orange-400/70 bg-white shadow-[0_2px_12px_rgba(249,115,22,0.08)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-500 shrink-0">
                 <Clock size={20} />
@@ -147,7 +137,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
               </div>
             </Card>
 
-            {/* Card 3: Completed */}
             <Card className="p-4 border-[1.5px] border-green-400/70 bg-white shadow-[0_2px_12px_rgba(34,197,94,0.08)] hover:shadow-[0_4px_20px_rgba(34,197,94,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center text-green-500 shrink-0">
                 <CheckCircle2 size={20} />
@@ -158,7 +147,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
               </div>
             </Card>
 
-            {/* Card 4: Today's Patients */}
             <Card className="p-4 border-[1.5px] border-teal-400/70 bg-white shadow-[0_2px_12px_rgba(20,184,166,0.08)] hover:shadow-[0_4px_20px_rgba(20,184,166,0.15)] transition-all duration-300 flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-500 shrink-0">
                 <Users2 size={20} />
@@ -170,9 +158,7 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
             </Card>
           </div>
 
-          {/* Split Grid */}
           <div>
-            {/* Left Table Panel */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-2">
@@ -271,7 +257,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
                 </Table>
               </div>
 
-              {/* Pagination */}
               <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-slate-50/50">
                 <span className="font-medium">Items per page: {itemsPerPage}</span>
                 <div className="flex items-center gap-4">
@@ -306,7 +291,6 @@ export function OptemScreen({ user, onLogout, customers, setCustomers }: OptemSc
         </main>
       )}
 
-      {/* Footer */}
       <footer className="bg-white border-t border-gray-200 px-8 py-4 mt-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] text-gray-400">
           <span>© 2026 Titan Company Limited. All Rights Reserved.</span>

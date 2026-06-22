@@ -5,14 +5,11 @@ import { hashPassword } from '../utils/hash.js';
 const DB_PATH = process.env.DATABASE_PATH || 'database.db';
 export const db = new sqlite3.Database(DB_PATH);
 
-// Restrict file permissions to owner-only (read/write)
 try {
   fs.chmodSync(DB_PATH, 0o600);
 } catch (e) {
-  // May fail on Windows or if file doesn't exist yet; non-fatal
 }
 
-// Enable WAL mode for better concurrent read safety
 db.run('PRAGMA journal_mode=WAL', (err) => {
   if (err) console.error('Failed to enable WAL mode:', err.message);
 });
@@ -42,7 +39,6 @@ export const get = (sql: string, params: any[] = []): Promise<any> =>
   });
 
 export async function initDb(): Promise<void> {
-  // Create Users Table
   await run(`
     CREATE TABLE IF NOT EXISTS users (
       email TEXT PRIMARY KEY,
@@ -55,9 +51,8 @@ export async function initDb(): Promise<void> {
 
   try {
     await run(`ALTER TABLE users ADD COLUMN storeName TEXT`);
-  } catch (e) {}
+  } catch (e) { }
 
-  // Create Customers Table
   await run(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
@@ -82,28 +77,24 @@ export async function initDb(): Promise<void> {
     )
   `);
 
-  // Proactively add call-related columns if they do not exist
   try {
     await run(`ALTER TABLE customers ADD COLUMN callStartTime TEXT`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     await run(`ALTER TABLE customers ADD COLUMN callActive INTEGER DEFAULT 0`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`);
-  } catch (e) {}
+  } catch (e) { }
 
-  // Drop old view to ensure it is updated with all columns
   await run(`DROP VIEW IF EXISTS customer_summary`);
 
-  // Create Customer Summary View
   await run(`
     CREATE VIEW IF NOT EXISTS customer_summary AS
     SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback, status, activeProfile, lastUpdatedOn, rxData, optomRxData, callStartTime, callActive, callTakenBy
     FROM customers
   `);
 
-  // Seed default users if they do not exist
   const defaultUsers = [
     { email: 'store@gmail.com', name: 'Meena', role: 'store', storeName: 'Store A', password: 'pass@123' },
     { email: 'store2@gmail.com', name: 'Rahul', role: 'store', storeName: 'Store B', password: 'pass@123' },

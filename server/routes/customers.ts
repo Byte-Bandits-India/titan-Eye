@@ -6,7 +6,6 @@ import { validateCustomerData } from '../utils/validation.js';
 
 const router = Router();
 
-// Fetch all customers
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = 'SELECT * FROM customer_summary';
@@ -44,7 +43,6 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     if (!validation.valid) {
       return res.status(400).json({ error: 'Validation failed', details: validation.errors });
     }
-    // Use sanitized data from this point forward
     Object.assign(c, validation.sanitized);
 
     let finalId = c.id;
@@ -76,7 +74,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       c.callActive ? 1 : 0,
       c.callTakenBy || null
     ]);
-    
+
     const row = await get('SELECT * FROM customer_summary WHERE id = ?', [finalId]);
     const createdCustomer = {
       ...row,
@@ -94,7 +92,6 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Update an existing customer
 router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -119,7 +116,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(400).json({ error: 'Validation failed', details: validation.errors });
     }
     Object.assign(c, validation.sanitized);
-    
+
     let finalStatus = c.status;
 
     await run(`
@@ -158,7 +155,6 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Initiate call endpoint
 router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -217,7 +213,6 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
   }
 });
 
-// End call endpoint
 router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;

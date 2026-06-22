@@ -2,7 +2,6 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-/** Shell metacharacters that should never appear in an executable path */
 const DANGEROUS_CHARS = /[;|&$`!><\n\r]/;
 
 function validatePath(execPath: string, label: string): string {

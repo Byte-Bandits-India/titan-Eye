@@ -126,7 +126,6 @@ export function StorePatientDetails({
   };
 
   const setRxField = (row: 'autoRefRe' | 'autoRefLe' | 'pgpRe' | 'pgpLe', field: keyof RxValues, val: string) => {
-    // Only allow numbers and special characters (no letters)
     const cleanVal = val.replace(/[a-zA-Z]/g, '');
     setRxForm((prev) => ({
       ...prev,
@@ -159,7 +158,6 @@ export function StorePatientDetails({
       return;
     }
 
-    // Validate Auto Ref RE required fields (Sph, Cyl, Axis, PD)
     if (
       !rxForm.autoRefRe.sph ||
       !rxForm.autoRefRe.cyl ||
@@ -174,7 +172,6 @@ export function StorePatientDetails({
       return;
     }
 
-    // Validate Auto Ref LE required fields (Sph, Cyl, Axis, PD)
     if (
       !rxForm.autoRefLe.sph ||
       !rxForm.autoRefLe.cyl ||
@@ -189,7 +186,6 @@ export function StorePatientDetails({
       return;
     }
 
-    // If any PGP RE field is filled, validate all required PGP RE fields (Sph, Cyl, Axis, PD)
     const hasPgpRe = Object.values(rxForm.pgpRe).some(v => v !== '');
     if (hasPgpRe) {
       if (
@@ -207,7 +203,6 @@ export function StorePatientDetails({
       }
     }
 
-    // If any PGP LE field is filled, validate all required PGP LE fields (Sph, Cyl, Axis, PD)
     const hasPgpLe = Object.values(rxForm.pgpLe).some(v => v !== '');
     if (hasPgpLe) {
       if (
@@ -238,7 +233,6 @@ export function StorePatientDetails({
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
     if (isAddingNew) {
-      // Generate new ID
       const numericIds = customers
         .map((c) => parseInt(c.id.replace('#', ''), 10))
         .filter((n) => !isNaN(n));
@@ -359,7 +353,6 @@ export function StorePatientDetails({
 
   return (
     <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
-      {/* Page Title Row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md animate-pulse">
@@ -385,10 +378,8 @@ export function StorePatientDetails({
         </Button>
       </div>
 
-      {/* Customer Details Form & Table Card */}
       <Card className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
         <form onSubmit={handleFormSubmit} className="space-y-8">
-          {/* Section 1: Customer Details */}
           <div className="space-y-4">
             <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Customer Details</h2>
             
@@ -505,7 +496,6 @@ export function StorePatientDetails({
             </div>
           </div>
 
-          {/* Section 2: RX Table */}
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
               <Table className="w-full border-collapse text-center text-xs">
@@ -566,7 +556,6 @@ export function StorePatientDetails({
                     ))}
                   </TableRow>
 
-                  {/* PGP */}
                   <TableRow className="border-b border-slate-400">
                     <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 text-center animate-none">PGP</TableCell>
                     <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
@@ -599,7 +588,6 @@ export function StorePatientDetails({
             </div>
           </div>
 
-          {/* Section 2.5: Optom RX Table (View Only) */}
           {!isAddingNew && (
             <div className="space-y-4">
               <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
@@ -622,7 +610,6 @@ export function StorePatientDetails({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* RE row */}
                     <TableRow className="border-b border-slate-400">
                       <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">R E</TableCell>
                       {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
@@ -636,7 +623,6 @@ export function StorePatientDetails({
                         </TableCell>
                       ))}
                     </TableRow>
-                    {/* LE row */}
                     <TableRow className="border-0">
                       <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">L E</TableCell>
                       {['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'].map((field, idx) => (
@@ -656,7 +642,6 @@ export function StorePatientDetails({
             </div>
           )}
 
-          {/* Section 3: Store Action / Feedback */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-600">Store Action / Feedback</label>
             <textarea
@@ -668,7 +653,6 @@ export function StorePatientDetails({
             />
           </div>
 
-          {/* Section 4: Status & Active Profile Toggle & Create Button */}
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
             </div>
