@@ -6,13 +6,13 @@ This document outlines the step-by-step checklist and guide to resolve every sin
 
 ## 📋 Remediation Status & Roadmap Tracker
 
-- [ ] **Phase 1: Content Security Policy (CSP) Hardening (Medium Risk)**
-  - [ ] Step 1.1: Enable Helmet's CSP Middleware in Express
-  - [ ] Step 1.2: Define Explicit fallback directives (`frame-ancestors`, `form-action`)
+- [/] **Phase 1: Content Security Policy (CSP) Hardening (Medium Risk)**
+  - [x] Step 1.1: Enable Helmet's CSP Middleware in Express
+  - [x] Step 1.2: Define Explicit fallback directives (`frame-ancestors`, `form-action`)
 - [ ] **Phase 2: Nginx Server Version Leak Prevention (Low Risk)**
   - [ ] Step 2.1: Suppress Nginx Version Tokens in production
-- [ ] **Phase 3: Cache Hardening (Informational Risk)**
-  - [ ] Step 3.1: Enforce strict no-cache directives on sensitive API routes
+- [x] **Phase 3: Cache Hardening (Informational Risk)**
+  - [x] Step 3.1: Enforce strict no-cache directives on sensitive API routes
 
 ---
 
