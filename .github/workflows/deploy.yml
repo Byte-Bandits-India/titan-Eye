@@ -23,18 +23,18 @@ jobs:
 
       - name: 🏗 Inject Environment Variables
         run: |
-          echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env
+          echo "VITE_API_BASE_URL=https://titaneye.duckdns.org/api" > .env
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
           echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env
           echo "NODE_ENV=production" >> .env
-          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org" >> .env
-          echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
+          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org,https://titaneye.duckdns.org" >> .env
+          echo "VITE_API_BASE_URL=https://titaneye.duckdns.org/api" > .env.production
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.production
           echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env.production
           echo "NODE_ENV=production" >> .env.production
-          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org" >> .env.production
+          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org,https://titaneye.duckdns.org" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
