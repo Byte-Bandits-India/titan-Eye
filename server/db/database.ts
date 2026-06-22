@@ -1,4 +1,5 @@
 import sqlite3 from 'sqlite3';
+import { hashPassword } from '../utils/hash.js';
 
 export const db = new sqlite3.Database('database.db');
 
@@ -33,9 +34,14 @@ export async function initDb(): Promise<void> {
       email TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       role TEXT NOT NULL,
+      storeName TEXT,
       password TEXT NOT NULL
     )
   `);
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN storeName TEXT`);
+  } catch (e) {}
 
   // Create Customers Table
   await run(`
@@ -84,23 +90,30 @@ export async function initDb(): Promise<void> {
   `);
 
   // Seed default users if they do not exist
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'store@gmail.com', 'Meena', 'store', 'pass@123'
-  ]);
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'store2@gmail.com', 'Rahul', 'store', 'pass@123'
-  ]);
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'store3@gmail.com', 'Sonia', 'store', 'pass@123'
-  ]);
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'optem@gmail.com', 'Dr. Priya', 'optem', 'pass@123'
-  ]);
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'optem2@gmail.com', 'Dr. Amit', 'optem', 'pass@123'
-  ]);
-  await run('INSERT OR IGNORE INTO users (email, name, role, password) VALUES (?, ?, ?, ?)', [
-    'optem3@gmail.com', 'Dr. Vikram', 'optem', 'pass@123'
-  ]);
-  console.log('Seeded default users.');
+  const defaultUsers = [
+    { email: 'store@gmail.com', name: 'Meena', role: 'store', storeName: 'Store A', password: 'pass@123' },
+    { email: 'store2@gmail.com', name: 'Rahul', role: 'store', storeName: 'Store B', password: 'pass@123' },
+    { email: 'store3@gmail.com', name: 'Sonia', role: 'store', storeName: 'Store C', password: 'pass@123' },
+    { email: 'optem@gmail.com', name: 'Dr. Priya', role: 'optem', storeName: null, password: 'pass@123' },
+    { email: 'optem2@gmail.com', name: 'Dr. Amit', role: 'optem', storeName: null, password: 'pass@123' },
+    { email: 'optem3@gmail.com', name: 'Dr. Vikram', role: 'optem', storeName: null, password: 'pass@123' },
+  ];
+
+  for (const u of defaultUsers) {
+    const existing = await get('SELECT * FROM users WHERE email = ?', [u.email]);
+    if (!existing) {
+      await run('INSERT INTO users (email, name, role, storeName, password) VALUES (?, ?, ?, ?, ?)', [
+        u.email, u.name, u.role, u.storeName, hashPassword(u.password)
+      ]);
+    } else {
+      const needsUpdate = !existing.password.includes(':') || existing.storeName !== u.storeName;
+      if (needsUpdate) {
+        const newPassword = existing.password.includes(':') ? existing.password : hashPassword(u.password);
+        await run('UPDATE users SET storeName = ?, password = ? WHERE email = ?', [
+          u.storeName, newPassword, u.email
+        ]);
+      }
+    }
+  }
+  console.log('Seeded and migrated default users.');
 }

@@ -54,6 +54,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       });
 
       if (response.status === 409) {
@@ -319,11 +320,7 @@ export function StoreScreen({ user, onLogout, customers, setCustomers }: StoreSc
                       paginatedCustomers.map((cust) => (
                         <TableRow
                           key={cust.id}
-                          onClick={() => {
-                            handleSelectCustomer(cust.id);
-                            setIsEditing(true);
-                          }}
-                          className={`cursor-pointer transition-colors ${
+                          className={`transition-colors ${
                             selectedCustomerId === cust.id && !isAddingNew
                               ? 'bg-blue-50/50 hover:bg-blue-50/70'
                               : 'hover:bg-slate-50/50'

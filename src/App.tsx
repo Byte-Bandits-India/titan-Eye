@@ -35,6 +35,7 @@ export default function App() {
         headers: {
           'Authorization': `Bearer ${user.token}`,
         },
+        credentials: 'include',
       });
       if (response.status === 401) {
         handleLogout();
@@ -51,22 +52,11 @@ export default function App() {
     }
   }, [apiBaseUrl, user, handleLogout]);
 
-  // Fetch whenever user logs in or mounts, and poll periodically for real-time synchronization fallback
+  // Fetch once when user logs in or mounts. SSE is used for real-time updates.
   React.useEffect(() => {
     if (!user) return;
-    
     fetchCustomers();
-
-    const interval = setInterval(() => {
-      fetchCustomers();
-    }, 2000);
-
-    return () => {
-      clearInterval(interval);
-    };
   }, [user, fetchCustomers]);
-
-  // SSE events are processed in the SseListener component child of ToastProvider to allow triggering notifications.
 
   // Save user session only
   React.useEffect(() => {
@@ -125,7 +115,7 @@ function SseListener({ apiBaseUrl, user, customers, setCustomers }: SseListenerP
   React.useEffect(() => {
     if (!user || !user.token) return;
 
-    const eventSource = new EventSource(`${apiBaseUrl}/events`);
+    const eventSource = new EventSource(`${apiBaseUrl}/events?token=${encodeURIComponent(user.token)}`);
 
     eventSource.onmessage = (event) => {
       try {

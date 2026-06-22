@@ -25,10 +25,16 @@ jobs:
         run: |
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env
-          echo "JWT_SECRET=titan-eye-secret-key-987654321" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env
+          echo "NODE_ENV=production" >> .env
+          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org" >> .env
           echo "VITE_API_BASE_URL=http://titaneye.duckdns.org/api" > .env.production
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
-          echo "JWT_SECRET=titan-eye-secret-key-987654321" >> .env.production
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.production
+          echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env.production
+          echo "NODE_ENV=production" >> .env.production
+          echo "ALLOWED_ORIGINS=http://titaneye.duckdns.org" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
@@ -51,15 +57,15 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+          echo "${{ secrets.SERVER_IP }} ${{ secrets.SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
 
       - name: 📤 Upload to Server (SCP)
         run: |
-          scp -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
+          scp -v -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
 
       - name: 🚀 Deploy on Server (SSH)
         run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -v -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
             echo "🚀 Starting deployment..."
             echo "📦 PRODUCTION DEPLOY"
 

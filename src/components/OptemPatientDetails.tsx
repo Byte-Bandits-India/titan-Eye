@@ -180,6 +180,7 @@ export function OptemPatientDetails({
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(updatedCustomer),
+      credentials: 'include',
     })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to update database');
@@ -222,6 +223,7 @@ export function OptemPatientDetails({
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       });
 
       if (response.status === 409) {
@@ -284,6 +286,7 @@ export function OptemPatientDetails({
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -367,6 +370,7 @@ export function OptemPatientDetails({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(updatedCustomer),
+        credentials: 'include',
       });
 
       console.log('handleUpdateStatusOnly: response status =', res.status, 'ok =', res.ok);

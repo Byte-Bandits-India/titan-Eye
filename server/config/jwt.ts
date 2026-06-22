@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'titan-eye-secret-key-987654321';
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'titan-eye-secret-key-987654321') {
+  throw new Error('FATAL: JWT_SECRET environment variable is missing or insecure!');
+}
+export const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface UserPayload {
   email: string;
   name: string;
   role: string;
+  storeName?: string;
   exp?: number;
 }
 

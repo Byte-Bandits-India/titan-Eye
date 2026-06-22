@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { get } from '../db/database.js';
 import { generateToken } from '../config/jwt.js';
+import { verifyPassword } from '../utils/hash.js';
 
 const router = Router();
 
@@ -10,10 +11,16 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-    const user = await get('SELECT email, name, role FROM users WHERE LOWER(email) = LOWER(?) AND password = ?', [email.trim(), password]);
-    if (user) {
-      const token = generateToken({ email: user.email, name: user.name, role: user.role });
-      return res.json({ user: { ...user, token } });
+    const user = await get('SELECT email, name, role, storeName, password FROM users WHERE LOWER(email) = LOWER(?)', [email.trim()]);
+    if (user && verifyPassword(password, user.password)) {
+      const token = generateToken({ email: user.email, name: user.name, role: user.role, storeName: user.storeName });
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      });
+      return res.json({ user: { email: user.email, name: user.name, role: user.role, storeName: user.storeName, token } });
     } else {
       return res.status(401).json({ error: 'Invalid email or password' });
     }

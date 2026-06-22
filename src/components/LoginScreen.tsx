@@ -11,8 +11,8 @@ interface LoginScreenProps {
 }
 
 export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
-  const [email, setEmail] = React.useState('store@gmail.com');
-  const [password, setPassword] = React.useState('pass@123');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
@@ -40,6 +40,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
       setIsLoading(false);
@@ -137,12 +138,6 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             </Button>
           </form>
 
-          {/* Quick Helper Credentials Callout */}
-          <div className="mt-6 border-t border-slate-100 pt-4 text-center">
-            <span className="text-[11px] text-gray-400">
-              Demo Emails: <strong className="text-gray-500 font-medium">store@gmail.com</strong> / <strong className="text-gray-500 font-medium">optem@gmail.com</strong> with password <strong className="text-gray-500 font-medium">pass@123</strong>
-            </span>
-          </div>
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,18 @@ const router = Router();
 
 router.post('/call-event', async (req: Request, res: Response) => {
   try {
+    const signature = req.headers['x-webhook-signature'];
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      console.error('WEBHOOK_SECRET environment variable is missing.');
+      return res.status(500).json({ error: 'Internal configuration error' });
+    }
+
+    if (signature !== webhookSecret) {
+      return res.status(401).json({ error: 'Unauthorized webhook source' });
+    }
+
     const { id, eventType, user } = req.body;
     if (!id || !eventType) {
       return res.status(400).json({ error: 'id and eventType are required' });

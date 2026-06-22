@@ -8,7 +8,16 @@ const router = Router();
 // Fetch all customers
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const rows = await all('SELECT * FROM customer_summary ORDER BY lastUpdatedOn DESC');
+    let query = 'SELECT * FROM customer_summary';
+    const params: any[] = [];
+
+    if (req.user && req.user.role === 'store') {
+      query += ' WHERE storeName = ?';
+      params.push(req.user.storeName);
+    }
+
+    query += ' ORDER BY lastUpdatedOn DESC';
+    const rows = await all(query, params);
     const customers = rows.map(c => ({
       ...c,
       activeProfile: c.activeProfile === 1,
@@ -23,10 +32,25 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Create a new customer
 router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const c = req.body;
+    if (req.user && req.user.role === 'store') {
+      c.storeName = req.user.storeName;
+    }
+
+    let finalId = c.id;
+    const exists = await get('SELECT id FROM customers WHERE id = ?', [finalId]);
+    if (exists || !finalId) {
+      const lastRow = await get("SELECT id FROM customers ORDER BY CAST(REPLACE(id, '#', '') AS INTEGER) DESC LIMIT 1");
+      let nextNum = 1;
+      if (lastRow && lastRow.id) {
+        const numPart = lastRow.id.replace('#', '');
+        nextNum = (parseInt(numPart, 10) || 0) + 1;
+      }
+      finalId = `#${String(nextNum).padStart(4, '0')}`;
+    }
+
     await run(`
       INSERT INTO customers (
         id, name, age, gender, mobile, customerType, storeName,
@@ -35,7 +59,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
         callStartTime, callActive, callTakenBy
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      c.id, c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
+      finalId, c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
       c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optumFeedback || '',
       c.status, c.activeProfile ? 1 : 0, c.lastUpdatedOn || '',
       c.rxData ? JSON.stringify(c.rxData) : null,
@@ -45,7 +69,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       c.callTakenBy || null
     ]);
     
-    const row = await get('SELECT * FROM customer_summary WHERE id = ?', [c.id]);
+    const row = await get('SELECT * FROM customer_summary WHERE id = ?', [finalId]);
     const createdCustomer = {
       ...row,
       activeProfile: row.activeProfile === 1,
@@ -55,7 +79,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     };
     broadcastEvent('CUSTOMER_CREATED', createdCustomer);
 
-    return res.status(201).json({ ok: true });
+    return res.status(201).json({ ok: true, id: finalId });
   } catch (err: any) {
     console.error('Create customer error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
@@ -67,6 +91,20 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const c = req.body;
+
+    const existing = await get('SELECT storeName, optomRxData, optumFeedback FROM customers WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    if (req.user && req.user.role === 'store') {
+      if (existing.storeName !== req.user.storeName) {
+        return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
+      }
+      c.optomRxData = existing.optomRxData ? JSON.parse(existing.optomRxData) : null;
+      c.optumFeedback = existing.optumFeedback;
+      c.storeName = req.user.storeName;
+    }
     
     let finalStatus = c.status;
 

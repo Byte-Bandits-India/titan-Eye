@@ -273,18 +273,24 @@ export function StorePatientDetails({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(newCustomer),
+        credentials: 'include',
       })
         .then((res) => {
           if (!res.ok) throw new Error('Failed to save to database');
+          return res.json();
+        })
+        .then((data) => {
+          const finalId = data.id || newId;
+          const actualCustomer = { ...newCustomer, id: finalId };
           setCustomers((prev) => {
-            if (prev.some((c) => c.id === newCustomer.id)) return prev;
-            return [newCustomer, ...prev];
+            if (prev.some((c) => c.id === finalId)) return prev;
+            return [actualCustomer, ...prev];
           });
-          setSelectedCustomerId(newId);
+          setSelectedCustomerId(finalId);
           onBack();
           toast({
             title: 'Patient Registered',
-            description: `Successfully added ${form.name} with ID ${newId}`,
+            description: `Successfully added ${form.name} with ID ${finalId}`,
             type: 'success',
           });
         })
@@ -326,6 +332,7 @@ export function StorePatientDetails({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(updatedCustomer),
+        credentials: 'include',
       })
         .then((res) => {
           if (!res.ok) throw new Error('Failed to update database');
