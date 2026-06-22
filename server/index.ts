@@ -26,6 +26,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests from this IP, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const app = express();
 
 app.use(helmet({
@@ -92,9 +100,9 @@ app.get('/api/events', (req: Request, res: Response) => {
 // Register routers
 app.use('/api/login', authLimiter);
 app.use('/api', authRouter);
-app.use('/api/customers', authenticateToken as any, customersRouter);
-app.use('/api/webhooks', webhooksRouter);
-app.use('/api', authenticateToken as any, systemRouter);
+app.use('/api/customers', apiLimiter, authenticateToken as any, customersRouter);
+app.use('/api/webhooks', apiLimiter, webhooksRouter);
+app.use('/api', apiLimiter, authenticateToken as any, systemRouter);
 
 // Serve static files from Vite build directory
 const distPath = path.resolve('dist');

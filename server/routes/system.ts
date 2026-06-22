@@ -7,6 +7,9 @@ const router = Router();
 
 // Teams (Chrome PWA) supports --window-position and --window-size flags directly
 router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user || req.user.role !== 'optem') {
+    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
+  }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);
     const chromePath = getChromePath();
@@ -28,6 +31,9 @@ router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
 
 // TeamViewer: launch then track window and position
 router.post('/open-teamviewer', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user || req.user.role !== 'optem') {
+    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
+  }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);
     const x = half;

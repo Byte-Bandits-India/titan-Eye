@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { all, run, get } from '../db/database.js';
 import { broadcastEvent } from '../utils/sse.js';
+import { validateCustomerData } from '../utils/validation.js';
 
 const router = Router();
 
@@ -38,6 +39,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     if (req.user && req.user.role === 'store') {
       c.storeName = req.user.storeName;
     }
+
+    const validation = validateCustomerData(c);
+    if (!validation.valid) {
+      return res.status(400).json({ error: 'Validation failed', details: validation.errors });
+    }
+    // Use sanitized data from this point forward
+    Object.assign(c, validation.sanitized);
 
     let finalId = c.id;
     const exists = await get('SELECT id FROM customers WHERE id = ?', [finalId]);
@@ -105,6 +113,12 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.optumFeedback = existing.optumFeedback;
       c.storeName = req.user.storeName;
     }
+
+    const validation = validateCustomerData(c, true);
+    if (!validation.valid) {
+      return res.status(400).json({ error: 'Validation failed', details: validation.errors });
+    }
+    Object.assign(c, validation.sanitized);
     
     let finalStatus = c.status;
 

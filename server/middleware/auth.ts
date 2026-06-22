@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, UserPayload } from '../config/jwt.js';
+import { isRevoked } from '../utils/tokenBlacklist.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: UserPayload;
@@ -16,6 +17,10 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   if (!token) {
     return res.status(401).json({ error: 'Access token required' });
   }
+
+  if (isRevoked(token)) {
+    return res.status(401).json({ error: 'Token has been revoked' });
+  }
   
   const user = verifyToken(token);
   if (!user) {
@@ -25,3 +30,4 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   req.user = user;
   next();
 }
+

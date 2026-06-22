@@ -1,7 +1,21 @@
 import sqlite3 from 'sqlite3';
+import fs from 'fs';
 import { hashPassword } from '../utils/hash.js';
 
-export const db = new sqlite3.Database('database.db');
+const DB_PATH = process.env.DATABASE_PATH || 'database.db';
+export const db = new sqlite3.Database(DB_PATH);
+
+// Restrict file permissions to owner-only (read/write)
+try {
+  fs.chmodSync(DB_PATH, 0o600);
+} catch (e) {
+  // May fail on Windows or if file doesn't exist yet; non-fatal
+}
+
+// Enable WAL mode for better concurrent read safety
+db.run('PRAGMA journal_mode=WAL', (err) => {
+  if (err) console.error('Failed to enable WAL mode:', err.message);
+});
 
 export const run = (sql: string, params: any[] = []): Promise<any> =>
   new Promise((resolve, reject) => {

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { get } from '../db/database.js';
 import { generateToken } from '../config/jwt.js';
 import { verifyPassword } from '../utils/hash.js';
+import { revokeToken } from '../utils/tokenBlacklist.js';
 
 const router = Router();
 
@@ -30,4 +31,27 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/logout', (req, res) => {
+  // Extract the token from cookie or Authorization header
+  let token = req.cookies?.token;
+  if (!token) {
+    const authHeader = req.headers['authorization'];
+    token = authHeader && authHeader.split(' ')[1];
+  }
+
+  if (token) {
+    revokeToken(token);
+  }
+
+  // Clear the httpOnly cookie
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  return res.json({ ok: true, message: 'Logged out successfully' });
+});
+
 export default router;
+

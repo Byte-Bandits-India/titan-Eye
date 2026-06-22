@@ -98,6 +98,9 @@ jobs:
             echo "📦 Installing production dependencies..."
             npm install --omit=dev
 
+            echo "🔧 Rebuilding native sqlite3 addon for this OS (GLIBC compatibility)..."
+            npm rebuild sqlite3 --build-from-source
+
             echo "🧹 Stopping and cleaning up redundant titan-prod static process..."
             pm2 delete titan-prod > /dev/null 2>&1 || true
 

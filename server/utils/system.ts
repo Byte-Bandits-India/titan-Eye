@@ -2,6 +2,16 @@ import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+/** Shell metacharacters that should never appear in an executable path */
+const DANGEROUS_CHARS = /[;|&$`!><\n\r]/;
+
+function validatePath(execPath: string, label: string): string {
+  if (DANGEROUS_CHARS.test(execPath)) {
+    throw new Error(`Unsafe characters detected in ${label} path: ${execPath}`);
+  }
+  return execPath;
+}
+
 export function getScreenSize(callback: (width: number, height: number) => void): void {
   if (process.platform === 'darwin') {
     exec('osascript -e "tell application \\"Finder\\" to get bounds of window of desktop"', (err, out) => {
@@ -41,7 +51,7 @@ export function getChromePath(): string {
       path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe')
     ];
     for (const p of paths) {
-      if (fs.existsSync(p)) return p;
+      if (fs.existsSync(p)) return validatePath(p, 'Chrome');
     }
     return 'chrome.exe';
   } else if (process.platform === 'darwin') {
@@ -58,7 +68,7 @@ export function getTeamViewerPath(): string {
       path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'TeamViewer\\TeamViewer.exe')
     ];
     for (const p of paths) {
-      if (fs.existsSync(p)) return p;
+      if (fs.existsSync(p)) return validatePath(p, 'TeamViewer');
     }
     return 'TeamViewer.exe';
   } else if (process.platform === 'darwin') {
@@ -67,3 +77,4 @@ export function getTeamViewerPath(): string {
     return 'teamviewer';
   }
 }
+
