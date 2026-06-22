@@ -6,21 +6,21 @@ This document provides a highly actionable, file-by-file step-by-step checklist 
 
 ## 📋 Remediation Status & Roadmap Tracker
 
-- [ ] **Phase 0: Emergency Mitigations ("Stop the Bleeding")**
-  - [ ] Step 0.1: Secure `JWT_SECRET` & Git History
-  - [ ] Step 0.2: Authenticate `/api/events` (SSE Endpoint)
-  - [ ] Step 0.3: Authenticate `/api/webhooks/call-event`
-  - [ ] Step 0.4: Remove Hardcoded Demo Credentials
-- [ ] **Phase 1: Core Cryptographic & Authorization Controls**
-  - [ ] Step 1.1: Secure Password Storage with Cryptographic Hashing
-  - [ ] Step 1.2: Move JWTs to Secure HttpOnly Cookies
-  - [ ] Step 1.3: Enforce Store Isolation & Role-Based Access Controls (IDOR Fix)
-- [ ] **Phase 2: Application Hardening**
-  - [ ] Step 2.1: Tighten CORS Policy
-  - [ ] Step 2.2: Implement Security Headers (Helmet Middleware)
-  - [ ] Step 2.3: Implement Rate Limiting on Login and Sensitive APIs
-- [ ] **Phase 3: Deployment & Infrastructure Hardening**
-  - [ ] Step 3.1: Enforce Strict SSH Host Checking in GitHub Actions
+- [x] **Phase 0: Emergency Mitigations ("Stop the Bleeding")**
+  - [x] Step 0.1: Secure `JWT_SECRET` & Git History
+  - [x] Step 0.2: Authenticate `/api/events` (SSE Endpoint)
+  - [x] Step 0.3: Authenticate `/api/webhooks/call-event`
+  - [x] Step 0.4: Remove Hardcoded Demo Credentials
+- [x] **Phase 1: Core Cryptographic & Authorization Controls**
+  - [x] Step 1.1: Secure Password Storage with Cryptographic Hashing
+  - [x] Step 1.2: Move JWTs to Secure HttpOnly Cookies
+  - [x] Step 1.3: Enforce Store Isolation & Role-Based Access Controls (IDOR Fix)
+- [x] **Phase 2: Application Hardening**
+  - [x] Step 2.1: Tighten CORS Policy
+  - [x] Step 2.2: Implement Security Headers (Helmet Middleware)
+  - [x] Step 2.3: Implement Rate Limiting on Login and Sensitive APIs
+- [x] **Phase 3: Deployment & Infrastructure Hardening**
+  - [x] Step 3.1: Enforce Strict SSH Host Checking in GitHub Actions
 
 ---
 

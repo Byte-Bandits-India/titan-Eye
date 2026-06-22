@@ -89,14 +89,14 @@ jobs:
             cd $APP_DIR
 
             echo "🧹 Cleaning old files..."
-            rm -rf dist dist-server node_modules package.json package-lock.json server.js .env
+            rm -rf dist dist-server package.json package-lock.json server.js .env
 
             echo "📦 Extracting new build..."
             tar -xzf /tmp/deploy.tar.gz -C $APP_DIR
             rm -f /tmp/deploy.tar.gz
 
             echo "📦 Installing production dependencies..."
-            npm install --omit=dev --build-from-source
+            npm install --omit=dev
 
             echo "🧹 Stopping and cleaning up redundant titan-prod static process..."
             pm2 delete titan-prod > /dev/null 2>&1 || true
