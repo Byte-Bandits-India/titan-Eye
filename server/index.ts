@@ -28,16 +28,27 @@ const authLimiter = rateLimit({
 
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
+
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", ...allowedOrigins],
+      imgSrc: ["'self'", "data:"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+    },
+  },
 }));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   next();
 });
-
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -87,6 +98,12 @@ app.get('/api/events', (req: Request, res: Response) => {
   req.on('close', () => {
     removeSseClient(clientId);
   });
+});
+
+// Enforce no-cache headers for dynamic APIs
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  next();
 });
 
 // Register routers
