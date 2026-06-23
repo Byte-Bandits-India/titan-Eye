@@ -40,7 +40,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
@@ -107,6 +107,13 @@ app.get('/api/events', (req: Request, res: Response) => {
   });
 });
 
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 app.use('/api/login', authLimiter);
 app.use('/api', authRouter);
 app.use('/api/customers', apiLimiter, authenticateToken as any, customersRouter);
@@ -130,6 +137,24 @@ if (fs.existsSync(distPath)) {
     });
   });
 }
+
+// Catch-all for unmatched API routes
+app.use('/api', (req: Request, res: Response) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// Global error handler to catch URIError and other unhandled exceptions
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  console.error(`[Error] ${req.method} ${req.url}:`, err);
+
+  res.status(status).json({
+    error: message,
+    status
+  });
+});
 
 const PORT = 3001;
 initDb()
