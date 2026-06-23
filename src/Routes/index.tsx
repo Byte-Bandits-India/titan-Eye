@@ -1,18 +1,9 @@
-import * as React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAppSelector } from '../store';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { StoreScreen } from '../features/store/StoreScreen';
 import { OptemScreen } from '../features/optem/OptemScreen';
-import type { UserRole } from '../types';
-
-interface RouteProps {
-  children: React.ReactElement;
-}
-
-interface ProtectedRouteProps extends RouteProps {
-  allowedRole: UserRole;
-}
+import type { RouteProps, ProtectedRouteProps } from '../types';
 
 export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);

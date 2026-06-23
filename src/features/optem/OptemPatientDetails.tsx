@@ -17,12 +17,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { updateCustomerAction, initiateCallAction, endCallAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptomRxValues } from '../../types';
-
-interface OptemPatientDetailsProps {
-  selectedCustomer: Customer | null;
-  onBack: () => void;
-}
+import type { Customer, CustomerStatus, RxValues, OptomRxValues, OptemPatientDetailsProps } from '../../types';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
 const emptyOptomRxValues: OptomRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };

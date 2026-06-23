@@ -1,10 +1,6 @@
 import { Header } from './Header';
 import { Footer } from './Footer';
-
-interface AppLayoutProps {
-  consoleLabel: string;
-  children: React.ReactNode;
-}
+import type { AppLayoutProps } from '../../types';
 
 export function AppLayout({ consoleLabel, children }: AppLayoutProps) {
   return (

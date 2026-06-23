@@ -13,14 +13,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptomRxValues } from '../../types';
-
-interface StorePatientDetailsProps {
-  isAddingNew: boolean;
-  selectedCustomer: Customer | null;
-  onBack: () => void;
-  setSelectedCustomerId: (id: string | null) => void;
-}
+import type { Customer, CustomerStatus, RxValues, OptomRxValues, StorePatientDetailsProps } from '../../types';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
 const emptyOptomRxValues: OptomRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };

@@ -1,15 +1,5 @@
 import * as React from 'react';
-
-interface UsePaginationReturn<T> {
-  paginatedItems: T[];
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  goToPage: (page: number) => void;
-  nextPage: () => void;
-  prevPage: () => void;
-  resetPage: () => void;
-}
+import type { UsePaginationReturn } from '../types';
 
 export function usePagination<T>(items: T[], pageSize: number): UsePaginationReturn<T> {
   const [currentPage, setCurrentPage] = React.useState(1);

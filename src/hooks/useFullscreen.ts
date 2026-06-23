@@ -1,9 +1,5 @@
 import * as React from 'react';
-
-interface UseFullscreenReturn {
-  isFullscreen: boolean;
-  toggleFullscreen: () => void;
-}
+import type { UseFullscreenReturn } from '../types';
 
 export function useFullscreen(): UseFullscreenReturn {
   const [isFullscreen, setIsFullscreen] = React.useState(false);

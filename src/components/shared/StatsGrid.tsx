@@ -1,11 +1,7 @@
 import * as React from 'react';
 import { FlaskConical, Clock, CheckCircle2, Users2 } from 'lucide-react';
 import { Card } from '../ui/card';
-import type { Customer } from '../../types';
-
-interface StatsGridProps {
-  customers: Customer[];
-}
+import type { StatsGridProps } from '../../types';
 
 export function StatsGrid({ customers }: StatsGridProps) {
   const stats = React.useMemo(() => {

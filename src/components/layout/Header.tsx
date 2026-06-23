@@ -3,10 +3,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { logoutAction } from '../../Actions/authActions';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useFullscreen } from '../../hooks/useFullscreen';
-
-interface HeaderProps {
-  consoleLabel?: string;
-}
+import type { HeaderProps } from '../../types';
 
 export function Header({ consoleLabel }: HeaderProps) {
   const user = useAppSelector((state) => state.auth.user);

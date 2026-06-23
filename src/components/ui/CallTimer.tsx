@@ -1,9 +1,5 @@
 import * as React from 'react';
-
-interface CallTimerProps {
-  startTime?: string;
-  active?: boolean;
-}
+import type { CallTimerProps } from '../../types';
 
 export function CallTimer({ startTime, active }: CallTimerProps) {
   const [elapsed, setElapsed] = React.useState('00m:00s');

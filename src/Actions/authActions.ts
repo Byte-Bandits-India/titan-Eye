@@ -1,12 +1,8 @@
 import { AppDispatch } from '../store';
 import { loginStart, loginSuccess, loginFailure, logout } from '../Reducers/authReducer';
 import { apiClient } from '../Util/apiClient';
-import type { User } from '../types';
+import type { LoginResponse } from '../types';
 import axios from 'axios';
-
-interface LoginResponse {
-  user: User;
-}
 
 export const loginAction = (email: string, password: string) => async (dispatch: AppDispatch) => {
   dispatch(loginStart());

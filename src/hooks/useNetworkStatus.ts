@@ -1,12 +1,6 @@
 import * as React from 'react';
 import { APP_CONFIG } from '../constants';
-
-interface NetworkStatus {
-  speed: string;
-  statusLabel: string;
-  statusColor: string;
-  wifiIconColor: string;
-}
+import type { NetworkStatus } from '../types';
 
 export function useNetworkStatus(
   fallbackSpeed: string = '25',

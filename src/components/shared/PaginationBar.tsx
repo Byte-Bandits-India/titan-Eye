@@ -1,14 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
-
-interface PaginationBarProps {
-  currentPage: number;
-  totalPages: number;
-  totalItems: number;
-  itemsPerPage: number;
-  onPrev: () => void;
-  onNext: () => void;
-}
+import type { PaginationBarProps } from '../../types';
 
 export function PaginationBar({
   currentPage,

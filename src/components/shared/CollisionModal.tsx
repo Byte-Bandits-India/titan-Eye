@@ -1,10 +1,5 @@
 import { Button } from '../ui/button';
-
-interface CollisionModalProps {
-  takenBy: string;
-  onCancel: () => void;
-  onViewData: () => void;
-}
+import type { CollisionModalProps } from '../../types';
 
 export function CollisionModal({ takenBy, onCancel, onViewData }: CollisionModalProps) {
   return (
