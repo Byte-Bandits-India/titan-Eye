@@ -3,8 +3,8 @@ const MAX_FEEDBACK_LENGTH = 2000;
 const MAX_GENERIC_LENGTH = 200;
 
 const VALID_GENDERS = ['Male', 'Female', 'Other'];
-const VALID_CUSTOMER_TYPES = ['Walk-in', 'Appointment', 'Online', 'Referral', 'Follow-up'];
-const VALID_STATUSES = ['Pending', 'Accepted', 'Initiated', 'Completed', 'Cancelled'];
+const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
+const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed'];
 
 function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, '').trim();
