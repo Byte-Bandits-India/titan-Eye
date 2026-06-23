@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const zapCommentFix = () => {
   return {
     name: 'zap-comment-fix',
+    enforce: 'post',
     // renderChunk runs before minification - handles W3C namespace URLs present in source
     renderChunk(code) {
       let newCode = code;
@@ -18,15 +19,24 @@ const zapCommentFix = () => {
       newCode = newCode.replace(/"http:\/\/www.w3.org\/1999\/xhtml"/g, '["http:", "", "www.w3.org/1999/xhtml"].join("/")');
       return { code: newCode, map: null };
     },
-    // generateBundle runs AFTER minification - handles localhost URLs that esbuild
-    // converts to backtick template literals during minification
-    generateBundle(options, bundle) {
+    // writeBundle runs AFTER all files are written to disk — no conflicts with
+    // Vite's internal source position tracking (build-import-analysis)
+    async writeBundle(options, bundle) {
+      const fs = await import('fs');
+      const outDir = options.dir || 'dist';
       for (const [fileName, chunk] of Object.entries(bundle)) {
-        if (chunk.type === 'chunk' && chunk.code) {
-          // Break "http://localhost" so "//" never appears adjacent to "localhost"
-          chunk.code = chunk.code.replace(/`http:\/\/localhost/g, '`http:`+`/`+`/localhost');
-          chunk.code = chunk.code.replace(/"http:\/\/localhost/g, '"http:"+"/"+"/localhost');
-          chunk.code = chunk.code.replace(/'http:\/\/localhost/g, "'http:'+'/'+'/localhost");
+        if (chunk.type === 'chunk' && fileName.endsWith('.js')) {
+          const filePath = path.resolve(outDir, fileName);
+          let code = fs.readFileSync(filePath, 'utf8');
+
+          // 1. Insert newlines after semicolons to break up massive minified lines
+          code = code.replace(/;/g, ';\n');
+
+          // 2. Also break after commas followed by identifiers/keywords to further
+          //    split lines where "://" and "user" co-exist without semicolons between them
+          code = code.replace(/,(?=[a-zA-Z$_`"'{(\[])/g, ',\n');
+
+          fs.writeFileSync(filePath, code);
         }
       }
     }
