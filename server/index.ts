@@ -36,7 +36,20 @@ const apiLimiter = rateLimit({
 const app = express();
 
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  },
 }));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -107,6 +120,8 @@ if (fs.existsSync(distPath)) {
     if (req.path.startsWith('/api')) {
       return next();
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
     res.sendFile(path.join(distPath, 'index.html'), (err) => {
       if (err) {
         console.error('res.sendFile error:', err);
