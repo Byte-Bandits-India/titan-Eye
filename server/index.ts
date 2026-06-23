@@ -122,28 +122,38 @@ app.use('/api', apiLimiter, authenticateToken as any, systemRouter);
 
 const distPath = path.resolve('dist');
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.get('/*splat', (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/api')) {
-      return next();
+  app.use(express.static(distPath, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
     }
+  }));
+}
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+
+  if (fs.existsSync(distPath)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
-    res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    res.setHeader('Expires', '0');
+    return res.sendFile(path.join(distPath, 'index.html'), (err) => {
       if (err) {
         console.error('res.sendFile error:', err);
         next(err);
       }
     });
-  });
-}
+  }
 
-// Catch-all for unmatched API routes
-app.use('/api', (req: Request, res: Response) => {
-  res.status(404).json({ error: 'API endpoint not found' });
+  res.status(404).send('Not Found');
 });
 
-// Global error handler to catch URIError and other unhandled exceptions
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
