@@ -1,0 +1,39 @@
+.footer p {
+  margin-bottom: 0;
+}
+
+.footer-links {
+  width: 100%;
+}
+
+.footer-links ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: right;
+}
+
+.footer-links ul li {
+  display: inline-block;
+}
+
+.footer-links ul li a {
+  color: var(--dark-charcoal);
+  display: block;
+  padding: 0 10px;
+}
+
+@media (max-width: 600px) {
+  .footer-links ul {
+    text-align: center;
+  }
+
+  .footer-links ul li {
+    display: inline-block;
+    text-align: center;
+  }
+
+  .footer-links ul li a {
+    padding: 6px 10px;
+  }
+}
