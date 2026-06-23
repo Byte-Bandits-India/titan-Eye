@@ -9,8 +9,8 @@ const zapCommentFix = () => {
   return {
     name: 'zap-comment-fix',
     renderChunk(code) {
-      let newCode = code.replace(/"http:\/\/www.w3.org\/2000\/svg"/g, '["http:", "www.w3.org/2000/svg"].join("//")');
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/1998\/Math\/MathML"/g, '["http:", "www.w3.org/1998/Math/MathML"].join("//")');
+      let newCode = code.replace(/"http:\/\/www.w3.org\/2000\/svg"/g, '["http:", "", "www.w3.org/2000/svg"].join("/")');
+      newCode = newCode.replace(/"http:\/\/www.w3.org\/1998\/Math\/MathML"/g, '["http:", "", "www.w3.org/1998/Math/MathML"].join("/")');
       return { code: newCode, map: null };
     }
   };
