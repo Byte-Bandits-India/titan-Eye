@@ -122,6 +122,14 @@ app.use('/api', apiLimiter, authenticateToken as any, systemRouter);
 
 const distPath = path.resolve('dist');
 if (fs.existsSync(distPath)) {
+  // Block direct directory browsing for /assets to prevent User-Agent fuzzing noise
+  app.use('/assets', (req: Request, res: Response, next: NextFunction) => {
+    if (req.path === '/' || req.path === '') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    next();
+  });
+
   app.use(express.static(distPath, {
     index: false,
     setHeaders: (res, filePath) => {
