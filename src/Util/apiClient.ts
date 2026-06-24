@@ -17,8 +17,7 @@ apiClient.interceptors.request.use(
           config.headers.Authorization = `Bearer ${user.token}`;
         }
       }
-    } catch {
-    }
+    } catch {}
     return config;
   },
   (error) => {

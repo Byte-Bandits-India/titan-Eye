@@ -11,7 +11,6 @@ import { apiClient } from '../Util/apiClient';
 import type { Customer } from '../types';
 import axios from 'axios';
 
-// Helper to handle unauthorized requests
 const handleApiError = (err: any, dispatch: AppDispatch, defaultMsg: string): string => {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 401 || err.response?.status === 403) {
