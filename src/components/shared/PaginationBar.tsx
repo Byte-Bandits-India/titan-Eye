@@ -14,7 +14,7 @@ export function PaginationBar({
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-slate-50/50">
+    <div className="px-5 py-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-muted/30">
       <span className="font-medium">Items per page: {itemsPerPage}</span>
       <div className="flex items-center gap-4">
         <span>
@@ -24,7 +24,7 @@ export function PaginationBar({
           <Button
             variant="outline"
             size="icon"
-            className="w-7 h-7 p-0 border-gray-200 cursor-pointer"
+            className="w-7 h-7 p-0 border-border cursor-pointer"
             disabled={currentPage === 1}
             onClick={onPrev}
           >
@@ -33,7 +33,7 @@ export function PaginationBar({
           <Button
             variant="outline"
             size="icon"
-            className="w-7 h-7 p-0 border-gray-200 cursor-pointer"
+            className="w-7 h-7 p-0 border-border cursor-pointer"
             disabled={currentPage === totalPages}
             onClick={onNext}
           >

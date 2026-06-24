@@ -7,7 +7,7 @@ const router = Router();
 
 router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
-    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
+    return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
   }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);
@@ -30,7 +30,7 @@ router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
 
 router.post('/open-teamviewer', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
-    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
+    return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
   }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);

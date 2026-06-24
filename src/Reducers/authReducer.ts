@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { User, AuthState } from '../types';
-import { STORAGE_KEYS } from '../constants';
+import { STORAGE_KEYS } from '../options/Option';
 
 const getInitialState = (): AuthState => {
   try {

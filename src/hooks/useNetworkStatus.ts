@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { APP_CONFIG } from '../constants';
+import { APP_CONFIG } from '../options/Option';
 import type { NetworkStatus } from '../types';
 
 export function useNetworkStatus(
@@ -35,17 +35,17 @@ export function useNetworkStatus(
         const endTime = performance.now();
         const latencyMs = Math.max(1, endTime - startTime);
 
-        let speedInMbps = 600 / (latencyMs + 2);
-        if (speedInMbps > 150) speedInMbps = 150;
+        let speedMbps = 600 / (latencyMs + 2);
+        if (speedMbps > 150) speedMbps = 150;
 
         if (active) {
-          setSpeed(speedInMbps.toFixed(1));
+          setSpeed(speedMbps.toFixed(1));
 
-          if (speedInMbps < 2.0) {
+          if (speedMbps < 2.0) {
             setStatusLabel('LOW');
             setStatusColor('bg-yellow-400 text-yellow-900');
             setWifiIconColor('text-orange-400');
-          } else if (speedInMbps < 12.0) {
+          } else if (speedMbps < 12.0) {
             setStatusLabel('GOOD');
             setStatusColor('bg-blue-500 text-white');
             setWifiIconColor('text-blue-500');

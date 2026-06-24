@@ -109,9 +109,9 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
   if (!storeFeedbackResult.valid) errors.push(storeFeedbackResult.error!);
   else sanitized.storeFeedback = storeFeedbackResult.sanitized;
 
-  const optumFeedbackResult = validateOptionalString(data.optumFeedback, 'Optum feedback', MAX_FEEDBACK_LENGTH);
-  if (!optumFeedbackResult.valid) errors.push(optumFeedbackResult.error!);
-  else sanitized.optumFeedback = optumFeedbackResult.sanitized;
+  const optemFeedbackResult = validateOptionalString(data.optemFeedback, 'Optem feedback', MAX_FEEDBACK_LENGTH);
+  if (!optemFeedbackResult.valid) errors.push(optemFeedbackResult.error!);
+  else sanitized.optemFeedback = optemFeedbackResult.sanitized;
 
   const statusResult = validateEnum(data.status, 'Status', VALID_STATUSES);
   if (!statusResult.valid) errors.push(statusResult.error!);
@@ -130,14 +130,14 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
     sanitized.rxData = null;
   }
 
-  if (data.optomRxData !== undefined && data.optomRxData !== null) {
-    if (typeof data.optomRxData === 'object') {
-      sanitized.optomRxData = data.optomRxData;
+  if (data.optemRxData !== undefined && data.optemRxData !== null) {
+    if (typeof data.optemRxData === 'object') {
+      sanitized.optemRxData = data.optemRxData;
     } else {
-      errors.push('optomRxData must be a valid object');
+      errors.push('optemRxData must be a valid object');
     }
   } else {
-    sanitized.optomRxData = null;
+    sanitized.optemRxData = null;
   }
 
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;

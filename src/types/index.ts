@@ -2,27 +2,24 @@ import * as React from 'react';
 
 export type CustomerStatus = 'Created' | 'Initiated' | 'Accepted' | 'Completed';
 
-export interface RxValues {
+export type CommonRxValues = {
   sph: string;
   cyl: string;
   axis: string;
+  prism: string;
+  base: string;
+  add: string;
+};
+
+export type RxValues = CommonRxValues & {
   pd: string;
-  prism: string;
-  base: string;
-  add: string;
-}
+};
 
-export interface OptomRxValues {
-  sph: string;
-  cyl: string;
-  axis: string;
-  prism: string;
-  base: string;
+export type OptemRxValues = CommonRxValues & {
   va: string;
-  add: string;
-}
+};
 
-export interface Customer {
+export type Customer = {
   id: string;
   name: string;
   age: string;
@@ -33,7 +30,7 @@ export interface Customer {
   preferredLanguage: string;
   preferredLanguage2: string;
   storeFeedback: string;
-  optumFeedback: string;
+  optemFeedback: string;
   status: CustomerStatus;
   activeProfile: boolean;
   lastUpdatedOn?: string;
@@ -46,61 +43,61 @@ export interface Customer {
     pgpRe: RxValues;
     pgpLe: RxValues;
   };
-  optomRxData?: {
-    re: OptomRxValues;
-    le: OptomRxValues;
+  optemRxData?: {
+    re: OptemRxValues;
+    le: OptemRxValues;
   };
-}
+};
 
 export type UserRole = 'store' | 'optem';
 
-export interface User {
+export type User = {
   email: string;
   name: string;
   role: UserRole;
   token?: string;
-}
+};
 
-export interface Session {
+export type Session = {
   user: User | null;
   isAuthenticated: boolean;
-}
+};
 
-export interface AuthState {
+export type AuthState = {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-}
+};
 
-export interface CustomerState {
+export type CustomerState = {
   customers: Customer[];
   loading: boolean;
   error: string | null;
-}
+};
 
-export interface RouteProps {
+export type RouteProps = {
   children: React.ReactElement;
-}
+};
 
-export interface ProtectedRouteProps extends RouteProps {
+export type ProtectedRouteProps = RouteProps & {
   allowedRole: UserRole;
-}
+};
 
-export interface UseFullscreenReturn {
+export type UseFullscreenReturn = {
   isFullscreen: boolean;
   toggleFullscreen: () => void;
-}
+};
 
-export interface NetworkStatus {
+export type NetworkStatus = {
   speed: string;
   statusLabel: string;
   statusColor: string;
   wifiIconColor: string;
-}
+};
 
-export interface UsePaginationReturn<T> {
+export type UsePaginationReturn<T> = {
   paginatedItems: T[];
   currentPage: number;
   totalPages: number;
@@ -109,53 +106,53 @@ export interface UsePaginationReturn<T> {
   nextPage: () => void;
   prevPage: () => void;
   resetPage: () => void;
-}
+};
 
-export interface LoginResponse {
+export type LoginResponse = {
   user: User;
-}
+};
 
-export interface AppLayoutProps {
+export type AppLayoutProps = {
   consoleLabel: string;
   children: React.ReactNode;
-}
+};
 
-export interface HeaderProps {
+export type HeaderProps = {
   consoleLabel?: string;
-}
+};
 
-export interface PaginationBarProps {
+export type PaginationBarProps = {
   currentPage: number;
   totalPages: number;
   totalItems: number;
   itemsPerPage: number;
   onPrev: () => void;
   onNext: () => void;
-}
+};
 
-export interface StatsGridProps {
+export type StatsGridProps = {
   customers: Customer[];
-}
+};
 
-export interface CollisionModalProps {
+export type CollisionModalProps = {
   takenBy: string;
   onCancel: () => void;
   onViewData: () => void;
-}
+};
 
-export interface CallTimerProps {
+export type CallTimerProps = {
   startTime?: string;
   active?: boolean;
-}
+};
 
-export interface OptemPatientDetailsProps {
+export type OptemPatientDetailsProps = {
   selectedCustomer: Customer | null;
   onBack: () => void;
-}
+};
 
-export interface StorePatientDetailsProps {
+export type StorePatientDetailsProps = {
   isAddingNew: boolean;
   selectedCustomer: Customer | null;
   onBack: () => void;
   setSelectedCustomerId: (id: string | null) => void;
-}
+};

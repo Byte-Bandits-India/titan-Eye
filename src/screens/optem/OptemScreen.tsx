@@ -12,7 +12,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useSSE } from '../../hooks/useSSE';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchCustomersAction } from '../../Actions/customerActions';
-import { PAGINATION } from '../../constants';
+import { PAGINATION } from '../../options/Option';
 import { OptemPatientDetails } from './OptemPatientDetails';
 
 export function OptemScreen() {

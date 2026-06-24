@@ -72,16 +72,16 @@ function Toaster({
           className={cn(
             'flex gap-3 p-4 rounded-xl border shadow-lg pointer-events-auto transition-all duration-300 transform translate-y-0 animate-in fade-in slide-in-from-bottom-5',
             t.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/90 dark:border-emerald-900/50 dark:text-emerald-300'
               : t.type === 'error'
-                ? 'bg-rose-50 border-rose-200 text-rose-800'
-                : 'bg-white border-gray-200 text-gray-800'
+                ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/90 dark:border-rose-900/50 dark:text-rose-300'
+                : 'bg-white border-gray-200 text-gray-800 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-200'
           )}
         >
           <div className="flex-shrink-0 mt-0.5">
-            {t.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600" />}
-            {t.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600" />}
-            {t.type === 'info' && <Info className="w-5 h-5 text-blue-600" />}
+            {t.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
+            {t.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
+            {t.type === 'info' && <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
           </div>
           <div className="flex-grow">
             {t.title && <div className="font-semibold text-sm mb-0.5">{t.title}</div>}
@@ -89,7 +89,7 @@ function Toaster({
           </div>
           <button
             onClick={() => dismiss(t.id)}
-            className="flex-shrink-0 h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors"
+            className="flex-shrink-0 h-4 w-4 text-gray-400 hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

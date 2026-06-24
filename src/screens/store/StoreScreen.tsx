@@ -19,7 +19,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useSSE } from '../../hooks/useSSE';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchCustomersAction, initiateCallAction } from '../../Actions/customerActions';
-import { PAGINATION } from '../../constants';
+import { PAGINATION } from '../../options/Option';
 import { StorePatientDetails } from './StorePatientDetails';
 
 export function StoreScreen() {
@@ -85,7 +85,8 @@ export function StoreScreen() {
         description: `Initiating video consultation with patient ${customerName}...`,
         type: 'success',
       });
-    } catch (err: any) {
+    } catch (e) {
+      const err = e as Error;
       if (err.message && err.message.includes('409')) {
         toast({
           title: 'Call Collision',
@@ -148,12 +149,12 @@ export function StoreScreen() {
       ) : (
         <main className="flex-1 px-8 py-6 space-y-6 w-full">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold text-gray-900">Store Overview</h1>
-            <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 tracking-wider">
+            <h1 className="text-lg font-bold text-foreground">Store Overview</h1>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground tracking-wider">
               <span>SYNCED LIVE</span>
               <button
                 onClick={handleResetSync}
-                className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-300 shadow-3xs cursor-pointer transition-all"
+                className="w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-800 shadow-3xs cursor-pointer transition-all"
                 title="Force Sync Live"
               >
                 <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
@@ -171,12 +172,12 @@ export function StoreScreen() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search patients by name, ID or mobile..."
                 icon={Search}
-                className="bg-white border-gray-200"
+                className="bg-card border-border"
               />
             </div>
             <Button
               onClick={handleAddNewClick}
-              className="rounded-xl gap-2 h-10 bg-[#1a2b6e] hover:bg-[#152260] text-white font-bold text-xs px-5 w-full sm:w-auto shadow-sm transition-all active:scale-98"
+              className="rounded-xl gap-2 h-10 bg-[#1a2b6e] hover:bg-[#152260] dark:bg-blue-700 dark:hover:bg-blue-800 text-white font-bold text-xs px-5 w-full sm:w-auto shadow-sm transition-all active:scale-98"
             >
               <UserPlus size={16} />
               Add New Patient
@@ -184,12 +185,12 @@ export function StoreScreen() {
           </div>
 
           <div>
-            <div className="lg:col-span-5 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
-                <div className="text-sm font-bold text-gray-800">
+            <div className="lg:col-span-5 bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-muted/30">
+                <div className="text-sm font-bold text-foreground">
                   Recent Customers & Transactions
                 </div>
-                <div className="text-[10px] text-gray-400 font-semibold uppercase">
+                <div className="text-[10px] text-muted-foreground font-semibold uppercase">
                   Store: {user.name}
                 </div>
               </div>
@@ -198,22 +199,22 @@ export function StoreScreen() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[80px] font-bold text-xs uppercase text-gray-400">
+                      <TableHead className="w-[80px] font-bold text-xs uppercase text-muted-foreground">
                         ID
                       </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">
+                      <TableHead className="font-bold text-xs uppercase text-muted-foreground">
                         Patient Name
                       </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">
+                      <TableHead className="font-bold text-xs uppercase text-muted-foreground">
                         Status
                       </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400">
+                      <TableHead className="font-bold text-xs uppercase text-muted-foreground">
                         Time Started
                       </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400 text-center">
+                      <TableHead className="font-bold text-xs uppercase text-muted-foreground text-center">
                         Initiate Call
                       </TableHead>
-                      <TableHead className="font-bold text-xs uppercase text-gray-400 text-right pr-4">
+                      <TableHead className="font-bold text-xs uppercase text-muted-foreground text-right pr-4">
                         Actions
                       </TableHead>
                     </TableRow>
@@ -221,7 +222,7 @@ export function StoreScreen() {
                   <TableBody>
                     {paginatedCustomers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           No transactions found.
                         </TableCell>
                       </TableRow>
@@ -231,20 +232,20 @@ export function StoreScreen() {
                           key={cust.id}
                           className={`transition-colors ${
                             selectedCustomerId === cust.id && !isAddingNew
-                              ? 'bg-blue-50/50 hover:bg-blue-50/70'
-                              : 'hover:bg-slate-50/50'
+                              ? 'bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50/70 dark:hover:bg-blue-950/30'
+                              : 'hover:bg-muted/50'
                           }`}
                         >
-                          <TableCell className="font-semibold text-blue-600 text-xs py-3">
+                          <TableCell className="font-semibold text-blue-600 dark:text-blue-400 text-xs py-3">
                             {cust.id}
                           </TableCell>
-                          <TableCell className="font-semibold text-gray-800 text-xs py-3">
+                          <TableCell className="font-semibold text-foreground text-xs py-3">
                             {cust.name}
                           </TableCell>
                           <TableCell className="py-3">
                             <Badge variant={cust.status}>{cust.status.toUpperCase()}</Badge>
                           </TableCell>
-                          <TableCell className="text-gray-600 text-xs py-3">
+                          <TableCell className="text-muted-foreground text-xs py-3">
                             <CallTimer
                                startTime={cust.callStartTime || cust.lastUpdatedOn}
                                active={cust.callActive || cust.status === 'Initiated'}
@@ -258,7 +259,7 @@ export function StoreScreen() {
                               {cust.callActive ? (
                                 <Button
                                   disabled
-                                  className="h-8 px-4 bg-gray-200 text-gray-500 text-xs font-bold rounded-full flex items-center gap-1.5 cursor-not-allowed border-0 opacity-100"
+                                  className="h-8 px-4 bg-muted text-muted-foreground text-xs font-bold rounded-full flex items-center gap-1.5 cursor-not-allowed border-0 opacity-100"
                                   title="Call Initiated"
                                 >
                                   Call Initiated
@@ -267,7 +268,7 @@ export function StoreScreen() {
                                 <Button
                                   onClick={() => handleInitiateCall(cust.id, cust.name)}
                                   disabled={loadingCallId === cust.id}
-                                  className="h-8 px-4 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
+                                  className="h-8 px-4 bg-[#4f46e5] hover:bg-[#4338ca] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
                                   title="Initiate Call"
                                 >
                                   {loadingCallId === cust.id ? (

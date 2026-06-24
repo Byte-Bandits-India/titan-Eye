@@ -13,10 +13,11 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptomRxValues, StorePatientDetailsProps } from '../../types';
+import type { Customer, CustomerStatus, RxValues, OptemRxValues, StorePatientDetailsProps } from '../../types';
+import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
-const emptyOptomRxValues: OptomRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
+const emptyOptemRxValues: OptemRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
 
 export function StorePatientDetails({
   isAddingNew,
@@ -39,7 +40,7 @@ export function StorePatientDetails({
     preferredLanguage: 'English',
     preferredLanguage2: 'None',
     storeFeedback: '',
-    optumFeedback: '',
+    optemFeedback: '',
     status: 'Created' as CustomerStatus,
     activeProfile: false,
   });
@@ -51,9 +52,9 @@ export function StorePatientDetails({
     pgpLe: { ...emptyRxValues },
   });
 
-  const [optomRxForm, setOptomRxForm] = React.useState({
-    re: { ...emptyOptomRxValues },
-    le: { ...emptyOptomRxValues },
+  const [optemRxForm, setOptemRxForm] = React.useState({
+    re: { ...emptyOptemRxValues },
+    le: { ...emptyOptemRxValues },
   });
 
   React.useEffect(() => {
@@ -68,7 +69,7 @@ export function StorePatientDetails({
         preferredLanguage: selectedCustomer.preferredLanguage || 'English',
         preferredLanguage2: selectedCustomer.preferredLanguage2 || 'None',
         storeFeedback: selectedCustomer.storeFeedback || '',
-        optumFeedback: selectedCustomer.optumFeedback || '',
+        optemFeedback: selectedCustomer.optemFeedback || '',
         status: selectedCustomer.status,
         activeProfile: selectedCustomer.activeProfile || false,
       });
@@ -78,15 +79,15 @@ export function StorePatientDetails({
         pgpRe: { ...emptyRxValues },
         pgpLe: { ...emptyRxValues },
       });
-      if (selectedCustomer.optomRxData) {
-        setOptomRxForm({
-          re: { ...selectedCustomer.optomRxData.re },
-          le: { ...selectedCustomer.optomRxData.le },
+      if (selectedCustomer.optemRxData) {
+        setOptemRxForm({
+          re: { ...selectedCustomer.optemRxData.re },
+          le: { ...selectedCustomer.optemRxData.le },
         });
       } else {
-        setOptomRxForm({
-          re: { ...emptyOptomRxValues },
-          le: { ...emptyOptomRxValues },
+        setOptemRxForm({
+          re: { ...emptyOptemRxValues },
+          le: { ...emptyOptemRxValues },
         });
       }
     } else if (isAddingNew) {
@@ -100,7 +101,7 @@ export function StorePatientDetails({
         preferredLanguage: 'English',
         preferredLanguage2: 'None',
         storeFeedback: '',
-        optumFeedback: '',
+        optemFeedback: '',
         status: 'Created',
         activeProfile: true,
       });
@@ -110,9 +111,9 @@ export function StorePatientDetails({
         pgpRe: { ...emptyRxValues },
         pgpLe: { ...emptyRxValues },
       });
-      setOptomRxForm({
-        re: { ...emptyOptomRxValues },
-        le: { ...emptyOptomRxValues },
+      setOptemRxForm({
+        re: { ...emptyOptemRxValues },
+        le: { ...emptyOptemRxValues },
       });
     }
   }, [selectedCustomer, isAddingNew, user]);
@@ -187,7 +188,7 @@ export function StorePatientDetails({
         preferredLanguage: form.preferredLanguage,
         preferredLanguage2: form.preferredLanguage2,
         storeFeedback: form.storeFeedback,
-        optumFeedback: '',
+        optemFeedback: '',
         status: form.status,
         activeProfile: form.activeProfile,
         lastUpdatedOn: timestamp,
@@ -199,7 +200,8 @@ export function StorePatientDetails({
         setSelectedCustomerId(created.id);
         onBack();
         toast({ title: 'Patient Registered', description: `Successfully added ${form.name} with ID ${created.id}`, type: 'success' });
-      } catch (err: any) {
+      } catch (e) {
+        const err = e as Error;
         toast({ title: 'Error Saving Patient', description: err.message || 'Failed to connect to backend database.', type: 'error' });
       }
     } else {
@@ -226,14 +228,14 @@ export function StorePatientDetails({
         await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
         onBack();
         toast({ title: 'Profile Updated', description: `Patient details for ${form.name} have been updated.`, type: 'success' });
-      } catch (err: any) {
+      } catch (e) {
+        const err = e as Error;
         toast({ title: 'Error Updating Patient', description: err.message || 'Failed to connect to backend database.', type: 'error' });
       }
     }
   };
 
-  const rxFields: (keyof RxValues)[] = ['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'];
-  const optomFields: (keyof OptomRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
+
 
   return (
     <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
@@ -243,10 +245,10 @@ export function StorePatientDetails({
             <UserCircle className="text-white" size={20} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-foreground">
               {isAddingNew ? 'New Enrollment' : 'Edit Patient Profile'}
             </h1>
-            <p className="text-xs text-gray-500 font-medium">
+            <p className="text-xs text-muted-foreground font-medium">
               {isAddingNew
                 ? 'Manage assessment details and feedback.'
                 : `ID: ${selectedCustomer?.id} • Manage assessment details and feedback.`}
@@ -257,102 +259,102 @@ export function StorePatientDetails({
           type="button"
           variant="outline"
           onClick={onBack}
-          className="rounded-xl px-4 h-10 border-gray-200 text-gray-600 text-xs font-bold bg-white hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-98"
+          className="rounded-xl px-4 h-10 border-border text-muted-foreground text-xs font-bold bg-card hover:bg-muted flex items-center gap-1.5 shadow-sm transition-all active:scale-98"
         >
           <ChevronLeft size={16} />
           Back
         </Button>
       </div>
 
-      <Card className="bg-white rounded-2xl border border-gray-200 shadow-lg p-8">
+      <Card className="bg-card rounded-2xl border border-border shadow-lg p-8">
         <form onSubmit={handleFormSubmit} className="space-y-8">
           <div className="space-y-4">
-            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Customer Details</h2>
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Customer Details</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
               <div className="md:col-span-6 space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Name *</label>
+                <label className="text-xs font-bold text-muted-foreground">Name *</label>
                 <Input type="text" value={form.name} onChange={(e) => setField('name')(e.target.value)} placeholder="Enter full name" icon={User} required />
               </div>
               <div className="md:col-span-3 space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Age *</label>
+                <label className="text-xs font-bold text-muted-foreground">Age *</label>
                 <Input type="number" value={form.age} onChange={(e) => setField('age')(e.target.value)} placeholder="Age" required />
               </div>
               <div className="md:col-span-3 space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Gender *</label>
+                <label className="text-xs font-bold text-muted-foreground">Gender *</label>
                 <Select value={form.gender} onChange={(e) => setField('gender')(e.target.value)} options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }, { value: 'Other', label: 'Other' }]} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Mobile Number *</label>
+                <label className="text-xs font-bold text-muted-foreground">Mobile Number *</label>
                 <Input type="tel" value={form.mobile} onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="Enter mobile number" icon={Phone} required />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Customer Type *</label>
+                <label className="text-xs font-bold text-muted-foreground">Customer Type *</label>
                 <Select value={form.customerType} onChange={(e) => setField('customerType')(e.target.value)} options={[{ value: 'New', label: 'New' }, { value: 'Existing', label: 'Existing' }, { value: 'VIP', label: 'VIP' }]} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Store Name</label>
-                <Input type="text" value={form.storeName} disabled className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed" placeholder="Store Name" />
+                <label className="text-xs font-bold text-muted-foreground">Store Name</label>
+                <Input type="text" value={form.storeName} disabled className="bg-muted border-0 outline-none text-muted-foreground font-medium cursor-not-allowed" placeholder="Store Name" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Preferred Language 1 *</label>
+                <label className="text-xs font-bold text-muted-foreground">Preferred Language 1 *</label>
                 <Select value={form.preferredLanguage} onChange={(e) => setField('preferredLanguage')(e.target.value)} options={[{ value: 'English', label: 'English' }, { value: 'Hindi', label: 'Hindi' }, { value: 'Tamil', label: 'Tamil' }, { value: 'Telugu', label: 'Telugu' }, { value: 'Kannada', label: 'Kannada' }, { value: 'Malayalam', label: 'Malayalam' }, { value: 'Marathi', label: 'Marathi' }, { value: 'Bengali', label: 'Bengali' }, { value: 'Gujarati', label: 'Gujarati' }]} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-600">Preferred Language 2</label>
+                <label className="text-xs font-bold text-muted-foreground">Preferred Language 2</label>
                 <Select value={form.preferredLanguage2} onChange={(e) => setField('preferredLanguage2')(e.target.value)} options={[{ value: 'None', label: 'None' }, { value: 'English', label: 'English' }, { value: 'Hindi', label: 'Hindi' }, { value: 'Tamil', label: 'Tamil' }, { value: 'Telugu', label: 'Telugu' }, { value: 'Kannada', label: 'Kannada' }, { value: 'Malayalam', label: 'Malayalam' }, { value: 'Marathi', label: 'Marathi' }, { value: 'Bengali', label: 'Bengali' }, { value: 'Gujarati', label: 'Gujarati' }]} />
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
+            <div className="overflow-x-auto border border-slate-400 dark:border-zinc-700 rounded-lg shadow-sm">
               <Table className="w-full border-collapse text-center text-xs">
-                <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
-                  <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
-                    <TableHead colSpan={9} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider bg-slate-100 animate-none">Store Login</TableHead>
+                <TableHeader className="[&_tr]:border-b border-slate-400 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800">
+                  <TableRow className="border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
+                    <TableHead colSpan={9} className="py-2.5 font-extrabold text-sm text-slate-900 dark:text-zinc-100 text-center uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 animate-none border-b border-slate-400 dark:border-zinc-700">Store Login</TableHead>
                   </TableRow>
-                  <TableRow className="bg-slate-100/50 border-b border-slate-400 hover:bg-slate-100/50">
-                    <TableHead colSpan={2} className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm">*</TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
-                    <TableHead className="py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
+                  <TableRow className="bg-slate-100/50 dark:bg-zinc-800/50 border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
+                    <TableHead colSpan={2} className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm">*</TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm"></TableHead>
+                    <TableHead className="border-r border-slate-400 dark:border-zinc-700 py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm"></TableHead>
+                    <TableHead className="py-1 text-center font-bold text-blue-600 dark:text-blue-400 text-sm"></TableHead>
                   </TableRow>
-                  <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
-                    <TableHead colSpan={2} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
-                    {['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'].map((h) => (
-                      <TableHead key={h} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] last:border-r-0">{h}</TableHead>
-                    ))}
+                  <TableRow className="bg-slate-100/70 dark:bg-zinc-800/70 border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
+                    <TableHead colSpan={2} className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-[#1a2b6e] dark:text-blue-400 text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                     {rxHeaders.map((h) => (
+                       <TableHead key={h} className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] dark:text-blue-400 last:border-r-0">{h}</TableHead>
+                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(['autoRefRe', 'autoRefLe', 'pgpRe', 'pgpLe'] as const).map((row, rowIdx) => (
-                    <TableRow key={row} className={rowIdx < 3 ? 'border-b border-slate-400' : 'border-0'}>
+                    <TableRow key={row} className={rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}>
                       {rowIdx % 2 === 0 && (
-                        <TableCell rowSpan={2} className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-4 w-[100px] text-center animate-none">
+                        <TableCell rowSpan={2} className="border-r border-b border-slate-400 dark:border-zinc-700 font-black text-xs text-[#1a2b6e] dark:text-blue-400 bg-slate-50/50 dark:bg-zinc-900/50 px-3 py-4 w-[100px] text-center animate-none">
                           {rowIdx < 2 ? 'Auto Ref' : 'PGP'}
                         </TableCell>
                       )}
-                      <TableCell className="border-r border-b border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 px-3 py-3 w-[60px] whitespace-nowrap text-center animate-none">
+                      <TableCell className="border-r border-b border-slate-400 dark:border-zinc-700 font-black text-xs text-[#1a2b6e] dark:text-blue-400 bg-slate-50/50 dark:bg-zinc-900/50 px-3 py-3 w-[60px] whitespace-nowrap text-center animate-none">
                         {rowIdx % 2 === 0 ? 'R E' : 'L E'}
                       </TableCell>
                       {rxFields.map((field, idx) => (
-                        <TableCell key={field} className={`${rowIdx < 3 ? 'border-b border-slate-400' : ''} p-0 ${idx < 6 ? 'border-r border-slate-400' : ''}`}>
+                        <TableCell key={field} className={`${rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : ''} p-0 ${idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''}`}>
                           <input
                             type="text"
                             value={rxForm[row][field] || ''}
                             onChange={(e) => setRxField(row, field, e.target.value)}
-                            className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
+                            className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-foreground font-medium"
                           />
                         </TableCell>
                       ))}
@@ -365,32 +367,32 @@ export function StorePatientDetails({
 
           {!isAddingNew && (
             <div className="space-y-4">
-              <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
+              <div className="overflow-x-auto border border-slate-400 dark:border-zinc-700 rounded-lg shadow-sm">
                 <Table className="w-full border-collapse text-center text-xs">
-                  <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
-                    <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
-                      <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider">Optom Login</TableHead>
+                  <TableHeader className="[&_tr]:border-b border-slate-400 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800">
+                    <TableRow className="border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
+                      <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 dark:text-zinc-100 text-center uppercase tracking-wider border-b border-slate-400 dark:border-zinc-700">Optem Login</TableHead>
                     </TableRow>
-                    <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
-                      <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
-                      {['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'].map((h) => (
-                        <TableHead key={h} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] last:border-r-0">{h}</TableHead>
-                      ))}
+                    <TableRow className="bg-slate-100/70 dark:bg-zinc-800/70 border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
+                      <TableHead className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-[#1a2b6e] dark:text-blue-400 text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
+                       {optemHeaders.map((h) => (
+                         <TableHead key={h} className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] dark:text-blue-400 last:border-r-0">{h}</TableHead>
+                       ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {(['re', 'le'] as const).map((eye, idx) => (
-                      <TableRow key={eye} className={idx === 0 ? 'border-b border-slate-400' : 'border-0'}>
-                        <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">
+                      <TableRow key={eye} className={idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}>
+                        <TableCell className="border-r border-slate-400 dark:border-zinc-700 font-black text-xs text-[#1a2b6e] dark:text-blue-400 bg-slate-50/50 dark:bg-zinc-900/50 py-3 whitespace-nowrap text-center animate-none">
                           {eye === 're' ? 'R E' : 'L E'}
                         </TableCell>
-                        {optomFields.map((field, fIdx) => (
-                          <TableCell key={field} className={`${idx === 0 ? 'border-b border-slate-400' : ''} p-0 ${fIdx < 6 ? 'border-r border-slate-400' : ''}`}>
+                        {optemFields.map((field, fIdx) => (
+                          <TableCell key={field} className={`${idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : ''} p-0 ${fIdx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''}`}>
                             <input
                               type="text"
-                              value={optomRxForm[eye][field] || ''}
+                              value={optemRxForm[eye][field] || ''}
                               disabled
-                              className="w-full h-full text-center bg-slate-50 border-0 outline-none px-3 py-2.5 text-xs text-gray-500 font-medium cursor-not-allowed"
+                              className="w-full h-full text-center bg-slate-50 dark:bg-zinc-900 border-0 outline-none px-3 py-2.5 text-xs text-muted-foreground font-medium cursor-not-allowed"
                             />
                           </TableCell>
                         ))}
@@ -403,23 +405,23 @@ export function StorePatientDetails({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-600">Store Action / Feedback</label>
+            <label className="text-xs font-bold text-muted-foreground">Store Action / Feedback</label>
             <textarea
               value={form.storeFeedback}
               onChange={(e) => setField('storeFeedback')(e.target.value)}
               rows={4}
               placeholder="Enter clinical assessment details or feedback comments..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white shadow-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition-all font-medium"
+              className="w-full border border-border rounded-xl px-4 py-3 text-sm text-foreground bg-card shadow-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-muted-foreground transition-all font-medium"
             />
           </div>
 
-          <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6"></div>
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <Button type="button" variant="outline" onClick={onBack} className="rounded-xl h-10 px-5 font-bold text-xs border-gray-200 text-gray-500 hover:bg-slate-50 shadow-sm">
+              <Button type="button" variant="outline" onClick={onBack} className="rounded-xl h-10 px-5 font-bold text-xs border-border text-muted-foreground hover:bg-muted shadow-sm">
                 Cancel
               </Button>
-              <Button type="submit" className="rounded-xl h-10 px-6 font-bold text-xs bg-[#1a2b6e] hover:bg-[#152260] text-white shadow-md active:scale-98 transition-all">
+              <Button type="submit" className="rounded-xl h-10 px-6 font-bold text-xs bg-[#1a2b6e] hover:bg-[#152260] dark:bg-blue-700 dark:hover:bg-blue-800 text-white shadow-md active:scale-98 transition-all">
                 {isAddingNew ? 'Create' : 'Save Changes'}
               </Button>
             </div>

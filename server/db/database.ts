@@ -65,17 +65,31 @@ export async function initDb(): Promise<void> {
       preferredLanguage TEXT NOT NULL,
       preferredLanguage2 TEXT NOT NULL,
       storeFeedback TEXT NOT NULL,
-      optumFeedback TEXT NOT NULL,
+      optemFeedback TEXT NOT NULL,
       status TEXT NOT NULL,
       activeProfile INTEGER NOT NULL DEFAULT 0,
       lastUpdatedOn TEXT,
       rxData TEXT,
-      optomRxData TEXT,
+      optemRxData TEXT,
       callStartTime TEXT,
       callActive INTEGER DEFAULT 0,
       callTakenBy TEXT
     )
   `);
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optemFeedback TEXT`);
+  } catch (e) { }
+  try {
+    await run(`UPDATE customers SET optemFeedback = optumFeedback WHERE optemFeedback IS NULL`);
+  } catch (e) { }
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optemRxData TEXT`);
+  } catch (e) { }
+  try {
+    await run(`UPDATE customers SET optemRxData = optomRxData WHERE optemRxData IS NULL`);
+  } catch (e) { }
 
   try {
     await run(`ALTER TABLE customers ADD COLUMN callStartTime TEXT`);
@@ -91,7 +105,7 @@ export async function initDb(): Promise<void> {
 
   await run(`
     CREATE VIEW IF NOT EXISTS customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback, status, activeProfile, lastUpdatedOn, rxData, optomRxData, callStartTime, callActive, callTakenBy
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback, status, activeProfile, lastUpdatedOn, rxData, optemRxData, callStartTime, callActive, callTakenBy
     FROM customers
   `);
 

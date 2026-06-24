@@ -59,7 +59,7 @@ router.post('/call-event', async (req: Request, res: Response) => {
         activeProfile: updatedRow.activeProfile === 1,
         callActive: true,
         rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-        optomRxData: updatedRow.optomRxData ? JSON.parse(updatedRow.optomRxData) : undefined
+        optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
       };
       broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
       return res.json({ ok: true, customer: updatedCustomer });
@@ -80,7 +80,7 @@ router.post('/call-event', async (req: Request, res: Response) => {
         activeProfile: updatedRow.activeProfile === 1,
         callActive: false,
         rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-        optomRxData: updatedRow.optomRxData ? JSON.parse(updatedRow.optomRxData) : undefined
+        optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
       };
       broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
       return res.json({ ok: true, customer: updatedCustomer });

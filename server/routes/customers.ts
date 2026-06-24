@@ -23,7 +23,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       activeProfile: c.activeProfile === 1,
       callActive: c.callActive === 1,
       rxData: c.rxData ? JSON.parse(c.rxData) : undefined,
-      optomRxData: c.optomRxData ? JSON.parse(c.optomRxData) : undefined
+      optemRxData: c.optemRxData ? JSON.parse(c.optemRxData) : undefined
     }));
     return res.json(customers);
   } catch (err: any) {
@@ -60,16 +60,16 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     await run(`
       INSERT INTO customers (
         id, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optomRxData,
+        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
         callStartTime, callActive, callTakenBy
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       finalId, c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
-      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optumFeedback || '',
+      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optemFeedback || '',
       c.status, c.activeProfile ? 1 : 0, c.lastUpdatedOn || '',
       c.rxData ? JSON.stringify(c.rxData) : null,
-      c.optomRxData ? JSON.stringify(c.optomRxData) : null,
+      c.optemRxData ? JSON.stringify(c.optemRxData) : null,
       c.callStartTime || null,
       c.callActive ? 1 : 0,
       c.callTakenBy || null
@@ -81,7 +81,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       activeProfile: row.activeProfile === 1,
       callActive: row.callActive === 1,
       rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
-      optomRxData: row.optomRxData ? JSON.parse(row.optomRxData) : undefined
+      optemRxData: row.optemRxData ? JSON.parse(row.optemRxData) : undefined
     };
     broadcastEvent('CUSTOMER_CREATED', createdCustomer);
 
@@ -97,7 +97,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const c = req.body;
 
-    const existing = await get('SELECT storeName, optomRxData, optumFeedback FROM customers WHERE id = ?', [id]);
+    const existing = await get('SELECT storeName, optemRxData, optemFeedback FROM customers WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Customer not found' });
     }
@@ -106,8 +106,8 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       if (existing.storeName !== req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
-      c.optomRxData = existing.optomRxData ? JSON.parse(existing.optomRxData) : null;
-      c.optumFeedback = existing.optumFeedback;
+      c.optemRxData = existing.optemRxData ? JSON.parse(existing.optemRxData) : null;
+      c.optemFeedback = existing.optemFeedback;
       c.storeName = req.user.storeName;
     }
 
@@ -122,16 +122,16 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     await run(`
       UPDATE customers SET
         name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
-        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optumFeedback = ?,
-        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optomRxData = ?,
+        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optemFeedback = ?,
+        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optemRxData = ?,
         callStartTime = ?, callActive = ?, callTakenBy = ?
       WHERE id = ?
     `, [
       c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
-      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optumFeedback || '',
+      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optemFeedback || '',
       finalStatus, c.activeProfile ? 1 : 0, c.lastUpdatedOn || '',
       c.rxData ? JSON.stringify(c.rxData) : null,
-      c.optomRxData ? JSON.stringify(c.optomRxData) : null,
+      c.optemRxData ? JSON.stringify(c.optemRxData) : null,
       c.callStartTime || null,
       c.callActive ? 1 : 0,
       c.callTakenBy || null,
@@ -144,7 +144,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       activeProfile: row.activeProfile === 1,
       callActive: row.callActive === 1,
       rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
-      optomRxData: row.optomRxData ? JSON.parse(row.optomRxData) : undefined
+      optemRxData: row.optemRxData ? JSON.parse(row.optemRxData) : undefined
     };
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
 
@@ -167,9 +167,9 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       const requesterRole = req.user ? req.user.role : '';
 
       const isStoreHolder = currentHolder && currentHolder.role === 'store';
-      const isOptomRequester = requesterRole === 'optem';
+      const isOptemRequester = requesterRole === 'optem';
 
-      if (!(isStoreHolder && isOptomRequester)) {
+      if (!(isStoreHolder && isOptemRequester)) {
         return res.status(409).json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
       }
     }
@@ -202,7 +202,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       activeProfile: updatedRow.activeProfile === 1,
       callActive: updatedRow.callActive === 1,
       rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-      optomRxData: updatedRow.optomRxData ? JSON.parse(updatedRow.optomRxData) : undefined
+      optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
     };
 
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
@@ -247,7 +247,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
       activeProfile: updatedRow.activeProfile === 1,
       callActive: false,
       rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-      optomRxData: updatedRow.optomRxData ? JSON.parse(updatedRow.optomRxData) : undefined
+      optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
     };
 
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);

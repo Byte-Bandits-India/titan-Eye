@@ -11,7 +11,7 @@ import { apiClient } from '../Util/apiClient';
 import type { Customer } from '../types';
 import axios from 'axios';
 
-const handleApiError = (err: any, dispatch: AppDispatch, defaultMsg: string): string => {
+const handleApiError = (err: Error, dispatch: AppDispatch, defaultMsg: string): string => {
   if (axios.isAxiosError(err)) {
     if (err.response?.status === 401 || err.response?.status === 403) {
       dispatch(logout());
@@ -28,7 +28,8 @@ export const fetchCustomersAction = () => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.get<Customer[]>('/customers');
     dispatch(fetchSuccess(response.data));
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to fetch customers.');
     dispatch(fetchFailure(msg));
   }
@@ -43,7 +44,8 @@ export const createCustomerAction = (customer: Partial<Customer>) => async (disp
     } as Customer;
     dispatch(customerCreated(created));
     return created;
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to register customer.');
     throw new Error(msg);
   }
@@ -53,7 +55,8 @@ export const updateCustomerAction = (id: string, customer: Partial<Customer>) =>
   try {
     await apiClient.put(`/customers/${encodeURIComponent(id)}`, customer);
     dispatch(customerUpdated(customer as Customer));
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to update customer.');
     throw new Error(msg);
   }
@@ -66,7 +69,8 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
       dispatch(customerUpdated(response.data.customer));
     }
     return response.data;
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to initiate call.');
     throw new Error(msg);
   }
@@ -79,7 +83,8 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
       dispatch(customerUpdated(response.data.customer));
     }
     return response.data;
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to end call.');
     throw new Error(msg);
   }

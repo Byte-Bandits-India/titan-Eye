@@ -1,8 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { useAppSelector } from '../store';
-import { LoginScreen } from '../features/auth/LoginScreen';
-import { StoreScreen } from '../features/store/StoreScreen';
-import { OptemScreen } from '../features/optem/OptemScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { StoreScreen } from '../screens/store/StoreScreen';
+import { OptemScreen } from '../screens/optem/OptemScreen';
 import type { RouteProps, ProtectedRouteProps } from '../types';
 
 export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {

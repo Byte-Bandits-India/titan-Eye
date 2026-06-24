@@ -9,7 +9,8 @@ export const loginAction = (email: string, password: string) => async (dispatch:
   try {
     const response = await apiClient.post<LoginResponse>('/login', { email, password });
     dispatch(loginSuccess(response.data));
-  } catch (err: any) {
+  } catch (e) {
+    const err = e as Error;
     let message = 'An error occurred during login.';
     if (axios.isAxiosError(err) && err.response?.data) {
       const data = err.response.data as { error?: string };

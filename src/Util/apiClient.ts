@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL, STORAGE_KEYS } from '../constants';
+import { API_BASE_URL, STORAGE_KEYS } from '../options/Option';
 import type { User } from '../types';
 
 export const apiClient = axios.create({
@@ -7,17 +7,24 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
+const getAuthToken = (): string | null => {
+  try {
+    const rawUser = localStorage.getItem(STORAGE_KEYS.USER);
+    if (!rawUser) return null;
+    const user = JSON.parse(rawUser) as User;
+    return user.token || null;
+  } catch (error) {
+    console.warn('Failed to retrieve auth token from storage:', error);
+    return null;
+  }
+};
+
 apiClient.interceptors.request.use(
   (config) => {
-    try {
-      const rawUser = localStorage.getItem(STORAGE_KEYS.USER);
-      if (rawUser) {
-        const user = JSON.parse(rawUser) as User;
-        if (user.token) {
-          config.headers.Authorization = `Bearer ${user.token}`;
-        }
-      }
-    } catch {}
+    const token = getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
