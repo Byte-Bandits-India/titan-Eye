@@ -162,12 +162,8 @@ export function OptemPatientDetails({
       toast({ title: 'Video Call', description: `Initiating video consultation with patient ${form.name}...`, type: 'success' });
 
       const teamsUser = 'sannadurai@neuroiq.ai';
-      const appLink = `msteams:/l/call/0/0?users=${teamsUser}`;
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = appLink;
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 2000);
+      const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
+      window.location.href = appLink;
     } catch (e) {
       const err = e as Error;
       if (err.message && err.message.includes('409')) {
