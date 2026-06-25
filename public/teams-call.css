@@ -1,0 +1,37 @@
+body {
+  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f3f2f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 40px 48px;
+  text-align: center;
+}
+.card p {
+  color: #616161;
+  margin-bottom: 24px;
+}
+button {
+  background: #5b5fc7;
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover {
+  background: #464775;
+}
+.note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #a19f9d;
+}
