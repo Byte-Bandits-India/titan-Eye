@@ -162,7 +162,7 @@ export function OptemPatientDetails({
       toast({ title: 'Video Call', description: `Initiating video consultation with patient ${form.name}...`, type: 'success' });
 
       const teamsUser = 'sannadurai@neuroiq.ai';
-      const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
+      const appLink = `msteams://l/call/0/0?users=${encodeURIComponent(teamsUser)}`;
       window.location.href = appLink;
     } catch (e) {
       const err = e as Error;
