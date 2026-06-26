@@ -14,7 +14,7 @@ import { CallTimer } from '../../components/ui/CallTimer';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { StatsGrid } from '../../components/shared/StatsGrid';
 import { PaginationBar } from '../../components/shared/PaginationBar';
-import { CollisionModal } from '../../components/shared/CollisionModal';
+
 import { usePagination } from '../../hooks/usePagination';
 import { useSSE } from '../../hooks/useSSE';
 import { useAppDispatch, useAppSelector } from '../../store';
@@ -35,11 +35,7 @@ export function StoreScreen() {
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [loadingCallId, setLoadingCallId] = React.useState<string | null>(null);
-  const [collisionModalData, setCollisionModalData] = React.useState<{
-    id: string;
-    name: string;
-    takenBy: string;
-  } | null>(null);
+
   const { toast } = useToast();
 
   React.useEffect(() => {
@@ -290,16 +286,8 @@ export function StoreScreen() {
                               size="sm"
                               className="h-7 px-3 text-[10px] font-bold rounded-xl cursor-pointer"
                               onClick={() => {
-                                if (cust.callActive && cust.storeName !== user.name) {
-                                  setCollisionModalData({
-                                    id: cust.id,
-                                    name: cust.name,
-                                    takenBy: cust.callTakenBy || 'another agent',
-                                  });
-                                } else {
-                                  handleSelectCustomer(cust.id);
-                                  setIsEditing(true);
-                                }
+                                handleSelectCustomer(cust.id);
+                                setIsEditing(true);
                               }}
                             >
                               View
@@ -325,17 +313,7 @@ export function StoreScreen() {
         </main>
       )}
 
-      {collisionModalData && (
-        <CollisionModal
-          takenBy={collisionModalData.takenBy}
-          onCancel={() => setCollisionModalData(null)}
-          onViewData={() => {
-            handleSelectCustomer(collisionModalData.id);
-            setIsEditing(true);
-            setCollisionModalData(null);
-          }}
-        />
-      )}
+
     </AppLayout>
   );
 }

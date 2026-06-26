@@ -191,7 +191,8 @@ export function OptemScreen() {
                               onClick={() => {
                                 if (
                                   req.callActive &&
-                                  req.callTakenBy?.startsWith('Dr. ') &&
+                                  req.callTakenBy &&
+                                  req.callTakenBy.startsWith('optem') &&
                                   req.callTakenBy !== user.name
                                 ) {
                                   setCollisionModalData({

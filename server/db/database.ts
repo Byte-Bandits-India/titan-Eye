@@ -110,12 +110,12 @@ export async function initDb(): Promise<void> {
   `);
 
   const defaultUsers = [
-    { email: 'store@gmail.com', name: ' ', role: 'store', storeName: 'Store A', password: 'pass@123' },
-    { email: 'store2@gmail.com', name: ' ', role: 'store', storeName: 'Store B', password: 'pass@123' },
-    { email: 'store3@gmail.com', name: ' ', role: 'store', storeName: 'Store C', password: 'pass@123' },
-    { email: 'optem@gmail.com', name: ' ', role: 'optem', storeName: null, password: 'pass@123' },
-    { email: 'optem2@gmail.com', name: ' ', role: 'optem', storeName: null, password: 'pass@123' },
-    { email: 'optem3@gmail.com', name: ' ', role: 'optem', storeName: null, password: 'pass@123' },
+    { email: 'store@gmail.com', name: 'store1User', role: 'store', storeName: 'Store A', password: 'pass@123' },
+    { email: 'store2@gmail.com', name: 'store2User', role: 'store', storeName: 'Store B', password: 'pass@123' },
+    { email: 'store3@gmail.com', name: 'store3User', role: 'store', storeName: 'Store C', password: 'pass@123' },
+    { email: 'optem@gmail.com', name: 'optem1User', role: 'optem', storeName: null, password: 'pass@123' },
+    { email: 'optem2@gmail.com', name: 'optem2User', role: 'optem', storeName: null, password: 'pass@123' },
+    { email: 'optem3@gmail.com', name: 'optem3User', role: 'optem', storeName: null, password: 'pass@123' },
   ];
 
   for (const u of defaultUsers) {
