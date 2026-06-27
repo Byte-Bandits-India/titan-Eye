@@ -35,7 +35,7 @@ export function OptemPatientDetails({
   const currentUserName = user?.name || '';
 
   const isCallActive = selectedCustomer?.callActive;
-  const isTakenByOptem = selectedCustomer?.callTakenBy?.startsWith('Dr. ');
+  const isTakenByOptem = selectedCustomer?.callTakenBy?.startsWith('optem');
   const isTakenByMe = selectedCustomer?.callTakenBy === currentUserName;
 
   const [form, setForm] = React.useState({
@@ -162,7 +162,7 @@ export function OptemPatientDetails({
       toast({ title: 'Video Call', description: `Initiating video consultation with patient ${form.name}...`, type: 'success' });
 
       const teamsUser = 'sannadurai@neuroiq.ai';
-      const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
+      const appLink = `msteams://l/call/0/0?users=${encodeURIComponent(teamsUser)}`;
       window.location.href = appLink;
     } catch (e) {
       const err = e as Error;
@@ -416,26 +416,19 @@ export function OptemPatientDetails({
                   Initiate Call
                 </Button>
               ) : isTakenByMe ? (
-                <Button type="button" onClick={handleEndCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-300" title="End Call Session">
-                  {isCallLoading ? <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
-                  Call Initiated
+                <Button type="button" onClick={handleEndCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-gray-300 hover:bg-gray-400 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-400" title="Click to end the call">
+                  {isCallLoading ? <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : <Phone size={16} />}
+                  End Call
                 </Button>
               ) : (
                 <Button type="button" disabled className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0" title={`Call already taken by ${selectedCustomer?.callTakenBy || ''}`}>
                   Taken by {selectedCustomer?.callTakenBy || ''}
                 </Button>
               )}
-              {selectedCustomer?.callActive ? (
-                <Button type="button" disabled className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0" title="TeamViewer blocked: Call active">
+              <Button type="button" onClick={handleOpenTeamViewer} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Open TeamViewer Remote Control">
                   <Monitor size={16} />
                   Open TeamViewer
                 </Button>
-              ) : (
-                <Button type="button" onClick={handleOpenTeamViewer} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Open TeamViewer Remote Control">
-                  <Monitor size={16} />
-                  Open TeamViewer
-                </Button>
-              )}
               <Button type="submit" className="rounded-xl px-4 h-10 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer">
                 Update Customer Details
               </Button>
