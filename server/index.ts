@@ -33,6 +33,9 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
+const hasHttpsOrigin = allowedOrigins.some(origin => origin.startsWith('https://'));
+
 const app = express();
 
 app.use(helmet({
@@ -47,7 +50,7 @@ app.use(helmet({
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
-      upgradeInsecureRequests: [],
+      upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
     },
   },
 }));
@@ -57,14 +60,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
-
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Blocked by CORS policy'));
+      callback(null, false);
     }
   },
   credentials: true,
