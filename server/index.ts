@@ -65,7 +65,9 @@ app.use(cors({
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, false);
+      const corsError = new Error('Not allowed by CORS') as any;
+      corsError.status = 403;
+      callback(corsError);
     }
   },
   credentials: true,
