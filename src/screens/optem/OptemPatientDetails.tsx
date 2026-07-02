@@ -34,8 +34,6 @@ export function OptemPatientDetails({
   const [isCallLoading, setIsCallLoading] = React.useState(false);
   const currentUserName = user?.name || '';
 
-  const isCallActive = selectedCustomer?.callActive;
-  const isTakenByOptem = selectedCustomer?.callTakenBy?.startsWith('Dr. ');
   const isTakenByMe = selectedCustomer?.callTakenBy === currentUserName;
 
   const [form, setForm] = React.useState({
@@ -408,32 +406,21 @@ export function OptemPatientDetails({
 
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-full sm:w-auto justify-start">
-              {(!isCallActive || (isCallActive && !isTakenByOptem)) ? (
-                <Button type="button" onClick={handleInitiateCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Initiate Microsoft Teams Call">
-                  {isCallLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Video size={16} />}
-                  Initiate Call
-                </Button>
-              ) : isTakenByMe ? (
+              {isTakenByMe ? (
                 <Button type="button" onClick={handleEndCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer border border-gray-300" title="End Call Session">
                   {isCallLoading ? <span className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" /> : null}
                   Call Initiated
                 </Button>
               ) : (
-                <Button type="button" disabled className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0" title={`Call already taken by ${selectedCustomer?.callTakenBy || ''}`}>
-                  Taken by {selectedCustomer?.callTakenBy || ''}
+                <Button type="button" onClick={handleInitiateCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Initiate Microsoft Teams Call">
+                  {isCallLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Video size={16} />}
+                  Initiate Call
                 </Button>
               )}
-              {selectedCustomer?.callActive ? (
-                <Button type="button" disabled className="rounded-xl px-4 h-10 bg-gray-200 text-gray-500 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-100 border-0" title="TeamViewer blocked: Call active">
-                  <Monitor size={16} />
-                  Open TeamViewer
-                </Button>
-              ) : (
-                <Button type="button" onClick={handleOpenTeamViewer} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Open TeamViewer Remote Control">
-                  <Monitor size={16} />
-                  Open TeamViewer
-                </Button>
-              )}
+              <Button type="button" onClick={handleOpenTeamViewer} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Open TeamViewer Remote Control">
+                <Monitor size={16} />
+                Open TeamViewer
+              </Button>
             </div>
 
             <div className="flex items-end gap-3 w-full sm:w-auto justify-end pt-5 sm:pt-0">
