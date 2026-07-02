@@ -190,18 +190,28 @@ export function OptemPatientDetails({
     }
   };
 
-  const handleUpdateStatusOnly = async () => {
+  const handleUpdateStatusOnly = async (newStatus?: CustomerStatus) => {
     if (!selectedCustomer) return;
     const updatedCustomer = buildUpdatedCustomer();
     if (!updatedCustomer) return;
+    if (newStatus) updatedCustomer.status = newStatus;
+    if (newStatus === 'Completed') {
+      updatedCustomer.callActive = false;
+    }
 
     try {
       await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
-      toast({ title: 'Status Updated', description: `Customer status manually updated to ${form.status}.`, type: 'success' });
+      toast({ title: 'Status Updated', description: `Customer status automatically updated to ${newStatus || form.status}.`, type: 'success' });
     } catch (e) {
       const err = e as Error;
       toast({ title: 'Error Updating Status', description: `Failed to update status: ${err.message || 'Database error'}`, type: 'error' });
     }
+  };
+
+  const handleStatusChange = (val: string) => {
+    const newStatus = val as CustomerStatus;
+    setField('status')(newStatus);
+    handleUpdateStatusOnly(newStatus);
   };
 
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -397,19 +407,7 @@ export function OptemPatientDetails({
           </div>
 
           <div className="pt-4 border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="space-y-1.5 w-full sm:max-w-xs">
-              <label className="text-xs font-bold text-gray-600">Status</label>
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Select value={form.status} onChange={(e) => setField('status')(e.target.value)} options={[{ value: 'Created', label: 'Created' }, { value: 'Initiated', label: 'Initiated' }, { value: 'Accepted', label: 'Accepted' }, { value: 'Completed', label: 'Completed' }]} />
-                </div>
-                <Button type="button" onClick={handleUpdateStatusOnly} className="rounded-xl px-4 h-10 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold shadow-sm transition-all active:scale-98 cursor-pointer whitespace-nowrap">
-                  Update
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end pt-5 sm:pt-0">
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-start">
               {(!isCallActive || (isCallActive && !isTakenByOptem)) ? (
                 <Button type="button" onClick={handleInitiateCall} disabled={isCallLoading} className="rounded-xl px-4 h-10 bg-[#4f46e5] hover:bg-[#4338ca] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer" title="Initiate Microsoft Teams Call">
                   {isCallLoading ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Video size={16} />}
@@ -436,6 +434,13 @@ export function OptemPatientDetails({
                   Open TeamViewer
                 </Button>
               )}
+            </div>
+
+            <div className="flex items-end gap-3 w-full sm:w-auto justify-end pt-5 sm:pt-0">
+              <div className="space-y-1.5 w-full sm:max-w-xs">
+                <label className="text-xs font-bold text-gray-600">Status</label>
+                <Select value={form.status} onChange={(e) => handleStatusChange(e.target.value)} options={[{ value: 'Created', label: 'Created' }, { value: 'Initiated', label: 'Initiated' }, { value: 'Accepted', label: 'Accepted' }, { value: 'Completed', label: 'Completed' }]} />
+              </div>
               <Button type="submit" className="rounded-xl px-4 h-10 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer">
                 Update Customer Details
               </Button>
