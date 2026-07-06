@@ -1,11 +1,21 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { spawn, exec } from 'child_process';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { getScreenSize, getChromePath, getTeamViewerPath } from '../utils/system.js';
 
 const router = Router();
 
-router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
+const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
+function requireLoopback(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const remoteAddress = req.socket.remoteAddress || '';
+  if (!LOOPBACK_ADDRESSES.has(remoteAddress)) {
+    return res.status(403).json({ error: 'This endpoint is only available to the local agent' });
+  }
+  next();
+}
+
+router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
     return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
   }
@@ -28,7 +38,7 @@ router.post('/open-teams', async (req: AuthenticatedRequest, res: Response) => {
   return res.json({ ok: true });
 });
 
-router.post('/open-teamviewer', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user || req.user.role !== 'optem') {
     return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
   }

@@ -53,8 +53,8 @@ export const createCustomerAction = (customer: Partial<Customer>) => async (disp
 
 export const updateCustomerAction = (id: string, customer: Partial<Customer>) => async (dispatch: AppDispatch) => {
   try {
-    await apiClient.put(`/customers/${encodeURIComponent(id)}`, customer);
-    dispatch(customerUpdated(customer as Customer));
+    const response = await apiClient.put<{ ok: boolean; customer: Customer }>(`/customers/${encodeURIComponent(id)}`, customer);
+    dispatch(customerUpdated(response.data.customer));
   } catch (e) {
     const err = e as Error;
     const msg = handleApiError(err, dispatch, 'Failed to update customer.');

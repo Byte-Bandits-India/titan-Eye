@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'crypto';
 import { get, run } from '../db/database.js';
 import { broadcastEvent } from '../utils/sse.js';
 
@@ -14,7 +15,13 @@ router.post('/call-event', async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Internal configuration error' });
     }
 
-    if (signature !== webhookSecret) {
+    if (typeof signature !== 'string') {
+      return res.status(401).json({ error: 'Unauthorized webhook source' });
+    }
+
+    const sigBuf = Buffer.from(signature);
+    const secretBuf = Buffer.from(webhookSecret);
+    if (sigBuf.length !== secretBuf.length || !crypto.timingSafeEqual(sigBuf, secretBuf)) {
       return res.status(401).json({ error: 'Unauthorized webhook source' });
     }
 

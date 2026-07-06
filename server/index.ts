@@ -83,9 +83,9 @@ app.get('/api/ping', (req: Request, res: Response) => {
 });
 
 app.get('/api/events', (req: Request, res: Response) => {
-  const token = req.query.token as string;
+  const token = req.cookies?.token;
   if (!token) {
-    return res.status(401).json({ error: 'Access token required via query parameter' });
+    return res.status(401).json({ error: 'Access token required' });
   }
 
   const user = verifyToken(token);

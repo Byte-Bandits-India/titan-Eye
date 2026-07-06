@@ -29,12 +29,14 @@ jobs:
           echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env
           echo "NODE_ENV=production" >> .env
           echo "ALLOWED_ORIGINS=http://localhost:5173,http://titan.thebytebandits.com,https://titan.thebytebandits.com" >> .env
+          echo "DATABASE_PATH=/home/ec2-user/titan-data/database.db" >> .env
           echo "VITE_API_BASE_URL=https://titan.thebytebandits.com/api" > .env.production
           echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.production
           echo "WEBHOOK_SECRET=${{ secrets.WEBHOOK_SECRET }}" >> .env.production
           echo "NODE_ENV=production" >> .env.production
           echo "ALLOWED_ORIGINS=http://localhost:5173,http://titan.thebytebandits.com,https://titan.thebytebandits.com" >> .env.production
+          echo "DATABASE_PATH=/home/ec2-user/titan-data/database.db" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
@@ -80,12 +82,23 @@ jobs:
             echo "📦 PRODUCTION DEPLOY"
 
             APP_DIR="/home/ec2-user/titan"
+            DATA_DIR="/home/ec2-user/titan-data"
             PORT=3000
             APP_NAME="titan-prod"
             AGENT_NAME="titan-agent"
             AGENT_PORT=3001
 
             mkdir -p $APP_DIR
+            mkdir -p "$DATA_DIR/backups"
+
+            echo "🗄️  Ensuring database lives outside the deploy directory..."
+            if [ -f "$APP_DIR/database.db" ] && [ ! -f "$DATA_DIR/database.db" ]; then
+              echo "📦 One-time migration of existing database to $DATA_DIR ..."
+              mv "$APP_DIR/database.db" "$DATA_DIR/database.db"
+              mv "$APP_DIR/database.db-wal" "$DATA_DIR/database.db-wal" 2>/dev/null || true
+              mv "$APP_DIR/database.db-shm" "$DATA_DIR/database.db-shm" 2>/dev/null || true
+            fi
+
             cd $APP_DIR
 
             echo "🧹 Cleaning old files..."
@@ -113,6 +126,10 @@ jobs:
             fi
 
             pm2 save
+
+            echo "🗓️  Scheduling daily database backup..."
+            BACKUP_CMD="cd $APP_DIR && DATABASE_PATH=$DATA_DIR/database.db BACKUP_DIR=$DATA_DIR/backups /usr/bin/node dist-server/scripts/backup.js >> $DATA_DIR/backup.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "dist-server/scripts/backup.js"; echo "0 2 * * * $BACKUP_CMD") | crontab -
 
             echo "✅ Deployment completed!"
           EOF

@@ -1,42 +1,39 @@
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import fs from 'fs';
+import path from 'path';
 import { hashPassword } from '../utils/hash.js';
 
 const DB_PATH = process.env.DATABASE_PATH || 'database.db';
-export const db = new sqlite3.Database(DB_PATH);
+
+const dbDir = path.dirname(DB_PATH);
+if (dbDir && dbDir !== '.') {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+export const db = new Database(DB_PATH);
 
 try {
   fs.chmodSync(DB_PATH, 0o600);
 } catch (e) {
 }
 
-db.run('PRAGMA journal_mode=WAL', (err) => {
-  if (err) console.error('Failed to enable WAL mode:', err.message);
-});
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = FULL');
 
-export const run = (sql: string, params: any[] = []): Promise<any> =>
-  new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+export const run = async (sql: string, params: any[] = []): Promise<any> => {
+  const stmt = db.prepare(sql);
+  return stmt.run(...params);
+};
 
-export const all = (sql: string, params: any[] = []): Promise<any[]> =>
-  new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+export const all = async (sql: string, params: any[] = []): Promise<any[]> => {
+  const stmt = db.prepare(sql);
+  return stmt.all(...params);
+};
 
-export const get = (sql: string, params: any[] = []): Promise<any> =>
-  new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+export const get = async (sql: string, params: any[] = []): Promise<any> => {
+  const stmt = db.prepare(sql);
+  return stmt.get(...params);
+};
 
 export async function initDb(): Promise<void> {
   await run(`

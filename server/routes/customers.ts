@@ -97,7 +97,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const c = req.body;
 
-    const existing = await get('SELECT storeName, optemRxData, optemFeedback FROM customers WHERE id = ?', [id]);
+    const existing = await get('SELECT * FROM customers WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Customer not found' });
     }
@@ -110,6 +110,18 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.optemFeedback = existing.optemFeedback;
       c.storeName = req.user.storeName;
     }
+
+    if (c.rxData === undefined) {
+      c.rxData = existing.rxData ? JSON.parse(existing.rxData) : null;
+    }
+    if (c.optemRxData === undefined) {
+      c.optemRxData = existing.optemRxData ? JSON.parse(existing.optemRxData) : null;
+    }
+    if (c.optemFeedback === undefined) c.optemFeedback = existing.optemFeedback;
+    if (c.storeFeedback === undefined) c.storeFeedback = existing.storeFeedback;
+    if (c.callStartTime === undefined) c.callStartTime = existing.callStartTime;
+    if (c.callActive === undefined) c.callActive = existing.callActive === 1;
+    if (c.callTakenBy === undefined) c.callTakenBy = existing.callTakenBy;
 
     const validation = validateCustomerData(c, true);
     if (!validation.valid) {
@@ -148,7 +160,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     };
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
 
-    return res.json({ ok: true });
+    return res.json({ ok: true, customer: updatedCustomer });
   } catch (err: any) {
     console.error('Update customer error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });

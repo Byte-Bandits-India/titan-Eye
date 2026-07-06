@@ -19,9 +19,9 @@ export function useSSE(): void {
   React.useEffect(() => {
     if (!token) return;
 
-    const eventSource = new EventSource(
-      `${API_BASE_URL}/events?token=${encodeURIComponent(token)}`,
-    );
+    const eventSource = new EventSource(`${API_BASE_URL}/events`, {
+      withCredentials: true,
+    });
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {

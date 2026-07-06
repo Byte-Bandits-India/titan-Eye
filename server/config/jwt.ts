@@ -25,8 +25,13 @@ export function verifyToken(token: string): UserPayload | null {
     const [header, body, signature] = token.split('.');
     if (!header || !body || !signature) return null;
     const expectedSignature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
-    if (signature !== expectedSignature) return null;
-    
+
+    const sigBuf = Buffer.from(signature);
+    const expectedBuf = Buffer.from(expectedSignature);
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
+
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as UserPayload;
     if (payload.exp && Date.now() > payload.exp) return null;
     return payload;
