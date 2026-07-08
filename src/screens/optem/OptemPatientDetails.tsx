@@ -324,8 +324,7 @@ export function OptemPatientDetails({
           {/* History/Logs Table */}
           <div className="space-y-4 pt-4 border-t border-gray-150">
             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-              <History size={16} className="text-blue-600 animate-pulse" />
-              ID Logs History
+              <History size={16} className="text-blue-600 animate-pulse" />History
             </h3>
             <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
               <Table className="w-full border-collapse text-left text-xs">
