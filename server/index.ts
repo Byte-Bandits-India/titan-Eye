@@ -149,6 +149,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     return res.status(404).json({ error: 'API endpoint not found' });
   }
 
+  if (path.extname(req.path)) {
+    return res.status(404).send('Not Found');
+  }
+
   if (fs.existsSync(distPath)) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
