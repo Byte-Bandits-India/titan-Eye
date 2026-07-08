@@ -102,29 +102,23 @@ export async function initDb(): Promise<void> {
     await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`);
   } catch (e) { }
 
+  try {
+    const columns = db.prepare("PRAGMA table_info(customer_logs)").all() as any[];
+    if (columns.some(col => col.name === 'name')) {
+      db.prepare("DROP TABLE customer_logs").run();
+      db.prepare("DROP TRIGGER IF EXISTS customer_after_insert").run();
+      db.prepare("DROP TRIGGER IF EXISTS customer_after_update").run();
+    }
+  } catch (e) {}
+
   await run(`
     CREATE TABLE IF NOT EXISTS customer_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       customerId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      age TEXT NOT NULL,
-      gender TEXT NOT NULL,
-      mobile TEXT NOT NULL,
-      customerType TEXT NOT NULL,
-      storeName TEXT NOT NULL,
-      preferredLanguage TEXT NOT NULL,
-      preferredLanguage2 TEXT NOT NULL,
-      storeFeedback TEXT NOT NULL,
-      optemFeedback TEXT NOT NULL,
-      status TEXT NOT NULL,
-      activeProfile INTEGER NOT NULL,
       lastUpdatedOn TEXT,
-      rxData TEXT,
-      optemRxData TEXT,
-      callStartTime TEXT,
-      callActive INTEGER,
-      callTakenBy TEXT,
-      callDuration INTEGER
+      status TEXT NOT NULL,
+      callDuration INTEGER,
+      callTakenBy TEXT
     )
   `);
 
@@ -133,15 +127,9 @@ export async function initDb(): Promise<void> {
     AFTER INSERT ON customers
     BEGIN
       INSERT INTO customer_logs (
-        customerId, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
-        callStartTime, callActive, callTakenBy, callDuration
+        customerId, lastUpdatedOn, status, callDuration, callTakenBy
       ) VALUES (
-        NEW.id, NEW.name, NEW.age, NEW.gender, NEW.mobile, NEW.customerType, NEW.storeName,
-        NEW.preferredLanguage, NEW.preferredLanguage2, NEW.storeFeedback, NEW.optemFeedback,
-        NEW.status, NEW.activeProfile, NEW.lastUpdatedOn, NEW.rxData, NEW.optemRxData,
-        NEW.callStartTime, NEW.callActive, NEW.callTakenBy, NEW.callDuration
+        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy
       );
     END;
   `);
@@ -151,15 +139,9 @@ export async function initDb(): Promise<void> {
     AFTER UPDATE ON customers
     BEGIN
       INSERT INTO customer_logs (
-        customerId, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
-        callStartTime, callActive, callTakenBy, callDuration
+        customerId, lastUpdatedOn, status, callDuration, callTakenBy
       ) VALUES (
-        NEW.id, NEW.name, NEW.age, NEW.gender, NEW.mobile, NEW.customerType, NEW.storeName,
-        NEW.preferredLanguage, NEW.preferredLanguage2, NEW.storeFeedback, NEW.optemFeedback,
-        NEW.status, NEW.activeProfile, NEW.lastUpdatedOn, NEW.rxData, NEW.optemRxData,
-        NEW.callStartTime, NEW.callActive, NEW.callTakenBy, NEW.callDuration
+        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy
       );
     END;
   `);
@@ -168,15 +150,9 @@ export async function initDb(): Promise<void> {
   if (logsCount && logsCount.count === 0) {
     await run(`
       INSERT INTO customer_logs (
-        customerId, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
-        callStartTime, callActive, callTakenBy, callDuration
+        customerId, lastUpdatedOn, status, callDuration, callTakenBy
       ) SELECT 
-        id, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
-        callStartTime, callActive, callTakenBy, callDuration
+        id, lastUpdatedOn, status, callDuration, callTakenBy
       FROM customers
     `);
   }

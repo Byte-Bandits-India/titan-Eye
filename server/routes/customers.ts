@@ -292,11 +292,12 @@ router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
     const { id } = req.params;
     const rows = await all('SELECT * FROM customer_logs WHERE customerId = ? ORDER BY id DESC', [id]);
     const logs = rows.map(l => ({
-      ...l,
-      activeProfile: l.activeProfile === 1,
-      callActive: l.callActive === 1,
-      rxData: l.rxData ? JSON.parse(l.rxData) : undefined,
-      optemRxData: l.optemRxData ? JSON.parse(l.optemRxData) : undefined
+      id: l.id,
+      customerId: l.customerId,
+      lastUpdatedOn: l.lastUpdatedOn,
+      status: l.status,
+      callDuration: l.callDuration,
+      callTakenBy: l.callTakenBy
     }));
     return res.json(logs);
   } catch (err: any) {
