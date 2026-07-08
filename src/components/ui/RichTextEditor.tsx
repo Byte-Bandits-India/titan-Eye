@@ -7,9 +7,10 @@ interface RichTextEditorProps {
   onChange?: (val: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  minHeight?: string;
 }
 
-export function RichTextEditor({ value, onChange, placeholder, readOnly = false }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, placeholder, readOnly = false, minHeight }: RichTextEditorProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const quillRef = React.useRef<Quill | null>(null);
   const isUpdatingRef = React.useRef(false);
@@ -83,7 +84,7 @@ export function RichTextEditor({ value, onChange, placeholder, readOnly = false 
     <div className={`w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm ${readOnly ? 'bg-slate-50/50 cursor-not-allowed' : 'bg-white'}`}>
       <style>{`
         .ql-container .ql-editor {
-          min-height: ${readOnly ? '100px' : '200px'};
+          min-height: ${minHeight || (readOnly ? '100px' : '150px')};
         }
         .ql-container.ql-snow {
           border: none !important;
