@@ -80,16 +80,22 @@ export function RichTextEditor({ value, onChange, placeholder, readOnly = false,
     }
   }, [value]);
 
+  // Direct DOM style overrides to ensure they work in production
+  React.useEffect(() => {
+    if (containerRef.current) {
+      const editorElement = containerRef.current.querySelector('.ql-editor') as HTMLElement;
+      if (editorElement) {
+        editorElement.style.minHeight = minHeight || (readOnly ? '100px' : '150px');
+      }
+      const containerElement = containerRef.current.querySelector('.ql-container') as HTMLElement;
+      if (containerElement) {
+        containerElement.style.border = 'none';
+      }
+    }
+  }, [minHeight, readOnly, value]);
+
   return (
     <div className={`w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm ${readOnly ? 'bg-slate-50/50 cursor-not-allowed' : 'bg-white'}`}>
-      <style>{`
-        .ql-container .ql-editor {
-          min-height: ${minHeight || (readOnly ? '100px' : '150px')};
-        }
-        .ql-container.ql-snow {
-          border: none !important;
-        }
-      `}</style>
       <div ref={containerRef} />
     </div>
   );
