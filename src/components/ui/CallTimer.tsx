@@ -6,7 +6,10 @@ export function CallTimer({ startTime, active, onTimeout }: CallTimerProps) {
   const hasTimedOut = React.useRef(false);
 
   React.useEffect(() => {
-    hasTimedOut.current = false;
+    if (active && startTime) {
+      hasTimedOut.current = false;
+      setElapsed('00m:00s');
+    }
   }, [startTime, active]);
 
   React.useEffect(() => {
