@@ -25,14 +25,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const toast = React.useCallback(
     ({ title, description, type = 'info', duration = 3000 }: Omit<ToastMessage, 'id'>) => {
-      const id = Math.random().toString(36).substring(2, 9);
-      setToasts((prev) => [...prev, { id, title, description, type, duration }]);
+      setToasts((prev) => {
+        // Deduplicate: skip if the same title+description is already visible
+        const isDuplicate = prev.some(
+          (t) => t.title === title && t.description === description
+        );
+        if (isDuplicate) return prev;
 
-      if (duration > 0) {
-        setTimeout(() => {
-          dismiss(id);
-        }, duration);
-      }
+        const id = Math.random().toString(36).substring(2, 9);
+        if (duration > 0) {
+          setTimeout(() => {
+            setToasts((p) => p.filter((t) => t.id !== id));
+          }, duration);
+        }
+        return [...prev, { id, title, description, type, duration }];
+      });
     },
     []
   );

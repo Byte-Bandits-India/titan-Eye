@@ -49,10 +49,16 @@ export function useSSE(): void {
               description: `Call initiated by ${data.storeName} for ${data.name}.`,
               type: 'info',
             });
-          } else if (!data.callActive && oldCust?.callActive) {
+          } else if (!data.callActive && oldCust?.callActive && data.status !== 'Closed') {
             toast({
               title: 'Call Ended',
               description: `Call session ended for ${data.name} (ID: ${data.id}).`,
+              type: 'info',
+            });
+          } else if (data.status === 'Closed' && oldCust?.status !== 'Closed') {
+            toast({
+              title: 'Call Closed',
+              description: `Consultation request for ${data.name} has been closed automatically.`,
               type: 'info',
             });
           } else if (data.status === 'Completed' && (!oldCust || oldCust.status !== 'Completed')) {

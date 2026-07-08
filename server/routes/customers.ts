@@ -56,14 +56,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       }
       finalId = `#${String(nextNum).padStart(4, '0')}`;
     }
-
     await run(`
       INSERT INTO customers (
         id, name, age, gender, mobile, customerType, storeName,
         preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
         status, activeProfile, lastUpdatedOn, rxData, optemRxData,
-        callStartTime, callActive, callTakenBy
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        callStartTime, callActive, callTakenBy, callDuration
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       finalId, c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
       c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optemFeedback || '',
@@ -72,7 +71,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       c.optemRxData ? JSON.stringify(c.optemRxData) : null,
       c.callStartTime || null,
       c.callActive ? 1 : 0,
-      c.callTakenBy || null
+      c.callTakenBy || null,
+      c.callDuration || 0
     ]);
 
     const row = await get('SELECT * FROM customer_summary WHERE id = ?', [finalId]);
@@ -122,6 +122,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     if (c.callStartTime === undefined) c.callStartTime = existing.callStartTime;
     if (c.callActive === undefined) c.callActive = existing.callActive === 1;
     if (c.callTakenBy === undefined) c.callTakenBy = existing.callTakenBy;
+    if (c.callDuration === undefined) c.callDuration = existing.callDuration || 0;
 
     const validation = validateCustomerData(c, true);
     if (!validation.valid) {
@@ -136,7 +137,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
         name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
         preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optemFeedback = ?,
         status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optemRxData = ?,
-        callStartTime = ?, callActive = ?, callTakenBy = ?
+        callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?
       WHERE id = ?
     `, [
       c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
@@ -147,6 +148,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.callStartTime || null,
       c.callActive ? 1 : 0,
       c.callTakenBy || null,
+      c.callDuration || 0,
       id
     ]);
 
@@ -178,7 +180,13 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       const currentHolder = await get('SELECT role FROM users WHERE name = ?', [customer.callTakenBy]);
       const requesterRole = req.user ? req.user.role : '';
 
-      const isStoreHolder = currentHolder && currentHolder.role === 'store';
+      let isStoreHolder = currentHolder && currentHolder.role === 'store';
+      if (!currentHolder && customer.callTakenBy) {
+        const lowerName = customer.callTakenBy.toLowerCase();
+        if (lowerName.includes('store')) {
+          isStoreHolder = true;
+        }
+      }
       const isOptemRequester = requesterRole === 'optem';
 
       if (!(isStoreHolder && isOptemRequester)) {
@@ -201,7 +209,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
     await run(`
       UPDATE customers SET
         callActive = 1,
-        callStartTime = COALESCE(callStartTime, ?),
+        callStartTime = ?,
         callTakenBy = ?,
         status = 'Initiated',
         lastUpdatedOn = ?
@@ -243,15 +251,24 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
       hour12: true,
     });
 
+    let durationSec = 0;
+    if (customer.callStartTime) {
+      const startMs = parseInt(customer.callStartTime, 10);
+      if (!isNaN(startMs)) {
+        durationSec = Math.floor((Date.now() - startMs) / 1000);
+      }
+    }
+
     await run(`
       UPDATE customers SET
         callActive = 0,
         callStartTime = NULL,
         callTakenBy = NULL,
         status = 'Accepted',
-        lastUpdatedOn = ?
+        lastUpdatedOn = ?,
+        callDuration = ?
       WHERE id = ?
-    `, [timestamp, id]);
+    `, [timestamp, durationSec, id]);
 
     const updatedRow = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
     const updatedCustomer = {
@@ -266,6 +283,24 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
     return res.json({ ok: true, customer: updatedCustomer });
   } catch (err: any) {
     console.error('End call error:', err.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const rows = await all('SELECT * FROM customer_logs WHERE customerId = ? ORDER BY id DESC', [id]);
+    const logs = rows.map(l => ({
+      ...l,
+      activeProfile: l.activeProfile === 1,
+      callActive: l.callActive === 1,
+      rxData: l.rxData ? JSON.parse(l.rxData) : undefined,
+      optemRxData: l.optemRxData ? JSON.parse(l.optemRxData) : undefined
+    }));
+    return res.json(logs);
+  } catch (err: any) {
+    console.error('Fetch customer logs error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

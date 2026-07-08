@@ -4,19 +4,19 @@ const MAX_GENERIC_LENGTH = 200;
 
 const VALID_GENDERS = ['Male', 'Female', 'Other'];
 const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
-const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed'];
+const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed'];
 
 function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, '').trim();
 }
-function validateString(value: unknown, fieldName: string, maxLength: number): { valid: boolean; error?: string; sanitized?: string } {
+function validateString(value: unknown, fieldName: string, maxLength: number, strip: boolean = true): { valid: boolean; error?: string; sanitized?: string } {
   if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
     return { valid: false, error: `${fieldName} is required` };
   }
   if (typeof value !== 'string') {
     return { valid: false, error: `${fieldName} must be a string` };
   }
-  const sanitized = stripHtml(value);
+  const sanitized = strip ? stripHtml(value) : value.trim();
   if (sanitized.length === 0) {
     return { valid: false, error: `${fieldName} cannot be empty after sanitization` };
   }
@@ -26,11 +26,11 @@ function validateString(value: unknown, fieldName: string, maxLength: number): {
   return { valid: true, sanitized };
 }
 
-function validateOptionalString(value: unknown, fieldName: string, maxLength: number): { valid: boolean; error?: string; sanitized?: string } {
+function validateOptionalString(value: unknown, fieldName: string, maxLength: number, strip: boolean = true): { valid: boolean; error?: string; sanitized?: string } {
   if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
     return { valid: true, sanitized: '' };
   }
-  return validateString(value, fieldName, maxLength);
+  return validateString(value, fieldName, maxLength, strip);
 }
 
 function validateMobile(value: unknown): { valid: boolean; error?: string; sanitized?: string } {
@@ -50,8 +50,8 @@ function validateAge(value: unknown): { valid: boolean; error?: string; sanitize
   }
   const str = String(value).trim();
   const num = parseInt(str, 10);
-  if (isNaN(num) || num < 0 || num > 150) {
-    return { valid: false, error: 'Age must be a valid number between 0 and 150' };
+  if (isNaN(num) || num < 0 || num > 120) {
+    return { valid: false, error: 'Age must be a valid number between 0 and 120' };
   }
   return { valid: true, sanitized: str };
 }
@@ -105,11 +105,11 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
   if (!lang2Result.valid) errors.push(lang2Result.error!);
   else sanitized.preferredLanguage2 = lang2Result.sanitized;
 
-  const storeFeedbackResult = validateOptionalString(data.storeFeedback, 'Store feedback', MAX_FEEDBACK_LENGTH);
+  const storeFeedbackResult = validateOptionalString(data.storeFeedback, 'Store feedback', MAX_FEEDBACK_LENGTH, false);
   if (!storeFeedbackResult.valid) errors.push(storeFeedbackResult.error!);
   else sanitized.storeFeedback = storeFeedbackResult.sanitized;
 
-  const optemFeedbackResult = validateOptionalString(data.optemFeedback, 'Optem feedback', MAX_FEEDBACK_LENGTH);
+  const optemFeedbackResult = validateOptionalString(data.optemFeedback, 'Optem feedback', MAX_FEEDBACK_LENGTH, false);
   if (!optemFeedbackResult.valid) errors.push(optemFeedbackResult.error!);
   else sanitized.optemFeedback = optemFeedbackResult.sanitized;
 
@@ -143,6 +143,7 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
   sanitized.callActive = data.callActive === true || data.callActive === 1;
   sanitized.callTakenBy = typeof data.callTakenBy === 'string' ? stripHtml(data.callTakenBy).slice(0, MAX_NAME_LENGTH) : null;
+  sanitized.callDuration = typeof data.callDuration === 'number' ? data.callDuration : (parseInt(data.callDuration, 10) || 0);
 
   return {
     valid: errors.length === 0,

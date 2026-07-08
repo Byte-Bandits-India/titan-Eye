@@ -9,7 +9,6 @@ import { StatsGrid } from '../../components/shared/StatsGrid';
 import { PaginationBar } from '../../components/shared/PaginationBar';
 import { CollisionModal } from '../../components/shared/CollisionModal';
 import { usePagination } from '../../hooks/usePagination';
-import { useSSE } from '../../hooks/useSSE';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchCustomersAction } from '../../Actions/customerActions';
 import { PAGINATION } from '../../options/Option';
@@ -20,11 +19,11 @@ export function OptemScreen() {
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
 
-  useSSE();
 
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>('#0484');
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTEM_PAGE_SIZE);
   const [collisionModalData, setCollisionModalData] = React.useState<{
     id: string;
     name: string;
@@ -53,7 +52,13 @@ export function OptemScreen() {
     totalItems,
     nextPage,
     prevPage,
-  } = usePagination(incomingRequests, PAGINATION.OPTEM_PAGE_SIZE);
+    resetPage,
+  } = usePagination(incomingRequests, pageSize);
+
+  const handlePageSizeChange = React.useCallback((newSize: number) => {
+    setPageSize(newSize);
+    resetPage();
+  }, [resetPage]);
 
   const handleResetSync = () => {
     setIsSyncing(true);
@@ -79,7 +84,7 @@ export function OptemScreen() {
           onBack={() => setIsEditing(false)}
         />
       ) : (
-        <main className="flex-1 px-8 py-6 space-y-6 w-full">
+        <main className="flex-1 px-8 py-6 space-y-6 w-full max-w-[1400px] mx-auto">
           <StatsGrid customers={customers} />
 
           <div>
@@ -219,9 +224,10 @@ export function OptemScreen() {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 totalItems={totalItems}
-                itemsPerPage={PAGINATION.OPTEM_PAGE_SIZE}
+                itemsPerPage={pageSize}
                 onPrev={prevPage}
                 onNext={nextPage}
+                onItemsPerPageChange={handlePageSizeChange}
               />
             </div>
           </div>

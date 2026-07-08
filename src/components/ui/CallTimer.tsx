@@ -1,12 +1,19 @@
 import * as React from 'react';
 import type { CallTimerProps } from '../../types';
 
-export function CallTimer({ startTime, active }: CallTimerProps) {
+export function CallTimer({ startTime, active, onTimeout }: CallTimerProps) {
   const [elapsed, setElapsed] = React.useState('00m:00s');
+  const hasTimedOut = React.useRef(false);
+
+  React.useEffect(() => {
+    hasTimedOut.current = false;
+  }, [startTime, active]);
 
   React.useEffect(() => {
     if (!active || !startTime) {
-      setElapsed('00m:00s');
+      if (!hasTimedOut.current) {
+        setElapsed('00m:00s');
+      }
       return;
     }
 
@@ -29,6 +36,10 @@ export function CallTimer({ startTime, active }: CallTimerProps) {
       const diffSecs = Math.floor(diffMs / 1000);
       if (diffSecs >= 3599) {
         setElapsed('59m:59s');
+        if (onTimeout && !hasTimedOut.current) {
+          hasTimedOut.current = true;
+          onTimeout();
+        }
         return;
       }
       const minutes = Math.floor(diffSecs / 60);
@@ -45,7 +56,7 @@ export function CallTimer({ startTime, active }: CallTimerProps) {
     return () => {
       clearInterval(interval);
     };
-  }, [startTime, active]);
+  }, [startTime, active, onTimeout]);
 
   return (
     <span className="font-mono text-gray-700 font-bold whitespace-nowrap">

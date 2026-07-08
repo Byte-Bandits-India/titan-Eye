@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export type CustomerStatus = 'Created' | 'Initiated' | 'Accepted' | 'Completed';
+export type CustomerStatus = 'Created' | 'Initiated' | 'Accepted' | 'Completed' | 'Closed';
 
 export type CommonRxValues = {
   sph: string;
@@ -34,9 +34,10 @@ export type Customer = {
   status: CustomerStatus;
   activeProfile: boolean;
   lastUpdatedOn?: string;
-  callStartTime?: string;
+  callStartTime?: string | null;
   callActive?: boolean;
-  callTakenBy?: string;
+  callTakenBy?: string | null;
+  callDuration?: number;
   rxData?: {
     autoRefRe: RxValues;
     autoRefLe: RxValues;
@@ -128,6 +129,7 @@ export type PaginationBarProps = {
   itemsPerPage: number;
   onPrev: () => void;
   onNext: () => void;
+  onItemsPerPageChange?: (size: number) => void;
 };
 
 export type StatsGridProps = {
@@ -143,6 +145,7 @@ export type CollisionModalProps = {
 export type CallTimerProps = {
   startTime?: string;
   active?: boolean;
+  onTimeout?: () => void;
 };
 
 export type OptemPatientDetailsProps = {

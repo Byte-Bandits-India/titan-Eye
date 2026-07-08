@@ -15,9 +15,12 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
 import type { Customer, CustomerStatus, RxValues, OptemRxValues, StorePatientDetailsProps } from '../../types';
 import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
+import { cn } from '../../lib/utils';
+import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
 const emptyOptemRxValues: OptemRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
+const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati'];
 
 export function StorePatientDetails({
   isAddingNew,
@@ -29,6 +32,10 @@ export function StorePatientDetails({
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+
+  const [errors, setErrors] = React.useState<Record<string, string>>({});
+
+
 
   const [form, setForm] = React.useState({
     name: '',
@@ -119,7 +126,23 @@ export function StorePatientDetails({
   }, [selectedCustomer, isAddingNew, user]);
 
   const setField = (key: string) => (val: string | boolean) => {
-    setForm((f) => ({ ...f, [key]: val }));
+    setForm((f) => {
+      const next = { ...f, [key]: val };
+      if (key === 'preferredLanguage' && val === f.preferredLanguage2 && val !== 'None') {
+        next.preferredLanguage2 = 'None';
+      }
+      return next;
+    });
+    if (errors[key]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        if (key === 'preferredLanguage' && next.preferredLanguage2) {
+          delete next.preferredLanguage2;
+        }
+        return next;
+      });
+    }
   };
 
   const setRxField = (row: 'autoRefRe' | 'autoRefLe' | 'pgpRe' | 'pgpLe', field: keyof RxValues, val: string) => {
@@ -128,40 +151,123 @@ export function StorePatientDetails({
       ...prev,
       [row]: { ...prev[row], [field]: cleanVal },
     }));
+    const errorKey = `${row}.${field}`;
+    if (errors[errorKey]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[errorKey];
+        return next;
+      });
+    }
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (form.name.trim().length < 3) {
+      newErrors.name = 'Name must be at least 3 characters';
+    } else if (!/^[A-Za-z\s]+$/.test(form.name)) {
+      newErrors.name = 'Name can only contain alphabetic characters and spaces';
+    }
+
+    if (!form.age) {
+      newErrors.age = 'Age is required';
+    } else {
+      const ageNum = parseInt(form.age, 10);
+      if (isNaN(ageNum) || ageNum <= 0 || ageNum > 120) {
+        newErrors.age = 'Age must be between 1 and 120';
+      }
+    }
+
+    if (!form.mobile) {
+      newErrors.mobile = 'Mobile number is required';
+    } else if (!/^[0-9]{10}$/.test(form.mobile)) {
+      newErrors.mobile = 'Mobile number must be exactly 10 digits';
+    }
+
+    const validateEyeFields = (rowKey: 'autoRefRe' | 'autoRefLe' | 'pgpRe' | 'pgpLe', isRequired: boolean) => {
+      const data = rxForm[rowKey];
+      const hasAnyValue = Object.values(data).some((v) => v !== '');
+
+      if (isRequired || hasAnyValue) {
+        // Validate SPH
+        if (!data.sph) {
+          newErrors[`${rowKey}.sph`] = 'SPH is required';
+        } else {
+          const sphVal = parseFloat(data.sph);
+          if (isNaN(sphVal) || sphVal < -30 || sphVal > 30) {
+            newErrors[`${rowKey}.sph`] = 'SPH must be between -30.00 and +30.00';
+          }
+        }
+
+        // Validate CYL
+        if (!data.cyl) {
+          newErrors[`${rowKey}.cyl`] = 'CYL is required';
+        } else {
+          const cylVal = parseFloat(data.cyl);
+          if (isNaN(cylVal) || cylVal < -15 || cylVal > 15) {
+            newErrors[`${rowKey}.cyl`] = 'CYL must be between -15.00 and +15.00';
+          }
+        }
+
+        // Validate AXIS
+        if (!data.axis) {
+          newErrors[`${rowKey}.axis`] = 'AXIS is required';
+        } else {
+          const axisVal = parseInt(data.axis, 10);
+          if (isNaN(axisVal) || axisVal < 0 || axisVal > 180) {
+            newErrors[`${rowKey}.axis`] = 'AXIS must be an integer between 0 and 180';
+          }
+        }
+
+        // Validate PD
+        if (!data.pd) {
+          newErrors[`${rowKey}.pd`] = 'PD is required';
+        }
+
+        // Validate PRISM (Optional)
+        if (data.prism) {
+          const prismVal = parseFloat(data.prism);
+          if (isNaN(prismVal) || prismVal < 0 || prismVal > 20) {
+            newErrors[`${rowKey}.prism`] = 'PRISM must be between 0 and 20';
+          }
+        }
+
+        // Validate ADD (Optional)
+        if (data.add) {
+          const addVal = parseFloat(data.add);
+          if (isNaN(addVal) || addVal < 0 || addVal > 4) {
+            newErrors[`${rowKey}.add`] = 'ADD must be between 0.00 and 4.00';
+          }
+        }
+      }
+    };
+
+    validateEyeFields('autoRefRe', true);
+    validateEyeFields('autoRefLe', true);
+    validateEyeFields('pgpRe', false);
+    validateEyeFields('pgpLe', false);
+
+    if (!form.preferredLanguage) {
+      newErrors.preferredLanguage = 'Preferred Language 1 is required';
+    }
+
+    if (form.preferredLanguage2 && form.preferredLanguage2 !== 'None' && form.preferredLanguage === form.preferredLanguage2) {
+      newErrors.preferredLanguage2 = 'Preferred Language 2 cannot be the same as Preferred Language 1';
+    }
+
+    setErrors(newErrors);
+    return newErrors;
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.name || !form.age || !form.mobile) {
-      toast({ title: 'Validation Error', description: 'Please specify the Name, Age, and Mobile number.', type: 'error' });
-      return;
-    }
-
-    if (!/^[0-9]{10}$/.test(form.mobile)) {
-      toast({ title: 'Validation Error', description: 'Mobile number must be exactly 10 digits.', type: 'error' });
-      return;
-    }
-
-    if (!rxForm.autoRefRe.sph || !rxForm.autoRefRe.cyl || !rxForm.autoRefRe.axis || !rxForm.autoRefRe.pd) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and PD are required fields for Auto Ref R E.', type: 'error' });
-      return;
-    }
-
-    if (!rxForm.autoRefLe.sph || !rxForm.autoRefLe.cyl || !rxForm.autoRefLe.axis || !rxForm.autoRefLe.pd) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and PD are required fields for Auto Ref L E.', type: 'error' });
-      return;
-    }
-
-    const hasPgpRe = Object.values(rxForm.pgpRe).some((v) => v !== '');
-    if (hasPgpRe && (!rxForm.pgpRe.sph || !rxForm.pgpRe.cyl || !rxForm.pgpRe.axis || !rxForm.pgpRe.pd)) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and PD are required fields for PGP R E.', type: 'error' });
-      return;
-    }
-
-    const hasPgpLe = Object.values(rxForm.pgpLe).some((v) => v !== '');
-    if (hasPgpLe && (!rxForm.pgpLe.sph || !rxForm.pgpLe.cyl || !rxForm.pgpLe.axis || !rxForm.pgpLe.pd)) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and PD are required fields for PGP L E.', type: 'error' });
+    const newErrors = validate();
+    if (Object.keys(newErrors).length > 0) {
+      toast({ title: 'Validation Error', description: 'Please correct the errors in the form before submitting.', type: 'error' });
       return;
     }
 
@@ -199,7 +305,6 @@ export function StorePatientDetails({
         const created = await dispatch(createCustomerAction(newCustomer));
         setSelectedCustomerId(created.id);
         onBack();
-        toast({ title: 'Patient Registered', description: `Successfully added ${form.name} with ID ${created.id}`, type: 'success' });
       } catch (e) {
         const err = e as Error;
         toast({ title: 'Error Saving Patient', description: err.message || 'Failed to connect to backend database.', type: 'error' });
@@ -238,7 +343,7 @@ export function StorePatientDetails({
 
 
   return (
-    <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
+    <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-[1440px] mx-auto animate-in fade-in duration-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md animate-pulse">
@@ -274,11 +379,43 @@ export function StorePatientDetails({
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
               <div className="md:col-span-6 space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Name *</label>
-                <Input type="text" value={form.name} onChange={(e) => setField('name')(e.target.value)} placeholder="Enter full name" icon={User} required />
+                <Input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
+                    setField('name')(cleanVal);
+                  }}
+                  placeholder="Enter full name"
+                  icon={User}
+                  className={cn(errors.name && 'border-red-500 focus-visible:ring-red-500')}
+                  required
+                />
+                {errors.name && (
+                  <p className="text-red-500 text-[10px] font-semibold">{errors.name}</p>
+                )}
               </div>
               <div className="md:col-span-3 space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Age *</label>
-                <Input type="number" value={form.age} onChange={(e) => setField('age')(e.target.value)} placeholder="Age" required />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  value={form.age}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/\D/g, '');
+                    const ageNum = parseInt(cleanVal, 10);
+                    if (cleanVal && !isNaN(ageNum) && ageNum > 120) {
+                      return;
+                    }
+                    setField('age')(cleanVal.slice(0, 3));
+                  }}
+                  placeholder="Age"
+                  className={cn(errors.age && 'border-red-500 focus-visible:ring-red-500')}
+                  required
+                />
+                {errors.age && (
+                  <p className="text-red-500 text-[10px] font-semibold">{errors.age}</p>
+                )}
               </div>
               <div className="md:col-span-3 space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Gender *</label>
@@ -289,7 +426,18 @@ export function StorePatientDetails({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Mobile Number *</label>
-                <Input type="tel" value={form.mobile} onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="Enter mobile number" icon={Phone} required />
+                <Input
+                  type="tel"
+                  value={form.mobile}
+                  onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="Enter mobile number"
+                  icon={Phone}
+                  className={cn(errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
+                  required
+                />
+                {errors.mobile && (
+                  <p className="text-red-500 text-[10px] font-semibold">{errors.mobile}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Customer Type *</label>
@@ -304,11 +452,30 @@ export function StorePatientDetails({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Preferred Language 1 *</label>
-                <Select value={form.preferredLanguage} onChange={(e) => setField('preferredLanguage')(e.target.value)} options={[{ value: 'English', label: 'English' }, { value: 'Hindi', label: 'Hindi' }, { value: 'Tamil', label: 'Tamil' }, { value: 'Telugu', label: 'Telugu' }, { value: 'Kannada', label: 'Kannada' }, { value: 'Malayalam', label: 'Malayalam' }, { value: 'Marathi', label: 'Marathi' }, { value: 'Bengali', label: 'Bengali' }, { value: 'Gujarati', label: 'Gujarati' }]} />
+                <Select
+                  value={form.preferredLanguage}
+                  onChange={(e) => setField('preferredLanguage')(e.target.value)}
+                  className={cn(errors.preferredLanguage && 'border-red-500 focus:ring-red-500')}
+                  options={LANGUAGES.map((lang) => ({ value: lang, label: lang }))}
+                />
+                {errors.preferredLanguage && (
+                  <p className="text-red-500 text-[10px] font-semibold">{errors.preferredLanguage}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-muted-foreground">Preferred Language 2</label>
-                <Select value={form.preferredLanguage2} onChange={(e) => setField('preferredLanguage2')(e.target.value)} options={[{ value: 'None', label: 'None' }, { value: 'English', label: 'English' }, { value: 'Hindi', label: 'Hindi' }, { value: 'Tamil', label: 'Tamil' }, { value: 'Telugu', label: 'Telugu' }, { value: 'Kannada', label: 'Kannada' }, { value: 'Malayalam', label: 'Malayalam' }, { value: 'Marathi', label: 'Marathi' }, { value: 'Bengali', label: 'Bengali' }, { value: 'Gujarati', label: 'Gujarati' }]} />
+                <Select
+                  value={form.preferredLanguage2}
+                  onChange={(e) => setField('preferredLanguage2')(e.target.value)}
+                  className={cn(errors.preferredLanguage2 && 'border-red-500 focus:ring-red-500')}
+                  options={[
+                    { value: 'None', label: 'None' },
+                    ...LANGUAGES.filter((lang) => lang !== form.preferredLanguage).map((lang) => ({ value: lang, label: lang })),
+                  ]}
+                />
+                {errors.preferredLanguage2 && (
+                  <p className="text-red-500 text-[10px] font-semibold">{errors.preferredLanguage2}</p>
+                )}
               </div>
             </div>
           </div>
@@ -348,21 +515,62 @@ export function StorePatientDetails({
                       <TableCell className="border-r border-b border-slate-400 dark:border-zinc-700 font-black text-xs text-[#1a2b6e] dark:text-blue-400 bg-slate-50/50 dark:bg-zinc-900/50 px-3 py-3 w-[60px] whitespace-nowrap text-center animate-none">
                         {rowIdx % 2 === 0 ? 'R E' : 'L E'}
                       </TableCell>
-                      {rxFields.map((field, idx) => (
-                        <TableCell key={field} className={`${rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : ''} p-0 ${idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''}`}>
-                          <input
-                            type="text"
-                            value={rxForm[row][field] || ''}
-                            onChange={(e) => setRxField(row, field, e.target.value)}
-                            className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-foreground font-medium"
-                          />
-                        </TableCell>
-                      ))}
+                      {rxFields.map((field, idx) => {
+                        const errorKey = `${row}.${field}`;
+                        const hasError = !!errors[errorKey];
+                        return (
+                          <TableCell
+                            key={field}
+                            className={cn(
+                              rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : '',
+                              'p-0',
+                              idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : '',
+                              hasError && 'bg-red-50 dark:bg-red-950/20'
+                            )}
+                          >
+                            <input
+                              type="text"
+                              value={rxForm[row][field] || ''}
+                              onChange={(e) => setRxField(row, field, e.target.value)}
+                              className={cn(
+                                'w-full h-full text-center bg-transparent border-0 outline-none px-3 py-2.5 text-xs text-foreground font-medium',
+                                hasError
+                                  ? 'focus:ring-1 focus:ring-red-500 placeholder:text-red-300 text-red-600 dark:text-red-400 font-bold'
+                                  : 'focus:ring-1 focus:ring-blue-500'
+                              )}
+                              placeholder={hasError ? 'Req' : ''}
+                            />
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
+            {Object.keys(errors).some((k) => k.includes('.')) && (
+              <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-600 dark:text-red-400 space-y-1.5 animate-in fade-in duration-200">
+                <div className="font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                  Prescription Validation Errors:
+                </div>
+                <ul className="list-disc pl-4 space-y-1">
+                  {Object.entries(errors)
+                    .filter(([key]) => key.includes('.'))
+                    .map(([key, msg]) => {
+                      const [row, field] = key.split('.') as [string, string];
+                      const rowLabel = row === 'autoRefRe' ? 'Auto Ref R E' :
+                                       row === 'autoRefLe' ? 'Auto Ref L E' :
+                                       row === 'pgpRe' ? 'PGP R E' : 'PGP L E';
+                      return (
+                        <li key={key} className="font-medium">
+                          <span className="font-bold">{rowLabel}</span> ({field.toUpperCase()}): {msg}
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
+            )}
           </div>
 
           {!isAddingNew && (
@@ -406,12 +614,10 @@ export function StorePatientDetails({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-muted-foreground">Store Action / Feedback</label>
-            <textarea
+            <RichTextEditor
               value={form.storeFeedback}
-              onChange={(e) => setField('storeFeedback')(e.target.value)}
-              rows={4}
+              onChange={setField('storeFeedback')}
               placeholder="Enter clinical assessment details or feedback comments..."
-              className="w-full border border-border rounded-xl px-4 py-3 text-sm text-foreground bg-card shadow-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-muted-foreground transition-all font-medium"
             />
           </div>
 

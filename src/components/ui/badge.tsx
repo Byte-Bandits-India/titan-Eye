@@ -17,6 +17,7 @@ const badgeVariants = cva(
         Pending: 'border-transparent bg-amber-50 text-amber-600 font-bold tracking-wide text-[9px] px-2.5 py-1',
         Completed: 'border-transparent bg-emerald-50 text-emerald-600 font-bold tracking-wide text-[9px] px-2.5 py-1',
         Rejected: 'border-transparent bg-rose-50 text-rose-600 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        Closed: 'border-transparent bg-gray-100 text-gray-500 font-bold tracking-wide text-[9px] px-2.5 py-1',
       },
     },
     defaultVariants: {

@@ -70,7 +70,8 @@ export async function initDb(): Promise<void> {
       optemRxData TEXT,
       callStartTime TEXT,
       callActive INTEGER DEFAULT 0,
-      callTakenBy TEXT
+      callTakenBy TEXT,
+      callDuration INTEGER DEFAULT 0
     )
   `);
 
@@ -97,12 +98,94 @@ export async function initDb(): Promise<void> {
   try {
     await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`);
   } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`);
+  } catch (e) { }
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS customer_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customerId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      age TEXT NOT NULL,
+      gender TEXT NOT NULL,
+      mobile TEXT NOT NULL,
+      customerType TEXT NOT NULL,
+      storeName TEXT NOT NULL,
+      preferredLanguage TEXT NOT NULL,
+      preferredLanguage2 TEXT NOT NULL,
+      storeFeedback TEXT NOT NULL,
+      optemFeedback TEXT NOT NULL,
+      status TEXT NOT NULL,
+      activeProfile INTEGER NOT NULL,
+      lastUpdatedOn TEXT,
+      rxData TEXT,
+      optemRxData TEXT,
+      callStartTime TEXT,
+      callActive INTEGER,
+      callTakenBy TEXT,
+      callDuration INTEGER
+    )
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS customer_after_insert
+    AFTER INSERT ON customers
+    BEGIN
+      INSERT INTO customer_logs (
+        customerId, name, age, gender, mobile, customerType, storeName,
+        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
+        callStartTime, callActive, callTakenBy, callDuration
+      ) VALUES (
+        NEW.id, NEW.name, NEW.age, NEW.gender, NEW.mobile, NEW.customerType, NEW.storeName,
+        NEW.preferredLanguage, NEW.preferredLanguage2, NEW.storeFeedback, NEW.optemFeedback,
+        NEW.status, NEW.activeProfile, NEW.lastUpdatedOn, NEW.rxData, NEW.optemRxData,
+        NEW.callStartTime, NEW.callActive, NEW.callTakenBy, NEW.callDuration
+      );
+    END;
+  `);
+
+  await run(`
+    CREATE TRIGGER IF NOT EXISTS customer_after_update
+    AFTER UPDATE ON customers
+    BEGIN
+      INSERT INTO customer_logs (
+        customerId, name, age, gender, mobile, customerType, storeName,
+        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
+        callStartTime, callActive, callTakenBy, callDuration
+      ) VALUES (
+        NEW.id, NEW.name, NEW.age, NEW.gender, NEW.mobile, NEW.customerType, NEW.storeName,
+        NEW.preferredLanguage, NEW.preferredLanguage2, NEW.storeFeedback, NEW.optemFeedback,
+        NEW.status, NEW.activeProfile, NEW.lastUpdatedOn, NEW.rxData, NEW.optemRxData,
+        NEW.callStartTime, NEW.callActive, NEW.callTakenBy, NEW.callDuration
+      );
+    END;
+  `);
+
+  const logsCount = await get('SELECT COUNT(*) as count FROM customer_logs');
+  if (logsCount && logsCount.count === 0) {
+    await run(`
+      INSERT INTO customer_logs (
+        customerId, name, age, gender, mobile, customerType, storeName,
+        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
+        callStartTime, callActive, callTakenBy, callDuration
+      ) SELECT 
+        id, name, age, gender, mobile, customerType, storeName,
+        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
+        callStartTime, callActive, callTakenBy, callDuration
+      FROM customers
+    `);
+  }
 
   await run(`DROP VIEW IF EXISTS customer_summary`);
 
   await run(`
     CREATE VIEW IF NOT EXISTS customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback, status, activeProfile, lastUpdatedOn, rxData, optemRxData, callStartTime, callActive, callTakenBy
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback, status, activeProfile, lastUpdatedOn, rxData, optemRxData, callStartTime, callActive, callTakenBy, callDuration
     FROM customers
   `);
 

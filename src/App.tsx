@@ -4,6 +4,12 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import { routes } from './Routes';
 import { ToastProvider } from './components/ui/toast';
+import { useSSE } from './hooks/useSSE';
+
+function SSEBridge() {
+  useSSE();
+  return null;
+}
 
 const theme: 'light' | 'dark' = 'light';
 
@@ -22,6 +28,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <ToastProvider>
+        <SSEBridge />
         <div className="min-h-screen flex flex-col font-sans select-none antialiased">
           <RouterProvider router={router} />
         </div>

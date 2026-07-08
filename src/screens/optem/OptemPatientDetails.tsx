@@ -19,6 +19,8 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { updateCustomerAction, initiateCallAction, endCallAction } from '../../Actions/customerActions';
 import type { Customer, CustomerStatus, RxValues, OptemRxValues, OptemPatientDetailsProps } from '../../types';
 import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
+import { apiClient } from '../../Util/apiClient';
+import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
 const emptyOptemRxValues: OptemRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
@@ -34,7 +36,23 @@ export function OptemPatientDetails({
   const [isCallLoading, setIsCallLoading] = React.useState(false);
   const currentUserName = user?.name || '';
 
-  const isTakenByMe = selectedCustomer?.callTakenBy === currentUserName;
+  const isTakenByMe = !!selectedCustomer?.callActive && selectedCustomer?.callTakenBy === currentUserName;
+
+  const [logs, setLogs] = React.useState<any[]>([]);
+
+  const fetchLogs = React.useCallback(async () => {
+    if (!selectedCustomer) return;
+    try {
+      const response = await apiClient.get<any[]>(`/customers/${encodeURIComponent(selectedCustomer.id)}/logs`);
+      setLogs(response.data);
+    } catch (e) {
+      console.error('Failed to fetch logs:', e);
+    }
+  }, [selectedCustomer]);
+
+  React.useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
   const [form, setForm] = React.useState({
     name: '',
@@ -157,14 +175,15 @@ export function OptemPatientDetails({
     setIsCallLoading(true);
     try {
       await dispatch(initiateCallAction(selectedCustomer.id));
-      toast({ title: 'Video Call', description: `Initiating video consultation with patient ${form.name}...`, type: 'success' });
+      fetchLogs();
+
 
       const teamsUser = 'sannadurai@neuroiq.ai';
       const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
       window.location.href = appLink;
     } catch (e) {
       const err = e as Error;
-      if (err.message && err.message.includes('409')) {
+      if (err.message && (err.message.includes('409') || err.message.includes('already taken'))) {
         toast({ title: 'Call Collision', description: err.message || 'This call is already taken by another agent.', type: 'error' });
       } else {
         toast({ title: 'System Error', description: err.message || 'Failed to connect to the server to initiate call.', type: 'error' });
@@ -179,7 +198,7 @@ export function OptemPatientDetails({
     setIsCallLoading(true);
     try {
       await dispatch(endCallAction(selectedCustomer.id));
-      toast({ title: 'Call Ended', description: 'The call session has been closed successfully.', type: 'info' });
+      fetchLogs();
     } catch (e) {
       const err = e as Error;
       toast({ title: 'System Error', description: err.message || 'Failed to connect to the server to end call.', type: 'error' });
@@ -199,7 +218,7 @@ export function OptemPatientDetails({
 
     try {
       await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
-      toast({ title: 'Status Updated', description: `Customer status automatically updated to ${newStatus || form.status}.`, type: 'success' });
+      fetchLogs();
     } catch (e) {
       const err = e as Error;
       toast({ title: 'Error Updating Status', description: `Failed to update status: ${err.message || 'Database error'}`, type: 'error' });
@@ -230,10 +249,8 @@ export function OptemPatientDetails({
     window.location.href = 'teamviewer10://';
   };
 
-
-
   return (
-    <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-7xl mx-auto animate-in fade-in duration-200">
+    <main className="flex-1 px-8 py-8 space-y-6 w-full max-w-[1400px] mx-auto animate-in fade-in duration-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md animate-pulse">
@@ -304,6 +321,52 @@ export function OptemPatientDetails({
             </div>
           </div>
 
+          {/* History/Logs Table */}
+          <div className="space-y-4 pt-4 border-t border-gray-150">
+            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+              <History size={16} className="text-blue-600 animate-pulse" />
+              ID Logs History
+            </h3>
+            <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
+              <Table className="w-full border-collapse text-left text-xs">
+                <TableHeader className="bg-slate-50 border-b border-gray-200">
+                  <TableRow>
+                    <TableHead className="font-bold py-2.5 px-3">Date</TableHead>
+                    <TableHead className="font-bold py-2.5 px-3">Status</TableHead>
+                    <TableHead className="font-bold py-2.5 px-3">Call Taken Mins</TableHead>
+                    <TableHead className="font-bold py-2.5 px-3">Call Taken By</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logs.length > 0 ? (
+                    logs.slice(0, 1).map((log) => {
+                      const mins = log.callDuration ? Math.floor(log.callDuration / 60) : 0;
+                      const secs = log.callDuration ? log.callDuration % 60 : 0;
+                      const durationStr = log.callDuration ? `${mins}m:${String(secs).padStart(2, '0')}s` : '—';
+                      const lastTaker = logs.find((l) => l.callTakenBy && l.callTakenBy.trim() !== '')?.callTakenBy || '—';
+                      return (
+                        <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors border-b border-gray-100 last:border-0">
+                          <TableCell className="py-2.5 px-3 text-gray-600 font-medium whitespace-nowrap">{log.lastUpdatedOn || '—'}</TableCell>
+                          <TableCell className="py-2.5 px-3">
+                            <Badge variant={log.status}>{log.status.toUpperCase()}</Badge>
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3 text-gray-600 font-medium whitespace-nowrap">{durationStr}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-gray-700 font-semibold">{lastTaker}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-gray-400 font-semibold bg-slate-50/20">
+                        No prior logs found for this session.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
           <div className="space-y-4">
             <div className="overflow-x-auto border border-slate-400 rounded-lg shadow-sm">
               <Table className="w-full border-collapse text-center text-xs">
@@ -343,7 +406,7 @@ export function OptemPatientDetails({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-600">Store Action / Feedback</label>
-            <textarea value={form.storeFeedback} disabled rows={3} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-500 bg-slate-50/50 shadow-sm resize-none transition-all font-medium cursor-not-allowed" />
+            <RichTextEditor value={form.storeFeedback} readOnly />
           </div>
 
           <div className="space-y-4">
@@ -395,12 +458,10 @@ export function OptemPatientDetails({
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-gray-600">Optem Action / Feedback</label>
-            <textarea
+            <RichTextEditor
               value={form.optemFeedback}
-              onChange={(e) => setField('optemFeedback')(e.target.value)}
-              rows={3}
+              onChange={setField('optemFeedback')}
               placeholder="Enter clinical assessment details or feedback comments..."
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm text-gray-900 bg-white shadow-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 transition-all font-medium"
             />
           </div>
 

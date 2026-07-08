@@ -16,9 +16,8 @@ import { StatsGrid } from '../../components/shared/StatsGrid';
 import { PaginationBar } from '../../components/shared/PaginationBar';
 import { CollisionModal } from '../../components/shared/CollisionModal';
 import { usePagination } from '../../hooks/usePagination';
-import { useSSE } from '../../hooks/useSSE';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { fetchCustomersAction, initiateCallAction } from '../../Actions/customerActions';
+import { fetchCustomersAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
 import { PAGINATION } from '../../options/Option';
 import { StorePatientDetails } from './StorePatientDetails';
 
@@ -27,13 +26,13 @@ export function StoreScreen() {
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
 
-  useSSE();
 
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>('#0492');
   const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
+  const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [loadingCallId, setLoadingCallId] = React.useState<string | null>(null);
   const [collisionModalData, setCollisionModalData] = React.useState<{
     id: string;
@@ -45,6 +44,50 @@ export function StoreScreen() {
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
   }, [dispatch]);
+
+  const handleCloseCall = React.useCallback(async (customerId: string) => {
+    try {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer && customer.status === 'Initiated') {
+        const timestamp = new Date().toLocaleString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true,
+        });
+        await dispatch(updateCustomerAction(customerId, {
+          ...customer,
+          status: 'Closed',
+          callActive: false,
+          callTakenBy: null,
+          callStartTime: null,
+          lastUpdatedOn: timestamp
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to close call:', e);
+    }
+  }, [customers, dispatch]);
+
+  React.useEffect(() => {
+    const checkTimeout = () => {
+      const now = Date.now();
+      customers.forEach((cust) => {
+        if (cust.status === 'Initiated' && (cust.callStartTime || cust.lastUpdatedOn)) {
+          const startTimeStr = cust.callStartTime || cust.lastUpdatedOn;
+          let startMs = parseInt(startTimeStr!, 10);
+          if (isNaN(startMs) || String(startMs).length < 10) {
+            startMs = new Date(startTimeStr!).getTime();
+          }
+          if (!isNaN(startMs) && (now - startMs) >= 3599000) {
+            handleCloseCall(cust.id);
+          }
+        }
+      });
+    };
+
+    checkTimeout();
+    const interval = setInterval(checkTimeout, 5000);
+    return () => clearInterval(interval);
+  }, [customers, handleCloseCall]);
 
   const selectedCustomer = React.useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -70,24 +113,24 @@ export function StoreScreen() {
     nextPage,
     prevPage,
     resetPage,
-  } = usePagination(filteredCustomers, PAGINATION.STORE_PAGE_SIZE);
+  } = usePagination(filteredCustomers, pageSize);
+
+  const handlePageSizeChange = React.useCallback((newSize: number) => {
+    setPageSize(newSize);
+    resetPage();
+  }, [resetPage]);
 
   React.useEffect(() => {
     resetPage();
   }, [searchTerm, resetPage]);
 
-  const handleInitiateCall = async (customerId: string, customerName: string) => {
+  const handleInitiateCall = async (customerId: string) => {
     setLoadingCallId(customerId);
     try {
       await dispatch(initiateCallAction(customerId));
-      toast({
-        title: 'Video Call',
-        description: `Initiating video consultation with patient ${customerName}...`,
-        type: 'success',
-      });
     } catch (e) {
       const err = e as Error;
-      if (err.message && err.message.includes('409')) {
+      if (err.message && (err.message.includes('409') || err.message.includes('already taken'))) {
         toast({
           title: 'Call Collision',
           description: err.message || 'This call is already taken by another agent.',
@@ -147,7 +190,7 @@ export function StoreScreen() {
           setSelectedCustomerId={setSelectedCustomerId}
         />
       ) : (
-        <main className="flex-1 px-8 py-6 space-y-6 w-full">
+        <main className="flex-1 px-8 py-6 space-y-6 w-full max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold text-foreground">Store Overview</h1>
             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground tracking-wider">
@@ -249,6 +292,7 @@ export function StoreScreen() {
                             <CallTimer
                                startTime={cust.callStartTime || cust.lastUpdatedOn}
                                active={cust.callActive || cust.status === 'Initiated'}
+                               onTimeout={() => handleCloseCall(cust.id)}
                             />
                           </TableCell>
                           <TableCell
@@ -266,7 +310,7 @@ export function StoreScreen() {
                                 </Button>
                               ) : (
                                 <Button
-                                  onClick={() => handleInitiateCall(cust.id, cust.name)}
+                                  onClick={() => handleInitiateCall(cust.id)}
                                   disabled={loadingCallId === cust.id}
                                   className="h-8 px-4 bg-[#4f46e5] hover:bg-[#4338ca] dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white text-xs font-bold rounded-full flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm border-0"
                                   title="Initiate Call"
@@ -316,9 +360,10 @@ export function StoreScreen() {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 totalItems={totalItems}
-                itemsPerPage={PAGINATION.STORE_PAGE_SIZE}
+                itemsPerPage={pageSize}
                 onPrev={prevPage}
                 onNext={nextPage}
+                onItemsPerPageChange={handlePageSizeChange}
               />
             </div>
           </div>
