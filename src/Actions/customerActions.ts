@@ -89,3 +89,14 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
     throw new Error(msg);
   }
 };
+
+export const fetchCustomerLogsAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.get<any[]>(`/customers/${encodeURIComponent(id)}/logs`);
+    return response.data;
+  } catch (e) {
+    const err = e as Error;
+    const msg = handleApiError(err, dispatch, 'Failed to fetch customer logs.');
+    throw new Error(msg);
+  }
+};

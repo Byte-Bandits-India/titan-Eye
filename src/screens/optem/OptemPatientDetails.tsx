@@ -16,10 +16,9 @@ import { Badge } from '../../components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { updateCustomerAction, initiateCallAction, endCallAction } from '../../Actions/customerActions';
+import { updateCustomerAction, initiateCallAction, endCallAction, fetchCustomerLogsAction } from '../../Actions/customerActions';
 import type { Customer, CustomerStatus, RxValues, OptemRxValues, OptemPatientDetailsProps } from '../../types';
 import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
-import { apiClient } from '../../Util/apiClient';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
@@ -43,12 +42,12 @@ export function OptemPatientDetails({
   const fetchLogs = React.useCallback(async () => {
     if (!selectedCustomer) return;
     try {
-      const response = await apiClient.get<any[]>(`/customers/${encodeURIComponent(selectedCustomer.id)}/logs`);
-      setLogs(response.data);
+      const data = await dispatch(fetchCustomerLogsAction(selectedCustomer.id));
+      setLogs(data);
     } catch (e) {
       console.error('Failed to fetch logs:', e);
     }
-  }, [selectedCustomer]);
+  }, [selectedCustomer, dispatch]);
 
   React.useEffect(() => {
     fetchLogs();
