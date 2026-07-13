@@ -1,11 +1,25 @@
 import { Router, Request, Response } from 'express';
+import { ParamsDictionary } from 'express-serve-static-core';
 import crypto from 'crypto';
-import { get, run } from '../db/database.js';
+import { get, run, CustomerRow } from '../db/database.js';
 import { broadcastEvent } from '../utils/sse.js';
+import type { WebhookCallEventBody, ApiCustomer, ErrorResponse } from '../types.js';
 
 const router = Router();
 
-router.post('/call-event', async (req: Request, res: Response) => {
+function toApiCustomer(row: CustomerRow, callActiveOverride?: boolean): ApiCustomer {
+  return {
+    ...row,
+    activeProfile: row.activeProfile === 1,
+    callActive: callActiveOverride ?? row.callActive === 1,
+    rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
+    optumRxData: row.optumRxData ? JSON.parse(row.optumRxData) : undefined
+  };
+}
+
+type CallEventResponseBody = { ok: true; customer: ApiCustomer } | ErrorResponse;
+
+router.post('/call-event', async (req: Request<ParamsDictionary, CallEventResponseBody, WebhookCallEventBody>, res: Response<CallEventResponseBody>) => {
   try {
     const signature = req.headers['x-webhook-signature'];
     const webhookSecret = process.env.WEBHOOK_SECRET;
@@ -30,7 +44,7 @@ router.post('/call-event', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'id and eventType are required' });
     }
 
-    const customer = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    const customer = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
     }
@@ -60,14 +74,11 @@ router.post('/call-event', async (req: Request, res: Response) => {
         WHERE id = ?
       `, [nowMs, user || 'Teams Webhook', timestamp, id]);
 
-      const updatedRow = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
-      const updatedCustomer = {
-        ...updatedRow,
-        activeProfile: updatedRow.activeProfile === 1,
-        callActive: true,
-        rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-        optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
-      };
+      const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+      if (!updatedRow) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      const updatedCustomer = toApiCustomer(updatedRow, true);
       broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
       return res.json({ ok: true, customer: updatedCustomer });
     } else if (eventType === 'callEnded') {
@@ -81,21 +92,19 @@ router.post('/call-event', async (req: Request, res: Response) => {
         WHERE id = ?
       `, [timestamp, id]);
 
-      const updatedRow = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
-      const updatedCustomer = {
-        ...updatedRow,
-        activeProfile: updatedRow.activeProfile === 1,
-        callActive: false,
-        rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-        optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
-      };
+      const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+      if (!updatedRow) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      const updatedCustomer = toApiCustomer(updatedRow, false);
       broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
       return res.json({ ok: true, customer: updatedCustomer });
     } else {
       return res.status(400).json({ error: 'Invalid eventType' });
     }
-  } catch (err: any) {
-    console.error('Webhook event error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Webhook event error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

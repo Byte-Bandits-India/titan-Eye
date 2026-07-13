@@ -16,8 +16,8 @@ function requireLoopback(req: AuthenticatedRequest, res: Response, next: NextFun
 }
 
 router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user || req.user.role !== 'optem') {
-    return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
+  if (!req.user || req.user.role !== 'optum') {
+    return res.status(403).json({ error: 'Only optum accounts can launch remote tools' });
   }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);
@@ -39,8 +39,8 @@ router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, re
 });
 
 router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user || req.user.role !== 'optem') {
-    return res.status(403).json({ error: 'Only optem accounts can launch remote tools' });
+  if (!req.user || req.user.role !== 'optum') {
+    return res.status(403).json({ error: 'Only optum accounts can launch remote tools' });
   }
   getScreenSize((sw, sh) => {
     const half = Math.floor(sw / 2);

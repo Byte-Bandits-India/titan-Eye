@@ -15,7 +15,7 @@ export type RxValues = CommonRxValues & {
   pd: string;
 };
 
-export type OptemRxValues = CommonRxValues & {
+export type OptumRxValues = CommonRxValues & {
   va: string;
 };
 
@@ -30,7 +30,7 @@ export type Customer = {
   preferredLanguage: string;
   preferredLanguage2: string;
   storeFeedback: string;
-  optemFeedback: string;
+  optumFeedback: string;
   status: CustomerStatus;
   activeProfile: boolean;
   lastUpdatedOn?: string;
@@ -44,19 +44,65 @@ export type Customer = {
     pgpRe: RxValues;
     pgpLe: RxValues;
   };
-  optemRxData?: {
-    re: OptemRxValues;
-    le: OptemRxValues;
+  optumRxData?: {
+    re: OptumRxValues;
+    le: OptumRxValues;
   };
 };
 
-export type UserRole = 'store' | 'optem';
+export type CustomerLog = {
+  id: number;
+  customerId: string;
+  lastUpdatedOn: string | null;
+  status: CustomerStatus;
+  callDuration: number | null;
+  callTakenBy: string | null;
+};
+
+export type UserRole = 'store' | 'optum' | 'admin';
 
 export type User = {
   email: string;
   name: string;
   role: UserRole;
+  storeName?: string | null;
+  mobile?: string | null;
+  microsoftUpn?: string | null;
   token?: string;
+};
+
+export type ManagedUser = {
+  email: string;
+  name: string;
+  role: UserRole;
+  storeName?: string | null;
+  mobile?: string | null;
+  microsoftUpn?: string | null;
+  lastLogin?: string | null;
+  status: 'active' | 'inactive';
+};
+
+export type CreateUserPayload = {
+  email: string;
+  name: string;
+  password: string;
+  role: UserRole;
+  mobile?: string;
+  storeName?: string;
+};
+
+export type UpdateUserPayload = {
+  name: string;
+  password?: string;
+  role: UserRole;
+  mobile?: string;
+  storeName?: string;
+};
+
+export type UserState = {
+  users: ManagedUser[];
+  loading: boolean;
+  error: string | null;
 };
 
 export type Session = {
@@ -148,7 +194,7 @@ export type CallTimerProps = {
   onTimeout?: () => void;
 };
 
-export type OptemPatientDetailsProps = {
+export type OptumPatientDetailsProps = {
   selectedCustomer: Customer | null;
   onBack: () => void;
 };

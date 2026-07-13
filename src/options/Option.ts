@@ -1,16 +1,16 @@
-import type { RxValues, OptemRxValues } from '../types';
+import type { RxValues, OptumRxValues } from '../types';
 
 export const rxFields: (keyof RxValues)[] = ['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'];
-export const optemFields: (keyof OptemRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
+export const optumFields: (keyof OptumRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
 
 export const rxHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'];
-export const optemHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
+export const optumHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 export const PAGINATION = {
   STORE_PAGE_SIZE: 8,
-  OPTEM_PAGE_SIZE: 6,
+  OPTUM_PAGE_SIZE: 6,
 } as const;
 
 export const STORAGE_KEYS = {

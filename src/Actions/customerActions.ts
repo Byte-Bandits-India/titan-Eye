@@ -8,7 +8,7 @@ import {
 } from '../Reducers/customerReducer';
 import { logout } from '../Reducers/authReducer';
 import { apiClient } from '../Util/apiClient';
-import type { Customer } from '../types';
+import type { Customer, CustomerLog } from '../types';
 import axios from 'axios';
 
 const handleApiError = (err: Error, dispatch: AppDispatch, defaultMsg: string): string => {
@@ -92,7 +92,7 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
 
 export const fetchCustomerLogsAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.get<any[]>(`/customers/${encodeURIComponent(id)}/logs`);
+    const response = await apiClient.get<CustomerLog[]>(`/customers/${encodeURIComponent(id)}/logs`);
     return response.data;
   } catch (e) {
     const err = e as Error;

@@ -13,13 +13,13 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptemRxValues, StorePatientDetailsProps } from '../../types';
-import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
+import type { Customer, CustomerStatus, RxValues, OptumRxValues, StorePatientDetailsProps } from '../../types';
+import { rxFields, optumFields, rxHeaders, optumHeaders } from '../../options/Option';
 import { cn } from '../../lib/utils';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
-const emptyOptemRxValues: OptemRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
+const emptyOptumRxValues: OptumRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
 const LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Gujarati'];
 
 export function StorePatientDetails({
@@ -47,7 +47,7 @@ export function StorePatientDetails({
     preferredLanguage: 'English',
     preferredLanguage2: 'None',
     storeFeedback: '',
-    optemFeedback: '',
+    optumFeedback: '',
     status: 'Created' as CustomerStatus,
     activeProfile: false,
   });
@@ -59,9 +59,9 @@ export function StorePatientDetails({
     pgpLe: { ...emptyRxValues },
   });
 
-  const [optemRxForm, setOptemRxForm] = React.useState({
-    re: { ...emptyOptemRxValues },
-    le: { ...emptyOptemRxValues },
+  const [optumRxForm, setOptumRxForm] = React.useState({
+    re: { ...emptyOptumRxValues },
+    le: { ...emptyOptumRxValues },
   });
 
   React.useEffect(() => {
@@ -76,7 +76,7 @@ export function StorePatientDetails({
         preferredLanguage: selectedCustomer.preferredLanguage || 'English',
         preferredLanguage2: selectedCustomer.preferredLanguage2 || 'None',
         storeFeedback: selectedCustomer.storeFeedback || '',
-        optemFeedback: selectedCustomer.optemFeedback || '',
+        optumFeedback: selectedCustomer.optumFeedback || '',
         status: selectedCustomer.status,
         activeProfile: selectedCustomer.activeProfile || false,
       });
@@ -86,15 +86,15 @@ export function StorePatientDetails({
         pgpRe: { ...emptyRxValues },
         pgpLe: { ...emptyRxValues },
       });
-      if (selectedCustomer.optemRxData) {
-        setOptemRxForm({
-          re: { ...selectedCustomer.optemRxData.re },
-          le: { ...selectedCustomer.optemRxData.le },
+      if (selectedCustomer.optumRxData) {
+        setOptumRxForm({
+          re: { ...selectedCustomer.optumRxData.re },
+          le: { ...selectedCustomer.optumRxData.le },
         });
       } else {
-        setOptemRxForm({
-          re: { ...emptyOptemRxValues },
-          le: { ...emptyOptemRxValues },
+        setOptumRxForm({
+          re: { ...emptyOptumRxValues },
+          le: { ...emptyOptumRxValues },
         });
       }
     } else if (isAddingNew) {
@@ -108,7 +108,7 @@ export function StorePatientDetails({
         preferredLanguage: 'English',
         preferredLanguage2: 'None',
         storeFeedback: '',
-        optemFeedback: '',
+        optumFeedback: '',
         status: 'Created',
         activeProfile: true,
       });
@@ -118,9 +118,9 @@ export function StorePatientDetails({
         pgpRe: { ...emptyRxValues },
         pgpLe: { ...emptyRxValues },
       });
-      setOptemRxForm({
-        re: { ...emptyOptemRxValues },
-        le: { ...emptyOptemRxValues },
+      setOptumRxForm({
+        re: { ...emptyOptumRxValues },
+        le: { ...emptyOptumRxValues },
       });
     }
   }, [selectedCustomer, isAddingNew, user]);
@@ -294,7 +294,7 @@ export function StorePatientDetails({
         preferredLanguage: form.preferredLanguage,
         preferredLanguage2: form.preferredLanguage2,
         storeFeedback: form.storeFeedback,
-        optemFeedback: '',
+        optumFeedback: '',
         status: form.status,
         activeProfile: form.activeProfile,
         lastUpdatedOn: timestamp,
@@ -579,11 +579,11 @@ export function StorePatientDetails({
                 <Table className="w-full border-collapse text-center text-xs">
                   <TableHeader className="[&_tr]:border-b border-slate-400 dark:border-zinc-700 bg-slate-100 dark:bg-zinc-800">
                     <TableRow className="border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
-                      <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 dark:text-zinc-100 text-center uppercase tracking-wider border-b border-slate-400 dark:border-zinc-700">Optem Login</TableHead>
+                      <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 dark:text-zinc-100 text-center uppercase tracking-wider border-b border-slate-400 dark:border-zinc-700">Optum Login</TableHead>
                     </TableRow>
                     <TableRow className="bg-slate-100/70 dark:bg-zinc-800/70 border-b border-slate-400 dark:border-zinc-700 hover:bg-slate-100/50 dark:hover:bg-zinc-800/50">
                       <TableHead className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-[#1a2b6e] dark:text-blue-400 text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
-                       {optemHeaders.map((h) => (
+                       {optumHeaders.map((h) => (
                          <TableHead key={h} className="border-r border-slate-400 dark:border-zinc-700 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] dark:text-blue-400 last:border-r-0">{h}</TableHead>
                        ))}
                     </TableRow>
@@ -594,11 +594,11 @@ export function StorePatientDetails({
                         <TableCell className="border-r border-slate-400 dark:border-zinc-700 font-black text-xs text-[#1a2b6e] dark:text-blue-400 bg-slate-50/50 dark:bg-zinc-900/50 py-3 whitespace-nowrap text-center animate-none">
                           {eye === 're' ? 'R E' : 'L E'}
                         </TableCell>
-                        {optemFields.map((field, fIdx) => (
+                        {optumFields.map((field, fIdx) => (
                           <TableCell key={field} className={`${idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : ''} p-0 ${fIdx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''}`}>
                             <input
                               type="text"
-                              value={optemRxForm[eye][field] || ''}
+                              value={optumRxForm[eye][field] || ''}
                               disabled
                               className="w-full h-full text-center bg-slate-50 dark:bg-zinc-900 border-0 outline-none px-3 py-2.5 text-xs text-muted-foreground font-medium cursor-not-allowed"
                             />

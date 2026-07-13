@@ -1,3 +1,5 @@
+import type { CustomerInput, SanitizedCustomer } from '../types.js';
+
 const MAX_NAME_LENGTH = 100;
 const MAX_FEEDBACK_LENGTH = 2000;
 const MAX_GENERIC_LENGTH = 200;
@@ -6,11 +8,17 @@ const VALID_GENDERS = ['Male', 'Female', 'Other'];
 const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
 const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed'];
 
+interface FieldResult {
+  valid: boolean;
+  error?: string;
+  sanitized?: string;
+}
+
 function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, '').trim();
 }
-function validateString(value: unknown, fieldName: string, maxLength: number, strip: boolean = true): { valid: boolean; error?: string; sanitized?: string } {
-  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+function validateString(value: string | undefined, fieldName: string, maxLength: number, strip: boolean = true): FieldResult {
+  if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return { valid: false, error: `${fieldName} is required` };
   }
   if (typeof value !== 'string') {
@@ -26,14 +34,14 @@ function validateString(value: unknown, fieldName: string, maxLength: number, st
   return { valid: true, sanitized };
 }
 
-function validateOptionalString(value: unknown, fieldName: string, maxLength: number, strip: boolean = true): { valid: boolean; error?: string; sanitized?: string } {
-  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+function validateOptionalString(value: string | undefined, fieldName: string, maxLength: number, strip: boolean = true): FieldResult {
+  if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return { valid: true, sanitized: '' };
   }
   return validateString(value, fieldName, maxLength, strip);
 }
 
-function validateMobile(value: unknown): { valid: boolean; error?: string; sanitized?: string } {
+function validateMobile(value: string | undefined): FieldResult {
   if (typeof value !== 'string' || value.trim() === '') {
     return { valid: false, error: 'Mobile number is required' };
   }
@@ -44,11 +52,11 @@ function validateMobile(value: unknown): { valid: boolean; error?: string; sanit
   return { valid: true, sanitized };
 }
 
-function validateAge(value: unknown): { valid: boolean; error?: string; sanitized?: string } {
-  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
+function validateAge(value: string | undefined): FieldResult {
+  if (value === undefined || value.trim() === '') {
     return { valid: false, error: 'Age is required' };
   }
-  const str = String(value).trim();
+  const str = value.trim();
   const num = parseInt(str, 10);
   if (isNaN(num) || num < 0 || num > 120) {
     return { valid: false, error: 'Age must be a valid number between 0 and 120' };
@@ -56,7 +64,7 @@ function validateAge(value: unknown): { valid: boolean; error?: string; sanitize
   return { valid: true, sanitized: str };
 }
 
-function validateEnum(value: unknown, fieldName: string, allowed: string[]): { valid: boolean; error?: string; sanitized?: string } {
+function validateEnum(value: string | undefined, fieldName: string, allowed: string[]): FieldResult {
   if (typeof value !== 'string' || !allowed.includes(value)) {
     return { valid: false, error: `${fieldName} must be one of: ${allowed.join(', ')}` };
   }
@@ -66,12 +74,12 @@ function validateEnum(value: unknown, fieldName: string, allowed: string[]): { v
 export interface CustomerValidationResult {
   valid: boolean;
   errors: string[];
-  sanitized: Record<string, any>;
+  sanitized: Partial<SanitizedCustomer>;
 }
 
-export function validateCustomerData(data: Record<string, any>, isUpdate: boolean = false): CustomerValidationResult {
+export function validateCustomerData(data: CustomerInput, isUpdate: boolean = false): CustomerValidationResult {
   const errors: string[] = [];
-  const sanitized: Record<string, any> = {};
+  const sanitized: Partial<SanitizedCustomer> = {};
 
   const nameResult = validateString(data.name, 'Name', MAX_NAME_LENGTH);
   if (!nameResult.valid) errors.push(nameResult.error!);
@@ -109,9 +117,9 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
   if (!storeFeedbackResult.valid) errors.push(storeFeedbackResult.error!);
   else sanitized.storeFeedback = storeFeedbackResult.sanitized;
 
-  const optemFeedbackResult = validateOptionalString(data.optemFeedback, 'Optem feedback', MAX_FEEDBACK_LENGTH, false);
-  if (!optemFeedbackResult.valid) errors.push(optemFeedbackResult.error!);
-  else sanitized.optemFeedback = optemFeedbackResult.sanitized;
+  const optumFeedbackResult = validateOptionalString(data.optumFeedback, 'Optum feedback', MAX_FEEDBACK_LENGTH, false);
+  if (!optumFeedbackResult.valid) errors.push(optumFeedbackResult.error!);
+  else sanitized.optumFeedback = optumFeedbackResult.sanitized;
 
   const statusResult = validateEnum(data.status, 'Status', VALID_STATUSES);
   if (!statusResult.valid) errors.push(statusResult.error!);
@@ -120,30 +128,13 @@ export function validateCustomerData(data: Record<string, any>, isUpdate: boolea
   sanitized.activeProfile = data.activeProfile === true || data.activeProfile === 1;
   sanitized.lastUpdatedOn = typeof data.lastUpdatedOn === 'string' ? stripHtml(data.lastUpdatedOn).slice(0, MAX_GENERIC_LENGTH) : '';
 
-  if (data.rxData !== undefined && data.rxData !== null) {
-    if (typeof data.rxData === 'object') {
-      sanitized.rxData = data.rxData;
-    } else {
-      errors.push('rxData must be a valid object');
-    }
-  } else {
-    sanitized.rxData = null;
-  }
-
-  if (data.optemRxData !== undefined && data.optemRxData !== null) {
-    if (typeof data.optemRxData === 'object') {
-      sanitized.optemRxData = data.optemRxData;
-    } else {
-      errors.push('optemRxData must be a valid object');
-    }
-  } else {
-    sanitized.optemRxData = null;
-  }
+  sanitized.rxData = data.rxData ?? null;
+  sanitized.optumRxData = data.optumRxData ?? null;
 
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
   sanitized.callActive = data.callActive === true || data.callActive === 1;
   sanitized.callTakenBy = typeof data.callTakenBy === 'string' ? stripHtml(data.callTakenBy).slice(0, MAX_NAME_LENGTH) : null;
-  sanitized.callDuration = typeof data.callDuration === 'number' ? data.callDuration : (parseInt(data.callDuration, 10) || 0);
+  sanitized.callDuration = typeof data.callDuration === 'number' ? data.callDuration : (parseInt(String(data.callDuration), 10) || 0);
 
   return {
     valid: errors.length === 0,

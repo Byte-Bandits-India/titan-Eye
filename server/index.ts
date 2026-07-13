@@ -16,6 +16,16 @@ import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
 import webhooksRouter from './routes/webhooks.js';
 import systemRouter from './routes/system.js';
+import usersRouter from './routes/users.js';
+import ssoAuthRouter from './routes/ssoAuth.js';
+
+class HttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -62,16 +72,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      const corsError = new Error('Not allowed by CORS') as any;
-      corsError.status = 403;
-      callback(corsError);
+      callback(new HttpError('Not allowed by CORS', 403));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
@@ -119,9 +127,11 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
 
 app.use('/api/login', authLimiter);
 app.use('/api', authRouter);
-app.use('/api/customers', apiLimiter, authenticateToken as any, customersRouter);
+app.use('/api/auth/microsoft', authLimiter, ssoAuthRouter);
+app.use('/api/customers', apiLimiter, authenticateToken, customersRouter);
 app.use('/api/webhooks', apiLimiter, webhooksRouter);
-app.use('/api', apiLimiter, authenticateToken as any, systemRouter);
+app.use('/api', apiLimiter, authenticateToken, systemRouter);
+app.use('/api/users', apiLimiter, authenticateToken, usersRouter);
 
 const distPath = path.resolve('dist');
 if (fs.existsSync(distPath)) {
@@ -168,8 +178,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.status(404).send('Not Found');
 });
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  const status = err instanceof HttpError ? err.status : 500;
   const message = err.message || 'Internal Server Error';
 
   console.error(`[Error] ${req.method} ${req.url}:`, err);

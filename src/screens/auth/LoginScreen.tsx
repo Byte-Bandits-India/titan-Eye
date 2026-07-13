@@ -7,15 +7,40 @@ import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { loginAction } from '../../Actions/authActions';
+import { API_BASE_URL } from '../../options/Option';
+
+const SSO_ERROR_MESSAGES: Record<string, string> = {
+  not_provisioned: 'No account found for your Microsoft email. Ask your admin to create one first.',
+  inactive: 'This account has been deactivated.',
+  sso_failed: 'Microsoft sign-in failed. Please try again.',
+};
 
 export function LoginScreen() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
-  
+
   const dispatch = useAppDispatch();
   const { loading: isLoading } = useAppSelector((state) => state.auth);
   const { toast } = useToast();
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    if (error) {
+      toast({
+        title: 'Sign-in Failed',
+        description: SSO_ERROR_MESSAGES[error] || 'Something went wrong signing you in.',
+        type: 'error',
+      });
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleMicrosoftSignIn = () => {
+    window.location.href = `${API_BASE_URL}/auth/microsoft/login`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +100,7 @@ export function LoginScreen() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="store@gmail.com or optem@gmail.com"
+                placeholder="store@gmail.com or optum@gmail.com"
                 icon={Mail}
                 autoComplete="email"
                 required
@@ -122,6 +147,27 @@ export function LoginScreen() {
               )}
             </Button>
           </form>
+
+          <div className="flex items-center gap-3 my-4">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase">or</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleMicrosoftSignIn}
+            className="w-full h-11 rounded-xl text-sm font-semibold gap-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 21 21" aria-hidden="true">
+              <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+              <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+              <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+              <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+            </svg>
+            Sign in with Microsoft
+          </Button>
         </CardContent>
       </Card>
     </div>

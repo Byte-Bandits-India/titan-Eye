@@ -1,54 +1,60 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-import { all, run, get } from '../db/database.js';
+import { all, run, get, CustomerRow, UserRow, CustomerLogRow, SqlParam } from '../db/database.js';
 import { broadcastEvent } from '../utils/sse.js';
 import { validateCustomerData } from '../utils/validation.js';
+import type { CustomerInput } from '../types.js';
 
 const router = Router();
+
+function toApiCustomer(row: CustomerRow) {
+  return {
+    ...row,
+    activeProfile: row.activeProfile === 1,
+    callActive: row.callActive === 1,
+    rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
+    optumRxData: row.optumRxData ? JSON.parse(row.optumRxData) : undefined,
+  };
+}
 
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = 'SELECT * FROM customer_summary';
-    const params: any[] = [];
+    const params: SqlParam[] = [];
 
     if (req.user && req.user.role === 'store') {
       query += ' WHERE storeName = ?';
-      params.push(req.user.storeName);
+      params.push(req.user.storeName ?? null);
     }
 
     query += ' ORDER BY lastUpdatedOn DESC';
-    const rows = await all(query, params);
-    const customers = rows.map(c => ({
-      ...c,
-      activeProfile: c.activeProfile === 1,
-      callActive: c.callActive === 1,
-      rxData: c.rxData ? JSON.parse(c.rxData) : undefined,
-      optemRxData: c.optemRxData ? JSON.parse(c.optemRxData) : undefined
-    }));
+    const rows = await all<CustomerRow>(query, params);
+    const customers = rows.map(toApiCustomer);
     return res.json(customers);
-  } catch (err: any) {
-    console.error('Fetch customers error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Fetch customers error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const c = req.body;
+    const c: CustomerInput = req.body;
     if (req.user && req.user.role === 'store') {
-      c.storeName = req.user.storeName;
+      c.storeName = req.user.storeName ?? undefined;
     }
 
     const validation = validateCustomerData(c);
     if (!validation.valid) {
       return res.status(400).json({ error: 'Validation failed', details: validation.errors });
     }
-    Object.assign(c, validation.sanitized);
+    const sanitized = validation.sanitized;
 
     let finalId = c.id;
-    const exists = await get('SELECT id FROM customers WHERE id = ?', [finalId]);
+    const exists = finalId ? await get<{ id: string }>('SELECT id FROM customers WHERE id = ?', [finalId]) : undefined;
     if (exists || !finalId) {
-      const lastRow = await get("SELECT id FROM customers ORDER BY CAST(REPLACE(id, '#', '') AS INTEGER) DESC LIMIT 1");
+      const lastRow = await get<{ id: string }>("SELECT id FROM customers ORDER BY CAST(REPLACE(id, '#', '') AS INTEGER) DESC LIMIT 1");
       let nextNum = 1;
       if (lastRow && lastRow.id) {
         const numPart = lastRow.id.replace('#', '');
@@ -59,45 +65,43 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
     await run(`
       INSERT INTO customers (
         id, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optemFeedback,
-        status, activeProfile, lastUpdatedOn, rxData, optemRxData,
+        preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback,
+        status, activeProfile, lastUpdatedOn, rxData, optumRxData,
         callStartTime, callActive, callTakenBy, callDuration
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      finalId, c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
-      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optemFeedback || '',
-      c.status, c.activeProfile ? 1 : 0, c.lastUpdatedOn || '',
-      c.rxData ? JSON.stringify(c.rxData) : null,
-      c.optemRxData ? JSON.stringify(c.optemRxData) : null,
-      c.callStartTime || null,
-      c.callActive ? 1 : 0,
-      c.callTakenBy || null,
-      c.callDuration || 0
+      finalId, sanitized.name!, sanitized.age!, sanitized.gender!, sanitized.mobile!, sanitized.customerType!, sanitized.storeName!,
+      sanitized.preferredLanguage!, sanitized.preferredLanguage2 ?? '', sanitized.storeFeedback ?? '', sanitized.optumFeedback ?? '',
+      sanitized.status!, sanitized.activeProfile ? 1 : 0, sanitized.lastUpdatedOn ?? '',
+      sanitized.rxData ? JSON.stringify(sanitized.rxData) : null,
+      sanitized.optumRxData ? JSON.stringify(sanitized.optumRxData) : null,
+      sanitized.callStartTime ?? null,
+      sanitized.callActive ? 1 : 0,
+      sanitized.callTakenBy ?? null,
+      sanitized.callDuration ?? 0
     ]);
 
-    const row = await get('SELECT * FROM customer_summary WHERE id = ?', [finalId]);
-    const createdCustomer = {
-      ...row,
-      activeProfile: row.activeProfile === 1,
-      callActive: row.callActive === 1,
-      rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
-      optemRxData: row.optemRxData ? JSON.parse(row.optemRxData) : undefined
-    };
+    const row = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [finalId]);
+    if (!row) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    const createdCustomer = toApiCustomer(row);
     broadcastEvent('CUSTOMER_CREATED', createdCustomer);
 
     return res.status(201).json({ ok: true, id: finalId });
-  } catch (err: any) {
-    console.error('Create customer error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Create customer error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const c = req.body;
+    const id = String(req.params.id);
+    const c: CustomerInput = req.body;
 
-    const existing = await get('SELECT * FROM customers WHERE id = ?', [id]);
+    const existing = await get<CustomerRow>('SELECT * FROM customers WHERE id = ?', [id]);
     if (!existing) {
       return res.status(404).json({ error: 'Customer not found' });
     }
@@ -106,18 +110,18 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       if (existing.storeName !== req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
-      c.optemRxData = existing.optemRxData ? JSON.parse(existing.optemRxData) : null;
-      c.optemFeedback = existing.optemFeedback;
-      c.storeName = req.user.storeName;
+      c.optumRxData = existing.optumRxData ? JSON.parse(existing.optumRxData) : null;
+      c.optumFeedback = existing.optumFeedback;
+      c.storeName = req.user.storeName ?? undefined;
     }
 
     if (c.rxData === undefined) {
       c.rxData = existing.rxData ? JSON.parse(existing.rxData) : null;
     }
-    if (c.optemRxData === undefined) {
-      c.optemRxData = existing.optemRxData ? JSON.parse(existing.optemRxData) : null;
+    if (c.optumRxData === undefined) {
+      c.optumRxData = existing.optumRxData ? JSON.parse(existing.optumRxData) : null;
     }
-    if (c.optemFeedback === undefined) c.optemFeedback = existing.optemFeedback;
+    if (c.optumFeedback === undefined) c.optumFeedback = existing.optumFeedback;
     if (c.storeFeedback === undefined) c.storeFeedback = existing.storeFeedback;
     if (c.callStartTime === undefined) c.callStartTime = existing.callStartTime;
     if (c.callActive === undefined) c.callActive = existing.callActive === 1;
@@ -128,68 +132,64 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     if (!validation.valid) {
       return res.status(400).json({ error: 'Validation failed', details: validation.errors });
     }
-    Object.assign(c, validation.sanitized);
-
-    let finalStatus = c.status;
+    const sanitized = validation.sanitized;
 
     await run(`
       UPDATE customers SET
         name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
-        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optemFeedback = ?,
-        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optemRxData = ?,
+        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optumFeedback = ?,
+        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optumRxData = ?,
         callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?
       WHERE id = ?
     `, [
-      c.name, c.age, c.gender, c.mobile, c.customerType, c.storeName,
-      c.preferredLanguage, c.preferredLanguage2, c.storeFeedback, c.optemFeedback || '',
-      finalStatus, c.activeProfile ? 1 : 0, c.lastUpdatedOn || '',
-      c.rxData ? JSON.stringify(c.rxData) : null,
-      c.optemRxData ? JSON.stringify(c.optemRxData) : null,
-      c.callStartTime || null,
-      c.callActive ? 1 : 0,
-      c.callTakenBy || null,
-      c.callDuration || 0,
+      sanitized.name!, sanitized.age!, sanitized.gender!, sanitized.mobile!, sanitized.customerType!, sanitized.storeName!,
+      sanitized.preferredLanguage!, sanitized.preferredLanguage2 ?? '', sanitized.storeFeedback ?? '', sanitized.optumFeedback ?? '',
+      sanitized.status!, sanitized.activeProfile ? 1 : 0, sanitized.lastUpdatedOn ?? '',
+      sanitized.rxData ? JSON.stringify(sanitized.rxData) : null,
+      sanitized.optumRxData ? JSON.stringify(sanitized.optumRxData) : null,
+      sanitized.callStartTime ?? null,
+      sanitized.callActive ? 1 : 0,
+      sanitized.callTakenBy ?? null,
+      sanitized.callDuration ?? 0,
       id
     ]);
 
-    const row = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
-    const updatedCustomer = {
-      ...row,
-      activeProfile: row.activeProfile === 1,
-      callActive: row.callActive === 1,
-      rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
-      optemRxData: row.optemRxData ? JSON.parse(row.optemRxData) : undefined
-    };
+    const row = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    if (!row) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    const updatedCustomer = toApiCustomer(row);
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
 
     return res.json({ ok: true, customer: updatedCustomer });
-  } catch (err: any) {
-    console.error('Update customer error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Update customer error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const customer = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    const id = String(req.params.id);
+    const customer = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
     }
     if (customer.callActive === 1) {
-      const currentHolder = await get('SELECT role FROM users WHERE name = ?', [customer.callTakenBy]);
-      const requesterRole = req.user ? req.user.role : '';
+      const currentHolder = await get<UserRow>('SELECT role FROM users WHERE name = ?', [customer.callTakenBy]);
+      const requesterRole = req.user!.role;
 
-      let isStoreHolder = currentHolder && currentHolder.role === 'store';
+      let isStoreHolder = !!currentHolder && currentHolder.role === 'store';
       if (!currentHolder && customer.callTakenBy) {
         const lowerName = customer.callTakenBy.toLowerCase();
         if (lowerName.includes('store')) {
           isStoreHolder = true;
         }
       }
-      const isOptemRequester = requesterRole === 'optem';
+      const isOptumRequester = requesterRole === 'optum';
 
-      if (!(isStoreHolder && isOptemRequester)) {
+      if (!(isStoreHolder && isOptumRequester)) {
         return res.status(409).json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
       }
     }
@@ -204,7 +204,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       hour12: true,
     });
     const nowMs = String(Date.now());
-    const callerName = req.user ? req.user.name : 'Unknown';
+    const callerName = req.user!.name;
 
     await run(`
       UPDATE customers SET
@@ -216,27 +216,25 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       WHERE id = ?
     `, [nowMs, callerName, timestamp, id]);
 
-    const updatedRow = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
-    const updatedCustomer = {
-      ...updatedRow,
-      activeProfile: updatedRow.activeProfile === 1,
-      callActive: updatedRow.callActive === 1,
-      rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-      optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
-    };
+    const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    if (!updatedRow) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    const updatedCustomer = toApiCustomer(updatedRow);
 
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
     return res.json({ ok: true, customer: updatedCustomer });
-  } catch (err: any) {
-    console.error('Initiate call error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Initiate call error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const customer = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    const id = String(req.params.id);
+    const customer = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
     if (!customer) {
       return res.status(404).json({ error: 'Customer not found' });
     }
@@ -270,27 +268,28 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
       WHERE id = ?
     `, [timestamp, durationSec, id]);
 
-    const updatedRow = await get('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+    if (!updatedRow) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
     const updatedCustomer = {
-      ...updatedRow,
-      activeProfile: updatedRow.activeProfile === 1,
+      ...toApiCustomer(updatedRow),
       callActive: false,
-      rxData: updatedRow.rxData ? JSON.parse(updatedRow.rxData) : undefined,
-      optemRxData: updatedRow.optemRxData ? JSON.parse(updatedRow.optemRxData) : undefined
     };
 
     broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
     return res.json({ ok: true, customer: updatedCustomer });
-  } catch (err: any) {
-    console.error('End call error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('End call error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const rows = await all('SELECT * FROM customer_logs WHERE customerId = ? ORDER BY id DESC', [id]);
+    const id = String(req.params.id);
+    const rows = await all<CustomerLogRow>('SELECT * FROM customer_logs WHERE customerId = ? ORDER BY id DESC', [id]);
     const logs = rows.map(l => ({
       id: l.id,
       customerId: l.customerId,
@@ -300,8 +299,9 @@ router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
       callTakenBy: l.callTakenBy
     }));
     return res.json(logs);
-  } catch (err: any) {
-    console.error('Fetch customer logs error:', err.message);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Fetch customer logs error:', error.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

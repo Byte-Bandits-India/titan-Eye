@@ -18,6 +18,11 @@ const badgeVariants = cva(
         Completed: 'border-transparent bg-emerald-50 text-emerald-600 font-bold tracking-wide text-[9px] px-2.5 py-1',
         Rejected: 'border-transparent bg-rose-50 text-rose-600 font-bold tracking-wide text-[9px] px-2.5 py-1',
         Closed: 'border-transparent bg-gray-100 text-gray-500 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        admin: 'border-transparent bg-violet-100 text-violet-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        store: 'border-transparent bg-blue-100 text-blue-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        optum: 'border-transparent bg-teal-100 text-teal-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        active: 'border-transparent bg-emerald-100 text-emerald-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        inactive: 'border-transparent bg-rose-100 text-rose-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
       },
     },
     defaultVariants: {

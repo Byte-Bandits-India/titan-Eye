@@ -17,17 +17,17 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { updateCustomerAction, initiateCallAction, endCallAction, fetchCustomerLogsAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptemRxValues, OptemPatientDetailsProps } from '../../types';
-import { rxFields, optemFields, rxHeaders, optemHeaders } from '../../options/Option';
+import type { Customer, CustomerStatus, RxValues, OptumRxValues, OptumPatientDetailsProps, CustomerLog } from '../../types';
+import { rxFields, optumFields, rxHeaders, optumHeaders } from '../../options/Option';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
 const emptyRxValues: RxValues = { sph: '', cyl: '', axis: '', pd: '', prism: '', base: '', add: '' };
-const emptyOptemRxValues: OptemRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
+const emptyOptumRxValues: OptumRxValues = { sph: '', cyl: '', axis: '', prism: '', base: '', va: '', add: '' };
 
-export function OptemPatientDetails({
+export function OptumPatientDetails({
   selectedCustomer,
   onBack,
-}: OptemPatientDetailsProps) {
+}: OptumPatientDetailsProps) {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
@@ -37,7 +37,7 @@ export function OptemPatientDetails({
 
   const isTakenByMe = !!selectedCustomer?.callActive && selectedCustomer?.callTakenBy === currentUserName;
 
-  const [logs, setLogs] = React.useState<any[]>([]);
+  const [logs, setLogs] = React.useState<CustomerLog[]>([]);
 
   const fetchLogs = React.useCallback(async () => {
     if (!selectedCustomer) return;
@@ -61,7 +61,7 @@ export function OptemPatientDetails({
     customerType: 'New',
     preferredLanguage: 'English',
     storeFeedback: '',
-    optemFeedback: '',
+    optumFeedback: '',
     status: 'Created' as CustomerStatus,
     activeProfile: false,
   });
@@ -73,9 +73,9 @@ export function OptemPatientDetails({
     pgpLe: { ...emptyRxValues },
   });
 
-  const [optemRxForm, setOptemRxForm] = React.useState({
-    re: { ...emptyOptemRxValues },
-    le: { ...emptyOptemRxValues },
+  const [optumRxForm, setOptumRxForm] = React.useState({
+    re: { ...emptyOptumRxValues },
+    le: { ...emptyOptumRxValues },
   });
 
   React.useEffect(() => {
@@ -88,7 +88,7 @@ export function OptemPatientDetails({
         customerType: selectedCustomer.customerType || 'New',
         preferredLanguage: selectedCustomer.preferredLanguage || 'English',
         storeFeedback: selectedCustomer.storeFeedback || '',
-        optemFeedback: selectedCustomer.optemFeedback || '',
+        optumFeedback: selectedCustomer.optumFeedback || '',
         status: selectedCustomer.status,
         activeProfile: selectedCustomer.activeProfile || false,
       });
@@ -98,9 +98,9 @@ export function OptemPatientDetails({
         pgpRe: { ...emptyRxValues },
         pgpLe: { ...emptyRxValues },
       });
-      setOptemRxForm(selectedCustomer.optemRxData || {
-        re: { ...emptyOptemRxValues },
-        le: { ...emptyOptemRxValues },
+      setOptumRxForm(selectedCustomer.optumRxData || {
+        re: { ...emptyOptumRxValues },
+        le: { ...emptyOptumRxValues },
       });
     }
   }, [selectedCustomer]);
@@ -109,9 +109,9 @@ export function OptemPatientDetails({
     setForm((prev) => ({ ...prev, [field]: val }));
   };
 
-  const setOptemRxField = (eye: 're' | 'le', field: keyof OptemRxValues, val: string) => {
+  const setOptumRxField = (eye: 're' | 'le', field: keyof OptumRxValues, val: string) => {
     const cleanVal = val.replace(/[a-zA-Z]/g, '');
-    setOptemRxForm((prev) => ({
+    setOptumRxForm((prev) => ({
       ...prev,
       [eye]: { ...prev[eye], [field]: cleanVal },
     }));
@@ -134,11 +134,11 @@ export function OptemPatientDetails({
       customerType: form.customerType,
       preferredLanguage: form.preferredLanguage,
       storeFeedback: form.storeFeedback,
-      optemFeedback: form.optemFeedback,
+      optumFeedback: form.optumFeedback,
       status: form.status,
       activeProfile: form.activeProfile,
       rxData: rxForm,
-      optemRxData: optemRxForm,
+      optumRxData: optumRxForm,
       lastUpdatedOn: buildTimestamp(),
     };
   };
@@ -147,12 +147,12 @@ export function OptemPatientDetails({
     e.preventDefault();
     if (!selectedCustomer) return;
 
-    if (!optemRxForm.re.sph || !optemRxForm.re.cyl || !optemRxForm.re.axis || !optemRxForm.re.va) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and VA are required fields for Optem R E.', type: 'error' });
+    if (!optumRxForm.re.sph || !optumRxForm.re.cyl || !optumRxForm.re.axis || !optumRxForm.re.va) {
+      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and VA are required fields for Optum R E.', type: 'error' });
       return;
     }
-    if (!optemRxForm.le.sph || !optemRxForm.le.cyl || !optemRxForm.le.axis || !optemRxForm.le.va) {
-      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and VA are required fields for Optem L E.', type: 'error' });
+    if (!optumRxForm.le.sph || !optumRxForm.le.cyl || !optumRxForm.le.axis || !optumRxForm.le.va) {
+      toast({ title: 'Validation Error', description: 'Sph, Cyl, Axis, and VA are required fields for Optum L E.', type: 'error' });
       return;
     }
 
@@ -177,7 +177,7 @@ export function OptemPatientDetails({
       fetchLogs();
 
 
-      const teamsUser = 'sannadurai@neuroiq.ai';
+      const teamsUser = user?.microsoftUpn || user?.email || '';
       const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
       window.location.href = appLink;
     } catch (e) {
@@ -412,7 +412,7 @@ export function OptemPatientDetails({
               <Table className="w-full border-collapse text-center text-xs">
                 <TableHeader className="[&_tr]:border-b border-slate-400 bg-slate-100">
                   <TableRow className="border-b border-slate-400 hover:bg-slate-100/50">
-                    <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider bg-slate-100">Optem Login</TableHead>
+                    <TableHead colSpan={8} className="py-2.5 font-extrabold text-sm text-slate-900 text-center uppercase tracking-wider bg-slate-100">Optum Login</TableHead>
                   </TableRow>
                   <TableRow className="bg-slate-100/50 border-b border-slate-400 hover:bg-slate-100/50">
                     <TableHead className="border-r border-slate-400 py-1 text-center font-bold text-blue-600 text-sm"></TableHead>
@@ -426,7 +426,7 @@ export function OptemPatientDetails({
                   </TableRow>
                   <TableRow className="bg-slate-100/70 border-b border-slate-400 hover:bg-slate-100/50">
                     <TableHead className="border-r border-slate-400 px-3 py-2 font-black text-xs text-[#1a2b6e] text-center uppercase tracking-wider whitespace-nowrap">R X</TableHead>
-                    {optemHeaders.map((h) => (
+                    {optumHeaders.map((h) => (
                       <TableHead key={h} className="border-r border-slate-400 px-3 py-2 font-black text-xs text-center text-[#1a2b6e] last:border-r-0">{h}</TableHead>
                     ))}
                   </TableRow>
@@ -437,12 +437,12 @@ export function OptemPatientDetails({
                       <TableCell className="border-r border-slate-400 font-black text-xs text-[#1a2b6e] bg-slate-50/50 py-3 whitespace-nowrap text-center animate-none">
                         {eye === 're' ? 'R E' : 'L E'}
                       </TableCell>
-                      {optemFields.map((field, fIdx) => (
+                      {optumFields.map((field, fIdx) => (
                         <TableCell key={field} className={`${idx === 0 ? 'border-b border-slate-400' : ''} p-0 ${fIdx < 6 ? 'border-r border-slate-400' : ''}`}>
                           <input
                             type="text"
-                            value={optemRxForm[eye][field] || ''}
-                            onChange={(e) => setOptemRxField(eye, field, e.target.value)}
+                            value={optumRxForm[eye][field] || ''}
+                            onChange={(e) => setOptumRxField(eye, field, e.target.value)}
                             className="w-full h-full text-center bg-transparent border-0 outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2.5 text-xs text-gray-900 font-medium"
                           />
                         </TableCell>
@@ -455,10 +455,10 @@ export function OptemPatientDetails({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-gray-600">Optem Action / Feedback</label>
+            <label className="text-xs font-bold text-gray-600">Optum Action / Feedback</label>
             <RichTextEditor
-              value={form.optemFeedback}
-              onChange={setField('optemFeedback')}
+              value={form.optumFeedback}
+              onChange={setField('optumFeedback')}
               placeholder="Enter clinical assessment details or feedback comments..."
             />
           </div>

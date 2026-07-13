@@ -12,9 +12,9 @@ import { usePagination } from '../../hooks/usePagination';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { fetchCustomersAction } from '../../Actions/customerActions';
 import { PAGINATION } from '../../options/Option';
-import { OptemPatientDetails } from './OptemPatientDetails';
+import { OptumPatientDetails } from './OptumPatientDetails';
 
-export function OptemScreen() {
+export function OptumScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
@@ -23,7 +23,7 @@ export function OptemScreen() {
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>('#0484');
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSyncing, setIsSyncing] = React.useState(false);
-  const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTEM_PAGE_SIZE);
+  const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTUM_PAGE_SIZE);
   const [collisionModalData, setCollisionModalData] = React.useState<{
     id: string;
     name: string;
@@ -77,9 +77,9 @@ export function OptemScreen() {
   if (!user) return null;
 
   return (
-    <AppLayout consoleLabel="Optem Console">
+    <AppLayout consoleLabel="Optum Console">
       {isEditing ? (
-        <OptemPatientDetails
+        <OptumPatientDetails
           selectedCustomer={selectedCustomer}
           onBack={() => setIsEditing(false)}
         />
