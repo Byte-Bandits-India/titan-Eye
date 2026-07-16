@@ -1,11 +1,11 @@
-import { Wifi, User, LogOut, Maximize2, Minimize2 } from 'lucide-react';
+import { Wifi, User, LogOut, Maximize2, Minimize2, UserPlus, ClipboardList } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { logoutAction } from '../../Actions/authActions';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import type { HeaderProps } from '../../types';
 
-export function Header({ consoleLabel }: HeaderProps) {
+export function Header({ consoleLabel, activeTab, setActiveTab }: HeaderProps) {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const { speed, statusLabel, statusColor, wifiIconColor } = useNetworkStatus();
@@ -26,6 +26,32 @@ export function Header({ consoleLabel }: HeaderProps) {
         {consoleLabel && (
           <div className="hidden sm:flex items-center text-xs font-semibold px-3 py-1 bg-slate-100 rounded-full text-slate-600 border border-slate-200">
             {consoleLabel}
+          </div>
+        )}
+        {activeTab && setActiveTab && (
+          <div className="flex items-center gap-6 ml-4">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === 'users'
+                  ? 'text-[#1a2b6e] bg-slate-100'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <UserPlus size={18} className={activeTab === 'users' ? 'text-[#1a2b6e]' : 'text-slate-400'} />
+              <span>Users Record</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('customers')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === 'customers'
+                  ? 'text-[#1a2b6e] bg-slate-100'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <ClipboardList size={18} className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'} />
+              <span>Customers Record</span>
+            </button>
           </div>
         )}
       </div>

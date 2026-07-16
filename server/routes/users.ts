@@ -106,7 +106,10 @@ router.put('/:email', async (req: Request<{ email: string }, ManagedUserResponse
     const email = String(req.params.email);
     const { name, password, role, mobile, storeName } = req.body;
 
-    const existing = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+    const existing = await get<UserRow>(
+      'SELECT email, name, role, storeName, mobile, lastLogin, status, password FROM users WHERE LOWER(email) = LOWER(?)',
+      [email]
+    );
     if (!existing) {
       return res.status(404).json({ error: 'User not found' });
     }

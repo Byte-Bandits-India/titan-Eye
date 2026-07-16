@@ -14,7 +14,21 @@ import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
 import type { Customer, CustomerStatus, RxValues, OptumRxValues, StorePatientDetailsProps } from '../../types';
-import { rxFields, optumFields, rxHeaders, optumHeaders } from '../../options/Option';
+import {
+  rxFields,
+  optumFields,
+  rxHeaders,
+  optumHeaders,
+  NAME_REGEX,
+  AGE_REGEX,
+  MOBILE_REGEX,
+  SPH_REGEX,
+  CYL_REGEX,
+  AXIS_REGEX,
+  PD_REGEX,
+  PRISM_REGEX,
+  ADD_REGEX,
+} from '../../options/Option';
 import { cn } from '../../lib/utils';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
@@ -166,25 +180,20 @@ export function StorePatientDetails({
 
     if (!form.name.trim()) {
       newErrors.name = 'Name is required';
-    } else if (form.name.trim().length < 3) {
-      newErrors.name = 'Name must be at least 3 characters';
-    } else if (!/^[A-Za-z\s]+$/.test(form.name)) {
-      newErrors.name = 'Name can only contain alphabetic characters and spaces';
+    } else if (!NAME_REGEX.test(form.name.trim())) {
+      newErrors.name = 'Name must be between 3 and 50 characters and contain only letters and spaces';
     }
 
     if (!form.age) {
       newErrors.age = 'Age is required';
-    } else {
-      const ageNum = parseInt(form.age, 10);
-      if (isNaN(ageNum) || ageNum <= 0 || ageNum > 120) {
-        newErrors.age = 'Age must be between 1 and 120';
-      }
+    } else if (!AGE_REGEX.test(form.age.trim())) {
+      newErrors.age = 'Age must be a valid number between 1 and 120';
     }
 
     if (!form.mobile) {
       newErrors.mobile = 'Mobile number is required';
-    } else if (!/^[0-9]{10}$/.test(form.mobile)) {
-      newErrors.mobile = 'Mobile number must be exactly 10 digits';
+    } else if (!MOBILE_REGEX.test(form.mobile.trim())) {
+      newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
     }
 
     const validateEyeFields = (rowKey: 'autoRefRe' | 'autoRefLe' | 'pgpRe' | 'pgpLe', isRequired: boolean) => {
@@ -195,60 +204,47 @@ export function StorePatientDetails({
         // Validate SPH
         if (!data.sph) {
           newErrors[`${rowKey}.sph`] = 'SPH is required';
-        } else {
-          const sphVal = parseFloat(data.sph);
-          if (isNaN(sphVal) || sphVal < -30 || sphVal > 30) {
-            newErrors[`${rowKey}.sph`] = 'SPH must be between -30.00 and +30.00';
-          }
+        } else if (!SPH_REGEX.test(data.sph.trim())) {
+          newErrors[`${rowKey}.sph`] = 'SPH must be between -30.00 and +30.00';
         }
 
         // Validate CYL
         if (!data.cyl) {
           newErrors[`${rowKey}.cyl`] = 'CYL is required';
-        } else {
-          const cylVal = parseFloat(data.cyl);
-          if (isNaN(cylVal) || cylVal < -15 || cylVal > 15) {
-            newErrors[`${rowKey}.cyl`] = 'CYL must be between -15.00 and +15.00';
-          }
+        } else if (!CYL_REGEX.test(data.cyl.trim())) {
+          newErrors[`${rowKey}.cyl`] = 'CYL must be between -15.00 and +15.00';
         }
 
         // Validate AXIS
         if (!data.axis) {
           newErrors[`${rowKey}.axis`] = 'AXIS is required';
-        } else {
-          const axisVal = parseInt(data.axis, 10);
-          if (isNaN(axisVal) || axisVal < 0 || axisVal > 180) {
-            newErrors[`${rowKey}.axis`] = 'AXIS must be an integer between 0 and 180';
-          }
+        } else if (!AXIS_REGEX.test(data.axis.trim())) {
+          newErrors[`${rowKey}.axis`] = 'AXIS must be an integer between 0 and 180';
         }
 
         // Validate PD
         if (!data.pd) {
           newErrors[`${rowKey}.pd`] = 'PD is required';
+        } else if (!PD_REGEX.test(data.pd.trim())) {
+          newErrors[`${rowKey}.pd`] = 'PD must be a number between 20.00 and 80.00';
         }
 
         // Validate PRISM (Optional)
-        if (data.prism) {
-          const prismVal = parseFloat(data.prism);
-          if (isNaN(prismVal) || prismVal < 0 || prismVal > 20) {
-            newErrors[`${rowKey}.prism`] = 'PRISM must be between 0 and 20';
-          }
+        if (data.prism && !PRISM_REGEX.test(data.prism.trim())) {
+          newErrors[`${rowKey}.prism`] = 'PRISM must be between 0.00 and 20.00';
         }
 
         // Validate ADD (Optional)
-        if (data.add) {
-          const addVal = parseFloat(data.add);
-          if (isNaN(addVal) || addVal < 0 || addVal > 4) {
-            newErrors[`${rowKey}.add`] = 'ADD must be between 0.00 and 4.00';
-          }
+        if (data.add && !ADD_REGEX.test(data.add.trim())) {
+          newErrors[`${rowKey}.add`] = 'ADD must be between 0.00 and 4.00';
         }
       }
     };
 
     validateEyeFields('autoRefRe', true);
     validateEyeFields('autoRefLe', true);
-    validateEyeFields('pgpRe', false);
-    validateEyeFields('pgpLe', false);
+    validateEyeFields('pgpRe', true);
+    validateEyeFields('pgpLe', true);
 
     if (!form.preferredLanguage) {
       newErrors.preferredLanguage = 'Preferred Language 1 is required';
@@ -372,7 +368,7 @@ export function StorePatientDetails({
       </div>
 
       <Card className="bg-card rounded-2xl border border-border shadow-lg p-8">
-        <form onSubmit={handleFormSubmit} className="space-y-8">
+        <form onSubmit={handleFormSubmit} noValidate className="space-y-8">
           <div className="space-y-4">
             <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Customer Details</h2>
 
@@ -548,29 +544,6 @@ export function StorePatientDetails({
                 </TableBody>
               </Table>
             </div>
-            {Object.keys(errors).some((k) => k.includes('.')) && (
-              <div className="p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-xl text-xs text-red-600 dark:text-red-400 space-y-1.5 animate-in fade-in duration-200">
-                <div className="font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
-                  Prescription Validation Errors:
-                </div>
-                <ul className="list-disc pl-4 space-y-1">
-                  {Object.entries(errors)
-                    .filter(([key]) => key.includes('.'))
-                    .map(([key, msg]) => {
-                      const [row, field] = key.split('.') as [string, string];
-                      const rowLabel = row === 'autoRefRe' ? 'Auto Ref R E' :
-                                       row === 'autoRefLe' ? 'Auto Ref L E' :
-                                       row === 'pgpRe' ? 'PGP R E' : 'PGP L E';
-                      return (
-                        <li key={key} className="font-medium">
-                          <span className="font-bold">{rowLabel}</span> ({field.toUpperCase()}): {msg}
-                        </li>
-                      );
-                    })}
-                </ul>
-              </div>
-            )}
           </div>
 
           {!isAddingNew && (

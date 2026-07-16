@@ -16,6 +16,10 @@ export interface UserRow {
   azureObjectId: string | null;
   microsoftUpn: string | null;
   password: string;
+  // VAPT: account lockout & session security
+  failedLoginAttempts: number;
+  lockedUntil: string | null;
+  activeTokenSig: string | null;
 }
 
 export interface CustomerRow {
@@ -117,6 +121,26 @@ export async function initDb(): Promise<void> {
   try {
     await run(`ALTER TABLE users ADD COLUMN microsoftUpn TEXT`);
   } catch (e) { }
+  // VAPT: account lockout columns
+  try {
+    await run(`ALTER TABLE users ADD COLUMN failedLoginAttempts INTEGER NOT NULL DEFAULT 0`);
+  } catch (e) { }
+  try {
+    await run(`ALTER TABLE users ADD COLUMN lockedUntil TEXT`);
+  } catch (e) { }
+  // VAPT: single-session enforcement — stores signature of the current valid token
+  try {
+    await run(`ALTER TABLE users ADD COLUMN activeTokenSig TEXT`);
+  } catch (e) { }
+
+  try {
+    const columns = db.prepare("PRAGMA table_info(customers)").all() as { name: string }[];
+    if (columns.some(col => col.name === 'optemFeedback')) {
+      db.prepare("DROP TABLE IF EXISTS customers").run();
+      db.prepare("DROP TABLE IF EXISTS customer_logs").run();
+      console.log("Dropped outdated customers tables to recreate with correct schema.");
+    }
+  } catch (e) {}
 
   await run(`
     CREATE TABLE IF NOT EXISTS customers (

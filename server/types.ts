@@ -93,8 +93,9 @@ export interface AuthUserResponse {
   storeName?: string | null;
   mobile?: string | null;
   microsoftUpn?: string | null;
-  token: string;
+  // token intentionally omitted — auth uses httpOnly cookie only (VAPT fix)
 }
+
 
 export interface ApiCustomer {
   id: string;

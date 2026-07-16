@@ -35,4 +35,4 @@ database.db-wal
 # Environment variables
 .env
 
-
+localData

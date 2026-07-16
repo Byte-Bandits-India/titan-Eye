@@ -17,6 +17,32 @@ function toApiCustomer(row: CustomerRow) {
   };
 }
 
+// Helper to prevent IDOR (VAPT Finding #19)
+async function verifyCustomerAccess(req: AuthenticatedRequest, res: Response, customerId: string): Promise<CustomerRow | null> {
+  const customer = await get<CustomerRow>(
+    `SELECT id, name, age, gender, mobile, customerType, storeName,
+            preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback,
+            status, activeProfile, lastUpdatedOn, rxData, optumRxData,
+            callStartTime, callActive, callTakenBy, callDuration
+     FROM customers WHERE id = ?`,
+    [customerId]
+  );
+  if (!customer) {
+    res.status(404).json({ error: 'Customer not found' });
+    return null;
+  }
+
+  // Enforce store scoping (store role users can only access their own store's customers)
+  if (req.user && req.user.role === 'store') {
+    if (customer.storeName !== req.user.storeName) {
+      res.status(403).json({ error: 'Access Denied: You cannot access records belonging to another store location.' });
+      return null;
+    }
+  }
+
+  return customer;
+}
+
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = 'SELECT * FROM customer_summary';
@@ -101,18 +127,40 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const id = String(req.params.id);
     const c: CustomerInput = req.body;
 
-    const existing = await get<CustomerRow>('SELECT * FROM customers WHERE id = ?', [id]);
+    const existing = await get<CustomerRow>(
+      `SELECT id, name, age, gender, mobile, customerType, storeName,
+              preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback,
+              status, activeProfile, lastUpdatedOn, rxData, optumRxData,
+              callStartTime, callActive, callTakenBy, callDuration
+       FROM customers WHERE id = ?`,
+      [id]
+    );
     if (!existing) {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
+    // Role-based scoping (VAPT Finding #16 & #18)
     if (req.user && req.user.role === 'store') {
       if (existing.storeName !== req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
+      // Store users cannot edit clinical Optum data
       c.optumRxData = existing.optumRxData ? JSON.parse(existing.optumRxData) : null;
       c.optumFeedback = existing.optumFeedback;
       c.storeName = req.user.storeName ?? undefined;
+    }
+
+    if (req.user && req.user.role === 'optum') {
+      // Optum users cannot edit store demographics, language, or store feedback
+      c.name = existing.name;
+      c.age = existing.age;
+      c.gender = existing.gender;
+      c.mobile = existing.mobile;
+      c.customerType = existing.customerType;
+      c.storeName = existing.storeName;
+      c.preferredLanguage = existing.preferredLanguage;
+      c.preferredLanguage2 = existing.preferredLanguage2;
+      c.storeFeedback = existing.storeFeedback;
     }
 
     if (c.rxData === undefined) {
@@ -172,10 +220,8 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
-    const customer = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found' });
-    }
+    const customer = await verifyCustomerAccess(req, res, id);
+    if (!customer) return;
     if (customer.callActive === 1) {
       const currentHolder = await get<UserRow>('SELECT role FROM users WHERE name = ?', [customer.callTakenBy]);
       const requesterRole = req.user!.role;
@@ -234,10 +280,8 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
 router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
-    const customer = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found' });
-    }
+    const customer = await verifyCustomerAccess(req, res, id);
+    if (!customer) return;
 
     const timestamp = new Date().toLocaleString('en-US', {
       month: 'short',
@@ -289,6 +333,8 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+    if (!customer) return;
     const rows = await all<CustomerLogRow>('SELECT * FROM customer_logs WHERE customerId = ? ORDER BY id DESC', [id]);
     const logs = rows.map(l => ({
       id: l.id,

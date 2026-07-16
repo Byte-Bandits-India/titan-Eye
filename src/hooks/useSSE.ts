@@ -7,7 +7,7 @@ import type { Customer } from '../types';
 
 export function useSSE(): void {
   const dispatch = useAppDispatch();
-  const token = useAppSelector((state) => state.auth.token);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const customers = useAppSelector((state) => state.customers.customers);
   const { toast } = useToast();
   const customersRef = React.useRef(customers);
@@ -17,7 +17,7 @@ export function useSSE(): void {
   }, [customers]);
 
   React.useEffect(() => {
-    if (!token) return;
+    if (!isAuthenticated) return;
 
     const eventSource = new EventSource(`${API_BASE_URL}/events`, {
       withCredentials: true,
@@ -93,5 +93,5 @@ export function useSSE(): void {
     return () => {
       eventSource.close();
     };
-  }, [token, toast, dispatch]);
+  }, [isAuthenticated, toast, dispatch]);
 }

@@ -21,6 +21,14 @@ export const loginAction = (email: string, password: string) => async (dispatch:
   }
 };
 
-export const logoutAction = () => (dispatch: AppDispatch) => {
+// ── VAPT Fix #14: Always call server logout to revoke the httpOnly cookie ───
+// Without this call the browser would hold onto the cookie even after the user
+// clicks "Log Out", allowing the token to remain usable until it expires.
+export const logoutAction = () => async (dispatch: AppDispatch) => {
+  try {
+    await apiClient.post('/logout');
+  } catch {
+    // Non-fatal — clear local state regardless
+  }
   dispatch(logout());
 };

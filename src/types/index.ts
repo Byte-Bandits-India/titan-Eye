@@ -68,7 +68,7 @@ export type User = {
   storeName?: string | null;
   mobile?: string | null;
   microsoftUpn?: string | null;
-  token?: string;
+  // token removed — auth uses httpOnly cookie only (VAPT fix #8)
 };
 
 export type ManagedUser = {
@@ -112,7 +112,7 @@ export type Session = {
 
 export type AuthState = {
   user: User | null;
-  token: string | null;
+  // token removed — auth uses httpOnly cookie only (VAPT fix #8)
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
@@ -162,10 +162,14 @@ export type LoginResponse = {
 export type AppLayoutProps = {
   consoleLabel: string;
   children: React.ReactNode;
+  activeTab?: 'users' | 'customers';
+  setActiveTab?: (tab: 'users' | 'customers') => void;
 };
 
 export type HeaderProps = {
   consoleLabel?: string;
+  activeTab?: 'users' | 'customers';
+  setActiveTab?: (tab: 'users' | 'customers') => void;
 };
 
 export type PaginationBarProps = {

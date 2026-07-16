@@ -83,18 +83,30 @@ router.get('/callback', async (req: Request, res: Response) => {
     if (!fullUser) {
       return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
     }
+
+    // ── VAPT Fix #7: Single-session enforcement for SSO login ──────────
+    const SESSION_IDLE_MS = 60 * 60 * 1000; // 1 hour — same as regular login
+    const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
     const token = generateToken({
       email: fullUser.email,
       name: fullUser.name,
       role: fullUser.role,
       storeName: fullUser.storeName ?? undefined,
-    });
+    }, SESSION_IDLE_MS);
+
+    // Store activeTokenSig so old sessions are invalidated
+    const newTokenSig = token.split('.')[2];
+    await run(
+      `UPDATE users SET lastLogin = ?, failedLoginAttempts = 0, lockedUntil = NULL, activeTokenSig = ? WHERE email = ?`,
+      [new Date().toISOString(), newTokenSig, fullUser.email]
+    );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: TOKEN_MAX_AGE_MS,
     });
 
     return res.redirect(`${FRONTEND_URL}/sso/callback`);

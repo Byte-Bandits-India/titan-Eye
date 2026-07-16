@@ -13,12 +13,13 @@ export interface UserPayload {
   exp?: number;
 }
 
-export function generateToken(payload: UserPayload): string {
+export function generateToken(payload: UserPayload, ttlMs: number = 24 * 60 * 60 * 1000): string {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 24 * 60 * 60 * 1000 })).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + ttlMs })).toString('base64url');
   const signature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
   return `${header}.${body}.${signature}`;
 }
+
 
 export function verifyToken(token: string): UserPayload | null {
   try {

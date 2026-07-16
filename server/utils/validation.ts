@@ -41,6 +41,20 @@ function validateOptionalString(value: string | undefined, fieldName: string, ma
   return validateString(value, fieldName, maxLength, strip);
 }
 
+const SAFE_NAME_REGEX = /^[A-Za-z\s.\-']+$/;
+
+function validateName(value: string | undefined, fieldName: string, maxLength: number): FieldResult {
+  const base = validateString(value, fieldName, maxLength);
+  if (!base.valid) return base;
+  if (!SAFE_NAME_REGEX.test(base.sanitized!)) {
+    return {
+      valid: false,
+      error: `${fieldName} contains invalid characters. Only letters, spaces, hyphens, periods, and apostrophes are allowed.`
+    };
+  }
+  return base;
+}
+
 function validateMobile(value: string | undefined): FieldResult {
   if (typeof value !== 'string' || value.trim() === '') {
     return { valid: false, error: 'Mobile number is required' };
@@ -81,7 +95,7 @@ export function validateCustomerData(data: CustomerInput, isUpdate: boolean = fa
   const errors: string[] = [];
   const sanitized: Partial<SanitizedCustomer> = {};
 
-  const nameResult = validateString(data.name, 'Name', MAX_NAME_LENGTH);
+  const nameResult = validateName(data.name, 'Name', MAX_NAME_LENGTH);
   if (!nameResult.valid) errors.push(nameResult.error!);
   else sanitized.name = nameResult.sanitized;
 
@@ -133,7 +147,12 @@ export function validateCustomerData(data: CustomerInput, isUpdate: boolean = fa
 
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
   sanitized.callActive = data.callActive === true || data.callActive === 1;
-  sanitized.callTakenBy = typeof data.callTakenBy === 'string' ? stripHtml(data.callTakenBy).slice(0, MAX_NAME_LENGTH) : null;
+  if (typeof data.callTakenBy === 'string') {
+    const stripped = stripHtml(data.callTakenBy).slice(0, MAX_NAME_LENGTH);
+    sanitized.callTakenBy = SAFE_NAME_REGEX.test(stripped) ? stripped : null;
+  } else {
+    sanitized.callTakenBy = null;
+  }
   sanitized.callDuration = typeof data.callDuration === 'number' ? data.callDuration : (parseInt(String(data.callDuration), 10) || 0);
 
   return {
