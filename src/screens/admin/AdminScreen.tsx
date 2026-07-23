@@ -122,7 +122,7 @@ export function AdminScreen() {
     setIsLoadingLogs(true);
     try {
       const res = await apiClient.get<AuditLog[]>('/customers/audit-logs');
-      setAuditLogs(res.data);
+      setAuditLogs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       toast({ title: 'Failed to fetch audit logs', description: (err as Error).message, type: 'error' });
     } finally {
@@ -157,6 +157,14 @@ export function AdminScreen() {
     if (activeTab === 'auditLogs') {
       fetchAuditLogs();
     }
+
+    const handleSseEvent = () => {
+      if (activeTab === 'auditLogs') {
+        fetchAuditLogs();
+      }
+    };
+    window.addEventListener('titan:sse_event', handleSseEvent);
+    return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [activeTab, fetchAuditLogs]);
 
   const filteredAuditLogs = React.useMemo(() => {

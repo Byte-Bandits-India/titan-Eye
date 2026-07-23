@@ -40,6 +40,7 @@ export function useSSE(): void {
             type: 'success',
           });
           dispatch(customerCreated(data));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { type, data } }));
         } else if (type === 'CUSTOMER_UPDATED') {
           const oldCust = currentCustomers.find((c) => c.id === data.id);
 
@@ -80,6 +81,7 @@ export function useSSE(): void {
           }
 
           dispatch(customerUpdated(data));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { type, data } }));
         }
       } catch (err) {
         console.error('Error handling SSE message:', err);
