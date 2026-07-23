@@ -33,11 +33,11 @@ jobs:
           fi
           ADMIN_EMAIL_VAL="${{ secrets.ADMIN_EMAIL }}"
           if [ -z "$ADMIN_EMAIL_VAL" ]; then
-            ADMIN_EMAIL_VAL="admin@example.com"
+            ADMIN_EMAIL_VAL="admin@gmail.com"
           fi
           ADMIN_PASSWORD_VAL="${{ secrets.ADMIN_PASSWORD }}"
           if [ -z "$ADMIN_PASSWORD_VAL" ]; then
-            ADMIN_PASSWORD_VAL="admin123"
+            ADMIN_PASSWORD_VAL="pass@123"
           fi
 
           echo "VITE_API_BASE_URL=https://titan.thebytebandits.com/api" > .env
