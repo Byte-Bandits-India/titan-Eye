@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { get, run, UserRow } from '../db/database.js';
 import { generateToken } from '../config/jwt.js';
-import { msalClient, cryptoProvider, ENTRA_REDIRECT_URI, ENTRA_SCOPES } from '../config/msal.js';
+import { msalClient, cryptoProvider, ENTRA_REDIRECT_URI, ENTRA_SCOPES, isSsoConfigured } from '../config/msal.js';
 
 const router = Router();
 
@@ -9,6 +9,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const STATE_COOKIE = 'sso_state';
 
 router.get('/login', async (_req: Request, res: Response) => {
+  if (!isSsoConfigured || !msalClient) {
+    return res.redirect(`${FRONTEND_URL}/login?error=sso_disabled`);
+  }
   try {
     const state = cryptoProvider.createNewGuid();
     const { verifier, challenge } = await cryptoProvider.generatePkceCodes();
@@ -37,6 +40,9 @@ router.get('/login', async (_req: Request, res: Response) => {
 });
 
 router.get('/callback', async (req: Request, res: Response) => {
+  if (!isSsoConfigured || !msalClient) {
+    return res.redirect(`${FRONTEND_URL}/login?error=sso_disabled`);
+  }
   try {
     const raw = req.cookies?.[STATE_COOKIE];
     res.clearCookie(STATE_COOKIE);

@@ -56,6 +56,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://local
 const hasHttpsOrigin = allowedOrigins.some(origin => origin.startsWith('https://'));
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet({
   hsts: {
