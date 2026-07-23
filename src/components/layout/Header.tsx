@@ -1,4 +1,4 @@
-import { Wifi, User, LogOut, Maximize2, Minimize2, UserPlus, ClipboardList } from 'lucide-react';
+import { Wifi, User, LogOut, Maximize2, Minimize2, UserPlus, ClipboardList, History } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { logoutAction } from '../../Actions/authActions';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
@@ -51,6 +51,17 @@ export function Header({ consoleLabel, activeTab, setActiveTab }: HeaderProps) {
             >
               <ClipboardList size={18} className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'} />
               <span>Customers Record</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('auditLogs')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                activeTab === 'auditLogs'
+                  ? 'text-[#1a2b6e] bg-slate-100'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <History size={18} className={activeTab === 'auditLogs' ? 'text-[#1a2b6e]' : 'text-slate-400'} />
+              <span>Audit Logs</span>
             </button>
           </div>
         )}

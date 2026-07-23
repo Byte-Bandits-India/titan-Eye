@@ -34,5 +34,8 @@ database.db-wal
 
 # Environment variables
 .env
+.env.*
+!.env.example
+!.env.production.example
 
 localData

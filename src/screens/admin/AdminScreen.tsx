@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Search, UserPlus, X, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Search, UserPlus, X, Pencil, Trash2, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
@@ -22,7 +22,8 @@ import { usePagination } from '../../hooks/usePagination';
 import { PaginationBar } from '../../components/shared/PaginationBar';
 import { cn } from '../../lib/utils';
 import { NAME_REGEX, EMAIL_REGEX, MOBILE_REGEX, PASSWORD_REGEX } from '../../options/Option';
-import type { ManagedUser, UserRole } from '../../types';
+import { apiClient } from '../../Util/apiClient';
+import type { ManagedUser, UserRole, AuditLog } from '../../types';
 
 const ROLE_OPTIONS = [
   { value: 'store', label: 'Store' },
@@ -46,7 +47,7 @@ export function AdminScreen() {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = React.useState<'users' | 'customers'>('users');
+  const [activeTab, setActiveTab] = React.useState<'users' | 'customers' | 'auditLogs'>('users');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [editingEmail, setEditingEmail] = React.useState<string | null>(null);
@@ -55,8 +56,13 @@ export function AdminScreen() {
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = React.useState(false);
 
+  const [auditLogs, setAuditLogs] = React.useState<AuditLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
   const [userPageSize, setUserPageSize] = React.useState<number>(10);
   const [customerPageSize, setCustomerPageSize] = React.useState<number>(10);
+  const [auditLogPageSize, setAuditLogPageSize] = React.useState<number>(10);
 
   React.useEffect(() => {
     dispatch(fetchUsersAction());
@@ -111,6 +117,75 @@ export function AdminScreen() {
     prevPage: customerPrevPage,
     resetPage: customerResetPage,
   } = usePagination(filteredCustomers, customerPageSize);
+
+  const fetchAuditLogs = React.useCallback(async () => {
+    setIsLoadingLogs(true);
+    try {
+      const res = await apiClient.get<AuditLog[]>('/customers/audit-logs');
+      setAuditLogs(res.data);
+    } catch (err) {
+      toast({ title: 'Failed to fetch audit logs', description: (err as Error).message, type: 'error' });
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, [toast]);
+
+  const handleResetSync = React.useCallback(async () => {
+    setIsSyncing(true);
+    setSearchTerm('');
+    try {
+      if (activeTab === 'users') {
+        await dispatch(fetchUsersAction());
+      } else if (activeTab === 'customers') {
+        await dispatch(fetchCustomersAction());
+      } else if (activeTab === 'auditLogs') {
+        await fetchAuditLogs();
+      }
+      toast({
+        title: 'Feed Synced',
+        description: 'Data feed has been successfully updated.',
+        type: 'success',
+      });
+    } catch (err) {
+      // Handled in action
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [activeTab, dispatch, fetchAuditLogs, toast]);
+
+  React.useEffect(() => {
+    if (activeTab === 'auditLogs') {
+      fetchAuditLogs();
+    }
+  }, [activeTab, fetchAuditLogs]);
+
+  const filteredAuditLogs = React.useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return auditLogs;
+    return auditLogs.filter((log) =>
+      (log.customerId && log.customerId.toLowerCase().includes(term)) ||
+      (log.customerName && log.customerName.toLowerCase().includes(term)) ||
+      (log.storeName && log.storeName.toLowerCase().includes(term)) ||
+      (log.status && log.status.toLowerCase().includes(term)) ||
+      (log.callTakenBy && log.callTakenBy.toLowerCase().includes(term))
+    );
+  }, [auditLogs, searchTerm]);
+
+  const {
+    paginatedItems: paginatedAuditLogs,
+    currentPage: auditLogCurrentPage,
+    totalPages: auditLogTotalPages,
+    totalItems: auditLogTotalItems,
+    nextPage: auditLogNextPage,
+    prevPage: auditLogPrevPage,
+    resetPage: auditLogResetPage,
+  } = usePagination(filteredAuditLogs, auditLogPageSize);
+
+  React.useEffect(() => {
+    if (activeTab === 'auditLogs') {
+      auditLogResetPage();
+    }
+  }, [searchTerm, activeTab, auditLogResetPage]);
 
   React.useEffect(() => {
     customerResetPage();
@@ -255,15 +330,30 @@ export function AdminScreen() {
   return (
     <AppLayout consoleLabel="Admin Console" activeTab={activeTab} setActiveTab={setActiveTab}>
       <main className="flex-1 px-8 py-6 space-y-6 w-full max-w-[1400px] mx-auto">
-        <div>
-          <h1 className="text-lg font-bold text-foreground">
-            {activeTab === 'users' ? 'User Directory' : 'Customer Directory'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {activeTab === 'users'
-              ? 'Search, filter, and manage system access'
-              : 'Search and view registered customer transactions'}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-foreground">
+              {activeTab === 'users' ? 'User Directory' : activeTab === 'customers' ? 'Customer Directory' : 'System Audit Logs'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {activeTab === 'users'
+                ? 'Search, filter, and manage system access'
+                : activeTab === 'customers'
+                ? 'Search and view registered customer transactions'
+                : 'Track all activity across Store, Optum, and Admin roles'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground tracking-wider">
+            <span>SYNCED LIVE</span>
+            <button
+              onClick={handleResetSync}
+              disabled={isSyncing}
+              className="w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-800 shadow-sm cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Force Sync Live"
+            >
+              <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
 
         {activeTab === 'users' ? (
@@ -505,7 +595,7 @@ export function AdminScreen() {
               />
             </div>
           </>
-        ) : (
+        ) : activeTab === 'customers' ? (
           <>
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="w-full sm:max-w-md">
@@ -572,6 +662,82 @@ export function AdminScreen() {
                 onItemsPerPageChange={(size) => {
                   setCustomerPageSize(size);
                   customerResetPage();
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="w-full sm:max-w-md">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search logs by patient name, ID, status, or actor..."
+                  icon={Search}
+                  className="bg-card border-border"
+                />
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[100px] font-bold text-xs uppercase text-muted-foreground">Log ID</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Timestamp</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Patient ID / Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Store Name</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Status Transition</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Call Duration</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Activity Performed By</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedAuditLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        {isLoadingLogs ? 'Loading audit logs...' : 'No audit logs found.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedAuditLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-semibold text-xs py-3 text-muted-foreground">#{log.id}</TableCell>
+                        <TableCell className="text-xs py-3 font-medium text-foreground">{log.lastUpdatedOn || '—'}</TableCell>
+                        <TableCell className="text-xs py-3 font-semibold text-blue-600 dark:text-blue-400">
+                          {log.customerId} {log.customerName && log.customerName !== 'N/A' ? `(${log.customerName})` : ''}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs py-3">{log.storeName || '—'}</TableCell>
+                        <TableCell className="py-3">
+                          <Badge variant={log.status}>{log.status?.toUpperCase() || 'UPDATED'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs py-3">
+                          {log.callDuration ? `${Math.floor(log.callDuration / 60)}m ${log.callDuration % 60}s` : '—'}
+                        </TableCell>
+                        <TableCell className="text-xs py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              {log.callTakenBy || 'Store / System'}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              <PaginationBar
+                currentPage={auditLogCurrentPage}
+                totalPages={auditLogTotalPages}
+                totalItems={auditLogTotalItems}
+                itemsPerPage={auditLogPageSize}
+                onPrev={auditLogPrevPage}
+                onNext={auditLogNextPage}
+                onItemsPerPageChange={(size) => {
+                  setAuditLogPageSize(size);
+                  auditLogResetPage();
                 }}
               />
             </div>

@@ -197,7 +197,8 @@ export function StoreScreen() {
               <span>SYNCED LIVE</span>
               <button
                 onClick={handleResetSync}
-                className="w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-800 shadow-3xs cursor-pointer transition-all"
+                disabled={isSyncing}
+                className="w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-800 shadow-sm cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Force Sync Live"
               >
                 <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />

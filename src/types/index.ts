@@ -159,17 +159,28 @@ export type LoginResponse = {
   user: User;
 };
 
+export type AuditLog = {
+  id: number;
+  customerId: string;
+  customerName?: string;
+  storeName?: string;
+  lastUpdatedOn: string | null;
+  status: CustomerStatus;
+  callDuration: number | null;
+  callTakenBy: string | null;
+};
+
 export type AppLayoutProps = {
   consoleLabel: string;
   children: React.ReactNode;
-  activeTab?: 'users' | 'customers';
-  setActiveTab?: (tab: 'users' | 'customers') => void;
+  activeTab?: 'users' | 'customers' | 'auditLogs';
+  setActiveTab?: (tab: 'users' | 'customers' | 'auditLogs') => void;
 };
 
 export type HeaderProps = {
   consoleLabel?: string;
-  activeTab?: 'users' | 'customers';
-  setActiveTab?: (tab: 'users' | 'customers') => void;
+  activeTab?: 'users' | 'customers' | 'auditLogs';
+  setActiveTab?: (tab: 'users' | 'customers' | 'auditLogs') => void;
 };
 
 export type PaginationBarProps = {

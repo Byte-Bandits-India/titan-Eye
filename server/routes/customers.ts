@@ -43,6 +43,32 @@ async function verifyCustomerAccess(req: AuthenticatedRequest, res: Response, cu
   return customer;
 }
 
+router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const rows = await all<CustomerLogRow & { customerName?: string; storeName?: string }>(`
+      SELECT cl.*, c.name as customerName, c.storeName
+      FROM customer_logs cl
+      LEFT JOIN customers c ON cl.customerId = c.id
+      ORDER BY cl.id DESC
+    `);
+    const logs = rows.map(l => ({
+      id: l.id,
+      customerId: l.customerId,
+      customerName: l.customerName || 'N/A',
+      storeName: l.storeName || 'N/A',
+      lastUpdatedOn: l.lastUpdatedOn,
+      status: l.status,
+      callDuration: l.callDuration,
+      callTakenBy: l.callTakenBy || 'System / Store'
+    }));
+    return res.json(logs);
+  } catch (err) {
+    const error = err as Error;
+    console.error('Fetch all audit logs error:', error.message);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = 'SELECT * FROM customer_summary';

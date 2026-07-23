@@ -6,7 +6,7 @@ export const optumFields: (keyof OptumRxValues)[] = ['sph', 'cyl', 'axis', 'pris
 export const rxHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'];
 export const optumHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const PAGINATION = {
   STORE_PAGE_SIZE: 8,
