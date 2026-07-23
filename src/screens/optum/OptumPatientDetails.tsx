@@ -4,7 +4,6 @@ import {
   Video,
   Phone,
   UserCircle,
-  History,
   ChevronLeft,
   Monitor,
 } from 'lucide-react';
@@ -16,8 +15,8 @@ import { Badge } from '../../components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/table';
 import { useToast } from '../../components/ui/toast';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { updateCustomerAction, initiateCallAction, endCallAction, fetchCustomerLogsAction } from '../../Actions/customerActions';
-import type { Customer, CustomerStatus, RxValues, OptumRxValues, OptumPatientDetailsProps, CustomerLog } from '../../types';
+import { updateCustomerAction, initiateCallAction, endCallAction } from '../../Actions/customerActions';
+import type { Customer, CustomerStatus, RxValues, OptumRxValues, OptumPatientDetailsProps } from '../../types';
 import { rxFields, optumFields, rxHeaders, optumHeaders } from '../../options/Option';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 
@@ -36,22 +35,6 @@ export function OptumPatientDetails({
   const currentUserName = user?.name || '';
 
   const isTakenByMe = !!selectedCustomer?.callActive && selectedCustomer?.callTakenBy === currentUserName;
-
-  const [logs, setLogs] = React.useState<CustomerLog[]>([]);
-
-  const fetchLogs = React.useCallback(async () => {
-    if (!selectedCustomer) return;
-    try {
-      const data = await dispatch(fetchCustomerLogsAction(selectedCustomer.id));
-      setLogs(data);
-    } catch (e) {
-      console.error('Failed to fetch logs:', e);
-    }
-  }, [selectedCustomer, dispatch]);
-
-  React.useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
 
   const [form, setForm] = React.useState({
     name: '',
@@ -173,11 +156,13 @@ export function OptumPatientDetails({
     if (!selectedCustomer) return;
     setIsCallLoading(true);
     try {
-      await dispatch(initiateCallAction(selectedCustomer.id));
-      fetchLogs();
+      const result = await dispatch(initiateCallAction(selectedCustomer.id));
 
-
-      const teamsUser = user?.microsoftUpn || user?.email || '';
+      const teamsUser = result.customer?.storeContactEmail || '';
+      if (!teamsUser) {
+        toast({ title: 'Missing Contact', description: 'No store contact is on file for this customer yet.', type: 'error' });
+        return;
+      }
       const appLink = 'msteams://teams.microsoft.com/l/call/0/0?users=' + encodeURIComponent(teamsUser);
       window.location.href = appLink;
     } catch (e) {
@@ -197,7 +182,6 @@ export function OptumPatientDetails({
     setIsCallLoading(true);
     try {
       await dispatch(endCallAction(selectedCustomer.id));
-      fetchLogs();
     } catch (e) {
       const err = e as Error;
       toast({ title: 'System Error', description: err.message || 'Failed to connect to the server to end call.', type: 'error' });
@@ -217,7 +201,6 @@ export function OptumPatientDetails({
 
     try {
       await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
-      fetchLogs();
     } catch (e) {
       const err = e as Error;
       toast({ title: 'Error Updating Status', description: `Failed to update status: ${err.message || 'Database error'}`, type: 'error' });
@@ -268,10 +251,6 @@ export function OptumPatientDetails({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => { toast({ title: 'History', description: 'No prior assessment logs found for this customer.', type: 'info' }); }} className="rounded-xl px-4 h-10 border-gray-200 text-gray-600 text-xs font-bold bg-white hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-98">
-            <History size={14} />
-            View History
-          </Button>
           <Button type="button" variant="outline" onClick={onBack} className="rounded-xl px-4 h-10 border-gray-200 text-gray-600 text-xs font-bold bg-white hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all active:scale-98">
             <ChevronLeft size={16} />
             Back
@@ -317,51 +296,6 @@ export function OptumPatientDetails({
                 <label className="text-xs font-bold text-gray-600">Preferred Language *</label>
                 <Select value={form.preferredLanguage} disabled className="bg-slate-50 border-0 outline-none text-gray-500 font-medium cursor-not-allowed disabled:opacity-100" options={[{ value: 'English', label: 'English' }, { value: 'Hindi', label: 'Hindi' }, { value: 'Tamil', label: 'Tamil' }, { value: 'Telugu', label: 'Telugu' }, { value: 'Kannada', label: 'Kannada' }]} />
               </div>
-            </div>
-          </div>
-
-          {/* History/Logs Table */}
-          <div className="space-y-4 pt-4 border-t border-gray-150">
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
-              <History size={16} className="text-blue-600 animate-pulse" />History
-            </h3>
-            <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
-              <Table className="w-full border-collapse text-left text-xs">
-                <TableHeader className="bg-slate-50 border-b border-gray-200">
-                  <TableRow>
-                    <TableHead className="font-bold py-2.5 px-3">Date</TableHead>
-                    <TableHead className="font-bold py-2.5 px-3">Status</TableHead>
-                    <TableHead className="font-bold py-2.5 px-3">Call Taken Mins</TableHead>
-                    <TableHead className="font-bold py-2.5 px-3">Call Taken By</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.length > 0 ? (
-                    logs.slice(0, 1).map((log) => {
-                      const mins = log.callDuration ? Math.floor(log.callDuration / 60) : 0;
-                      const secs = log.callDuration ? log.callDuration % 60 : 0;
-                      const durationStr = log.callDuration ? `${mins}m:${String(secs).padStart(2, '0')}s` : '—';
-                      const lastTaker = logs.find((l) => l.callTakenBy && l.callTakenBy.trim() !== '')?.callTakenBy || '—';
-                      return (
-                        <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors border-b border-gray-100 last:border-0">
-                          <TableCell className="py-2.5 px-3 text-gray-600 font-medium whitespace-nowrap">{log.lastUpdatedOn || '—'}</TableCell>
-                          <TableCell className="py-2.5 px-3">
-                            <Badge variant={log.status}>{log.status.toUpperCase()}</Badge>
-                          </TableCell>
-                          <TableCell className="py-2.5 px-3 text-gray-600 font-medium whitespace-nowrap">{durationStr}</TableCell>
-                          <TableCell className="py-2.5 px-3 text-gray-700 font-semibold">{lastTaker}</TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-6 text-gray-400 font-semibold bg-slate-50/20">
-                        No prior logs found for this session.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
             </div>
           </div>
 

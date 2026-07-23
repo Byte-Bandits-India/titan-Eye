@@ -17,13 +17,12 @@ function toApiCustomer(row: CustomerRow) {
   };
 }
 
-// Helper to prevent IDOR (VAPT Finding #19)
 async function verifyCustomerAccess(req: AuthenticatedRequest, res: Response, customerId: string): Promise<CustomerRow | null> {
   const customer = await get<CustomerRow>(
     `SELECT id, name, age, gender, mobile, customerType, storeName,
             preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback,
             status, activeProfile, lastUpdatedOn, rxData, optumRxData,
-            callStartTime, callActive, callTakenBy, callDuration
+            callStartTime, callActive, callTakenBy, storeContactEmail, callDuration
      FROM customers WHERE id = ?`,
     [customerId]
   );
@@ -32,7 +31,6 @@ async function verifyCustomerAccess(req: AuthenticatedRequest, res: Response, cu
     return null;
   }
 
-  // Enforce store scoping (store role users can only access their own store's customers)
   if (req.user && req.user.role === 'store') {
     if (customer.storeName !== req.user.storeName) {
       res.status(403).json({ error: 'Access Denied: You cannot access records belonging to another store location.' });
@@ -195,19 +193,16 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    // Role-based scoping (VAPT Finding #16 & #18)
     if (req.user && req.user.role === 'store') {
       if (existing.storeName !== req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
-      // Store users cannot edit clinical Optum data
       c.optumRxData = existing.optumRxData ? JSON.parse(existing.optumRxData) : null;
       c.optumFeedback = existing.optumFeedback;
       c.storeName = req.user.storeName ?? undefined;
     }
 
     if (req.user && req.user.role === 'optum') {
-      // Optum users cannot edit store demographics, language, or store feedback
       c.name = existing.name;
       c.age = existing.age;
       c.gender = existing.gender;
@@ -308,15 +303,22 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
     const nowMs = String(Date.now());
     const callerName = req.user!.name;
 
+    let storeContactEmail = customer.storeContactEmail;
+    if (req.user!.role === 'store') {
+      const callerAccount = await get<UserRow>('SELECT email, microsoftUpn FROM users WHERE LOWER(email) = LOWER(?)', [req.user!.email]);
+      storeContactEmail = callerAccount?.microsoftUpn || callerAccount?.email || req.user!.email;
+    }
+
     await run(`
       UPDATE customers SET
         callActive = 1,
         callStartTime = ?,
         callTakenBy = ?,
+        storeContactEmail = ?,
         status = 'Initiated',
         lastUpdatedOn = ?
       WHERE id = ?
-    `, [nowMs, callerName, timestamp, id]);
+    `, [nowMs, callerName, storeContactEmail, timestamp, id]);
 
     const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
     if (!updatedRow) {

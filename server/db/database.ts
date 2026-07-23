@@ -42,6 +42,7 @@ export interface CustomerRow {
   callStartTime: string | null;
   callActive: number;
   callTakenBy: string | null;
+  storeContactEmail: string | null;
   callDuration: number;
 }
 
@@ -163,6 +164,7 @@ export async function initDb(): Promise<void> {
       callStartTime TEXT,
       callActive INTEGER DEFAULT 0,
       callTakenBy TEXT,
+      storeContactEmail TEXT,
       callDuration INTEGER DEFAULT 0
     )
   `);
@@ -189,6 +191,9 @@ export async function initDb(): Promise<void> {
   } catch (e) { }
   try {
     await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`);
+  } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN storeContactEmail TEXT`);
   } catch (e) { }
   try {
     await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`);
@@ -265,7 +270,7 @@ export async function initDb(): Promise<void> {
 
   await run(`
     CREATE VIEW IF NOT EXISTS customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback, status, activeProfile, lastUpdatedOn, rxData, optumRxData, callStartTime, callActive, callTakenBy, callDuration
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optumFeedback, status, activeProfile, lastUpdatedOn, rxData, optumRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration
     FROM customers
   `);
 

@@ -9,7 +9,6 @@ const zapCommentFix = () => {
   return {
     name: 'zap-comment-fix',
     enforce: 'post',
-    // renderChunk runs before minification - handles W3C namespace URLs present in source
     renderChunk(code) {
       let newCode = code;
       newCode = newCode.replace(/"http:\/\/www.w3.org\/2000\/svg"/g, '["http:", "", "www.w3.org/2000/svg"].join("/")');
@@ -19,8 +18,6 @@ const zapCommentFix = () => {
       newCode = newCode.replace(/"http:\/\/www.w3.org\/1999\/xhtml"/g, '["http:", "", "www.w3.org/1999/xhtml"].join("/")');
       return { code: newCode, map: null };
     },
-    // writeBundle runs AFTER all files are written to disk — no conflicts with
-    // Vite's internal source position tracking (build-import-analysis)
     async writeBundle(options, bundle) {
       const fs = await import('fs');
       const outDir = options.dir || 'dist';

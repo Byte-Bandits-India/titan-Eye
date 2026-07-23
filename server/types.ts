@@ -117,6 +117,7 @@ export interface ApiCustomer {
   callStartTime: string | null;
   callActive: boolean;
   callTakenBy: string | null;
+  storeContactEmail: string | null;
   callDuration: number;
 }
 
