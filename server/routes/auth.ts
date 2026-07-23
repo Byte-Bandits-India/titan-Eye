@@ -125,22 +125,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
     if (!user || user.status === 'inactive') {
       return res.status(401).json({ error: 'Session is no longer valid' });
     }
-    // Refresh the cookie with a new token (sliding idle window)
-    const token = generateToken(
-      { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-      SESSION_IDLE_MS
-    );
-    const newTokenSig = token.split('.')[2];
-    await run('UPDATE users SET activeTokenSig = ? WHERE email = ?', [newTokenSig, user.email]);
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: TOKEN_MAX_AGE_MS,
-    });
-
-    // ── VAPT Fix #8: No token in JSON body ────────────────────────────
+    // ── VAPT Fix #8: No token in JSON body, return current user profile ────────────
     return res.json({
       user: {
         email:        user.email,
