@@ -45,23 +45,53 @@ async function verifyCustomerAccess(req: AuthenticatedRequest, res: Response, cu
 
 router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const rows = await all<CustomerLogRow & { customerName?: string; storeName?: string }>(`
+    const customerLogs = await all<CustomerLogRow & { customerName?: string; storeName?: string }>(`
       SELECT cl.*, c.name as customerName, c.storeName
       FROM customer_logs cl
       LEFT JOIN customers c ON cl.customerId = c.id
       ORDER BY cl.id DESC
     `);
-    const logs = rows.map(l => ({
-      id: l.id,
+
+    const adminLogs = await all<{
+      id: number;
+      adminEmail: string;
+      adminName: string;
+      action: string;
+      target: string;
+      details: string;
+      timestamp: string;
+    }>('SELECT * FROM admin_logs ORDER BY id DESC');
+
+    const formattedCustomerLogs = customerLogs.map(l => ({
+      id: `CST-${l.id}`,
       customerId: l.customerId,
       customerName: l.customerName || 'N/A',
-      storeName: l.storeName || 'N/A',
+      storeName: l.storeName || 'Store / Clinic',
       lastUpdatedOn: l.lastUpdatedOn,
       status: l.status,
       callDuration: l.callDuration,
       callTakenBy: l.callTakenBy || 'System / Store'
     }));
-    return res.json(logs);
+
+    const formattedAdminLogs = adminLogs.map(a => ({
+      id: `ADM-${a.id}`,
+      customerId: a.target,
+      customerName: a.details || 'Admin Management',
+      storeName: 'Admin System',
+      lastUpdatedOn: a.timestamp,
+      status: a.action,
+      callDuration: 0,
+      callTakenBy: a.adminName ? `${a.adminName} (${a.adminEmail})` : a.adminEmail
+    }));
+
+    const combinedLogs = [...formattedCustomerLogs, ...formattedAdminLogs].sort((a, b) => {
+      const timeA = a.lastUpdatedOn ? new Date(a.lastUpdatedOn).getTime() : 0;
+      const timeB = b.lastUpdatedOn ? new Date(b.lastUpdatedOn).getTime() : 0;
+      if (isNaN(timeA) || isNaN(timeB)) return 0;
+      return timeB - timeA;
+    });
+
+    return res.json(combinedLogs);
   } catch (err) {
     const error = err as Error;
     console.error('Fetch all audit logs error:', error.message);

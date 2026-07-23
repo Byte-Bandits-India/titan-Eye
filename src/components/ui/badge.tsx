@@ -23,6 +23,10 @@ const badgeVariants = cva(
         optum: 'border-transparent bg-teal-100 text-teal-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
         active: 'border-transparent bg-emerald-100 text-emerald-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
         inactive: 'border-transparent bg-rose-100 text-rose-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        USER_CREATED: 'border-transparent bg-purple-100 text-purple-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        USER_UPDATED: 'border-transparent bg-sky-100 text-sky-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        USER_DELETED: 'border-transparent bg-rose-100 text-rose-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
+        USER_STATUS_CHANGE: 'border-transparent bg-amber-100 text-amber-700 font-bold tracking-wide text-[9px] px-2.5 py-1',
       },
     },
     defaultVariants: {

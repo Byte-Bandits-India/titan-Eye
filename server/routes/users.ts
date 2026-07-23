@@ -3,11 +3,24 @@ import { ParamsDictionary } from 'express-serve-static-core';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { all, run, get, UserRow } from '../db/database.js';
 import { hashPassword } from '../utils/hash.js';
+import { broadcastEvent } from '../utils/sse.js';
 import type { ManagedUserResponse, ErrorResponse } from '../types.js';
 
 const router = Router();
 
 const VALID_ROLES = ['store', 'optum', 'admin'];
+
+function getFormattedTimestamp(): string {
+  return new Date().toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+}
 
 interface CreateUserBody {
   email?: string;
@@ -85,6 +98,17 @@ router.post('/', async (req: Request<ParamsDictionary, ManagedUserResponseBody, 
       [normalizedEmail, name.trim(), role, finalStoreName, mobile || null, 'active', hashPassword(password)]
     );
 
+    const adminReq = req as unknown as AuthenticatedRequest;
+    const adminEmail = adminReq.user?.email || 'admin@gmail.com';
+    const adminName = adminReq.user?.name || 'Admin';
+    const timestamp = getFormattedTimestamp();
+
+    await run(
+      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminEmail, adminName, 'USER_CREATED', normalizedEmail, `Role: ${role.toUpperCase()}, Name: ${name.trim()}${finalStoreName ? `, Store: ${finalStoreName}` : ''}`, timestamp]
+    );
+    broadcastEvent('ADMIN_LOG_CREATED', { target: normalizedEmail, action: 'USER_CREATED' });
+
     return res.status(201).json({
       email: normalizedEmail,
       name: name.trim(),
@@ -131,6 +155,17 @@ router.put('/:email', async (req: Request<{ email: string }, ManagedUserResponse
       [name.trim(), role, finalStoreName, mobile || null, newPassword, email]
     );
 
+    const adminReq = req as unknown as AuthenticatedRequest;
+    const adminEmail = adminReq.user?.email || 'admin@gmail.com';
+    const adminName = adminReq.user?.name || 'Admin';
+    const timestamp = getFormattedTimestamp();
+
+    await run(
+      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminEmail, adminName, 'USER_UPDATED', existing.email, `Role: ${role.toUpperCase()}, Name: ${name.trim()}`, timestamp]
+    );
+    broadcastEvent('ADMIN_LOG_CREATED', { target: existing.email, action: 'USER_UPDATED' });
+
     return res.json({
       email: existing.email,
       name: name.trim(),
@@ -161,6 +196,17 @@ router.delete('/:email', async (req: AuthenticatedRequest, res: Response<DeleteU
     }
 
     await run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+
+    const adminEmail = req.user?.email || 'admin@gmail.com';
+    const adminName = req.user?.name || 'Admin';
+    const timestamp = getFormattedTimestamp();
+
+    await run(
+      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminEmail, adminName, 'USER_DELETED', existing.email, `Deleted user account ${existing.email}`, timestamp]
+    );
+    broadcastEvent('ADMIN_LOG_CREATED', { target: existing.email, action: 'USER_DELETED' });
+
     return res.json({ ok: true });
   } catch (err) {
     const error = err as Error;
@@ -184,6 +230,18 @@ router.put('/:email/status', async (req: Request<{ email: string }, UpdateStatus
     }
 
     await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', [status, email]);
+
+    const adminReq = req as unknown as AuthenticatedRequest;
+    const adminEmail = adminReq.user?.email || 'admin@gmail.com';
+    const adminName = adminReq.user?.name || 'Admin';
+    const timestamp = getFormattedTimestamp();
+
+    await run(
+      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
+      [adminEmail, adminName, 'USER_STATUS_CHANGE', existing.email, `Account status updated to ${status.toUpperCase()}`, timestamp]
+    );
+    broadcastEvent('ADMIN_LOG_CREATED', { target: existing.email, action: 'USER_STATUS_CHANGE' });
+
     return res.json({ email: existing.email, status });
   } catch (err) {
     const error = err as Error;

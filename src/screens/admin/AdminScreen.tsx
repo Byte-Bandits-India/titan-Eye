@@ -693,13 +693,13 @@ export function AdminScreen() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px] font-bold text-xs uppercase text-muted-foreground">Log ID</TableHead>
+                    <TableHead className="w-[110px] font-bold text-xs uppercase text-muted-foreground">Log ID</TableHead>
                     <TableHead className="font-bold text-xs uppercase text-muted-foreground">Timestamp</TableHead>
-                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Patient ID / Name</TableHead>
-                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Store Name</TableHead>
-                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Status Transition</TableHead>
-                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Call Duration</TableHead>
-                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Activity Performed By</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Target / Entity</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Scope / Store</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Action / Status</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Details / Duration</TableHead>
+                    <TableHead className="font-bold text-xs uppercase text-muted-foreground">Performed By</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -712,22 +712,22 @@ export function AdminScreen() {
                   ) : (
                     paginatedAuditLogs.map((log) => (
                       <TableRow key={log.id}>
-                        <TableCell className="font-semibold text-xs py-3 text-muted-foreground">#{log.id}</TableCell>
+                        <TableCell className="font-semibold text-xs py-3 text-muted-foreground">{log.id}</TableCell>
                         <TableCell className="text-xs py-3 font-medium text-foreground">{log.lastUpdatedOn || '—'}</TableCell>
                         <TableCell className="text-xs py-3 font-semibold text-blue-600 dark:text-blue-400">
-                          {log.customerId} {log.customerName && log.customerName !== 'N/A' ? `(${log.customerName})` : ''}
+                          {log.customerId}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs py-3">{log.storeName || '—'}</TableCell>
                         <TableCell className="py-3">
-                          <Badge variant={log.status}>{log.status?.toUpperCase() || 'UPDATED'}</Badge>
+                          <Badge variant={log.status as any}>{log.status?.replace('_', ' ') || 'UPDATED'}</Badge>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs py-3">
-                          {log.callDuration ? `${Math.floor(log.callDuration / 60)}m ${log.callDuration % 60}s` : '—'}
+                        <TableCell className="text-muted-foreground text-xs py-3 max-w-[240px] truncate">
+                          {log.callDuration ? `${Math.floor(log.callDuration / 60)}m ${log.callDuration % 60}s` : (log.customerName && log.customerName !== 'N/A' ? log.customerName : '—')}
                         </TableCell>
                         <TableCell className="text-xs py-3 font-semibold text-slate-700 dark:text-slate-300">
                           <div className="flex items-center gap-1.5">
                             <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                              {log.callTakenBy || 'Store / System'}
+                              {log.callTakenBy || 'System / Store'}
                             </span>
                           </div>
                         </TableCell>

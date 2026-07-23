@@ -238,6 +238,18 @@ export async function initDb(): Promise<void> {
     END;
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS admin_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      adminEmail TEXT NOT NULL,
+      adminName TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target TEXT NOT NULL,
+      details TEXT,
+      timestamp TEXT NOT NULL
+    )
+  `);
+
   const logsCount = await get<{ count: number }>('SELECT COUNT(*) as count FROM customer_logs');
   if (logsCount && logsCount.count === 0) {
     await run(`
