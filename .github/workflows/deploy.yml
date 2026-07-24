@@ -21,44 +21,9 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm install
 
-      - name: 🏗 Inject Environment Variables
+      - name: 🏗 Set Build Environment Variables for Vite
         run: |
-          JWT_SECRET_VAL="${{ secrets.JWT_SECRET }}"
-          if [ -z "$JWT_SECRET_VAL" ]; then
-            JWT_SECRET_VAL="titan-eye-prod-jwt-secret-key-987654321-secure"
-          fi
-          WEBHOOK_SECRET_VAL="${{ secrets.WEBHOOK_SECRET }}"
-          if [ -z "$WEBHOOK_SECRET_VAL" ]; then
-            WEBHOOK_SECRET_VAL="titan-eye-prod-webhook-secret-key-123456789-secure"
-          fi
-          ADMIN_EMAIL_VAL="${{ secrets.ADMIN_EMAIL }}"
-          if [ -z "$ADMIN_EMAIL_VAL" ]; then
-            ADMIN_EMAIL_VAL="admin@gmail.com"
-          fi
-          ADMIN_PASSWORD_VAL="${{ secrets.ADMIN_PASSWORD }}"
-          if [ -z "$ADMIN_PASSWORD_VAL" ]; then
-            ADMIN_PASSWORD_VAL="pass@123"
-          fi
-
-          echo "VITE_API_BASE_URL=/api" > .env
-          echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env
-          echo "JWT_SECRET=$JWT_SECRET_VAL" >> .env
-          echo "WEBHOOK_SECRET=$WEBHOOK_SECRET_VAL" >> .env
-          echo "ADMIN_EMAIL=$ADMIN_EMAIL_VAL" >> .env
-          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD_VAL" >> .env
-          echo "NODE_ENV=production" >> .env
-          echo "ALLOWED_ORIGINS=http://localhost:5173,http://titan.thebytebandits.com,https://titan.thebytebandits.com" >> .env
-          echo "DATABASE_PATH=/home/ec2-user/titan-data/database.db" >> .env
-
           echo "VITE_API_BASE_URL=/api" > .env.production
-          echo "VITE_LOCAL_SERVICE_URL=http://localhost:3001/api" >> .env.production
-          echo "JWT_SECRET=$JWT_SECRET_VAL" >> .env.production
-          echo "WEBHOOK_SECRET=$WEBHOOK_SECRET_VAL" >> .env.production
-          echo "ADMIN_EMAIL=$ADMIN_EMAIL_VAL" >> .env.production
-          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD_VAL" >> .env.production
-          echo "NODE_ENV=production" >> .env.production
-          echo "ALLOWED_ORIGINS=http://localhost:5173,http://titan.thebytebandits.com,https://titan.thebytebandits.com" >> .env.production
-          echo "DATABASE_PATH=/home/ec2-user/titan-data/database.db" >> .env.production
 
       - name: 🏗 Build Vite App
         run: npm run build
@@ -73,8 +38,7 @@ jobs:
             dist-server \
             server.js \
             package.json \
-            package-lock.json \
-            .env
+            package-lock.json
 
       - name: 🔑 Configure SSH Key
         run: |
@@ -123,8 +87,8 @@ jobs:
 
             cd $APP_DIR
 
-            echo "🧹 Cleaning old files..."
-            rm -rf dist dist-server package.json package-lock.json server.js .env
+            echo "🧹 Cleaning old build files (preserving server .env)..."
+            rm -rf dist dist-server package.json package-lock.json server.js
 
             echo "📦 Extracting new build..."
             tar -xzf /tmp/deploy.tar.gz -C $APP_DIR
