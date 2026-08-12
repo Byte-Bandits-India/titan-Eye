@@ -5,6 +5,7 @@ import { StoreScreen } from '../screens/store/StoreScreen';
 import { OptomScreen } from '../screens/optom/OptomScreen';
 import { AdminScreen } from '../screens/admin/AdminScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
+import { FeedbackScreen } from '../screens/public/FeedbackScreen';
 import type { RouteProps, ProtectedRouteProps, UserRole } from '../types';
 
 export function getHomeRoute(role: UserRole): string {
@@ -83,6 +84,10 @@ export const routes = [
   {
     path: '/sso/callback',
     element: <SsoCallbackScreen />,
+  },
+  {
+    path: '/feedback/:token',
+    element: <FeedbackScreen />,
   },
   {
     path: '/',

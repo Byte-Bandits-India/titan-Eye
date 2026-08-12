@@ -43,6 +43,7 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
     "lucide-react": "^1.21.0",
+    "qrcode.react": "^4.2.0",
     "quill": "^2.0.3",
     "radix-ui": "^1.6.7",
     "react": "^19.2.6",

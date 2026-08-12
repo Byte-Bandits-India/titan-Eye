@@ -19,6 +19,7 @@ import { useCountUp } from 'react-countup';
 import type { Customer, ManagedUser } from '../../types';
 
 import {
+  completeCallAction,
   fetchCustomersAction,
   initiateCallAction,
   updateCustomerAction,
@@ -29,6 +30,7 @@ import { DataGrid, dataGridFeatures, type DataGridFeatures } from '../../compone
 import { DataGridScrollArea } from '../../components/reui/data-grid/data-grid-scroll-area';
 import { DataGridTable } from '../../components/reui/data-grid/data-grid-table';
 import { CollisionModal } from '../../components/shared/CollisionModal';
+import { CompleteCallModal } from '../../components/shared/CompleteCallModal';
 import { NotificationPopover } from '../../components/shared/NotificationPopover';
 import { OptomAvatar } from '../../components/shared/OptomAvatar';
 import { Button } from '../../components/ui/button';
@@ -66,7 +68,6 @@ export function StoreScreen() {
   const [statusTab, setStatusTab] = React.useState<'all' | 'Completed' | 'InProgress' | 'Pending'>('all');
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState('');
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
-  const [now, setNow] = React.useState<number>(Date.now());
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
 
   React.useEffect(() => {
@@ -79,11 +80,6 @@ export function StoreScreen() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  React.useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-
-    return () => clearInterval(timer);
-  }, []);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0492');
   const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
@@ -97,6 +93,11 @@ export function StoreScreen() {
     takenBy: string;
     targetView?: 'info' | 'rx';
   }>(null);
+  const [completeCallModalData, setCompleteCallModalData] = React.useState<null | {
+    customerName: string;
+    feedbackUrl: string;
+  }>(null);
+  const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
   const { toast } = useToast();
   const { addLogNotification } = useNotificationLog();
 
@@ -407,6 +408,29 @@ export function StoreScreen() {
     }
   };
 
+  const handleCompleteCall = async (customerId: string, customerName: string) => {
+    setCompletingCallId(customerId);
+
+    try {
+      const result = await dispatch(completeCallAction(customerId));
+
+      setCompleteCallModalData({
+        customerName,
+        feedbackUrl: `${window.location.origin}/feedback/${result.token}`,
+      });
+    } catch (e) {
+      const err = e as Error;
+
+      toast({
+        description: err.message || 'Failed to mark the call as completed.',
+        title: 'System Error',
+        type: 'error',
+      });
+    } finally {
+      setCompletingCallId(null);
+    }
+  };
+
   const handleAddNewClick = () => {
     setIsAddingNew(true);
     setIsEditing(false);
@@ -464,7 +488,7 @@ export function StoreScreen() {
         size: 110,
       },
       {
-        cell: ({ row }) => renderWaitingDuration(row.original, now),
+        cell: ({ row }) => <WaitingCell cust={row.original} />,
         enableSorting: false,
         header: () => (
           <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">Waiting</span>
@@ -515,6 +539,18 @@ export function StoreScreen() {
                       title="Waiting for an Optom doctor to respond — automatically retried with the next available Optom"
                     >
                       Requesting Optom…
+                    </Button>
+                  );
+                }
+
+                if (cust.status === 'Completed' || cust.status === 'Closed') {
+                  return (
+                    <Button
+                      className="flex h-8 cursor-not-allowed items-center gap-1.5 rounded-xs border-0 bg-muted px-4 text-xs font-bold text-muted-foreground opacity-100"
+                      disabled
+                      title="This consultation is already completed"
+                    >
+                      Completed
                     </Button>
                   );
                 }
@@ -595,6 +631,22 @@ export function StoreScreen() {
                     <FileText className="shrink-0 text-emerald-600 dark:text-emerald-400" size={14} />
                     <span>Store Rx</span>
                   </button>
+
+                  {cust.status === 'Accepted' && !cust.callActive && (
+                    <>
+                      <div className="my-1 h-px bg-border" />
+
+                      <button
+                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={completingCallId === cust.id}
+                        onClick={() => handleCompleteCall(cust.id, cust.name)}
+                        type="button"
+                      >
+                        <CheckCircle2 className="shrink-0 text-indigo-600 dark:text-indigo-400" size={14} />
+                        <span>{completingCallId === cust.id ? 'Completing…' : 'Complete Call'}</span>
+                      </button>
+                    </>
+                  )}
                 </PopoverContent>
               </Popover>
             </div>
@@ -611,7 +663,7 @@ export function StoreScreen() {
         size: 240,
       },
     ],
-    [now, loadingCallId, user]
+    [loadingCallId, user]
   );
 
   const customersTable = useTable({
@@ -933,6 +985,14 @@ export function StoreScreen() {
         />
       )}
 
+      {completeCallModalData && (
+        <CompleteCallModal
+          customerName={completeCallModalData.customerName}
+          feedbackUrl={completeCallModalData.feedbackUrl}
+          onClose={() => setCompleteCallModalData(null)}
+        />
+      )}
+
       <Sheet
         onOpenChange={(open) => {
           if (!open) {setIsAddingNew(false);}
@@ -1036,4 +1096,21 @@ function renderWaitingDuration(cust: Customer, now: number) {
   const elapsedMs = Math.min(endMs - startMs, MAX_WAITING_MS);
 
   return <span className="font-mono text-xs text-foreground">{formatDurationLong(elapsedMs)}</span>;
+}
+
+// Ticks on its own instead of threading `now` through customerColumns, which
+// would otherwise rebuild the whole columns array (and every cell in it,
+// including the Actions popover) once a second and reset any open popover.
+function WaitingCell({ cust }: { cust: Customer }) {
+  const [now, setNow] = React.useState<number>(() => Date.now());
+
+  React.useEffect(() => {
+    if (cust.optomCallStartTime) {return;}
+
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(timer);
+  }, [cust.optomCallStartTime]);
+
+  return renderWaitingDuration(cust, now);
 }

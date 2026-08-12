@@ -1,69 +1,80 @@
 import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
+
 import { hashPassword } from '../utils/hash.js';
 import { logger } from '../utils/logger.js';
 
-export type SqlParam = string | number | bigint | Buffer | null;
-
-export interface UserRow {
-  email: string;
-  name: string;
-  role: string;
-  storeName: string | null;
-  mobile: string | null;
-  lastLogin: string | null;
+export interface CustomerLogRow {
+  callDuration: null | number;
+  callStartTime: null | string;
+  callTakenBy: null | string;
+  customerId: string;
+  id: number;
+  lastUpdatedOn: null | string;
+  optomCallStartTime: null | string;
   status: string;
-  azureObjectId: string | null;
-  microsoftUpn: string | null;
-  password: string;
-  failedLoginAttempts: number;
-  lockedUntil: string | null;
-  activeTokenSig: string | null;
 }
 
 export interface CustomerRow {
-  id: string;
-  name: string;
+  activeProfile: number;
   age: string;
-  gender: string;
-  mobile: string;
+  callActive: number;
+  callDuration: number;
+  callStartTime: null | string;
+  callTakenBy: null | string;
+  createdOn: null | string;
   customerType: string;
-  storeName: string;
+  declinedByOptomEmails: null | string;
+  gender: string;
+  id: string;
+  lastUpdatedOn: null | string;
+  mobile: string;
+  name: string;
+  offeredToOptomEmail: null | string;
+  optomCallStartTime: null | string;
+  optomFeedback: string;
+  optomRxData: null | string;
+  patientFeedback: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
-  storeFeedback: string;
-  optomFeedback: string;
+  rxData: null | string;
   status: string;
-  activeProfile: number;
-  createdOn: string | null;
-  lastUpdatedOn: string | null;
-  rxData: string | null;
-  optomRxData: string | null;
-  callStartTime: string | null;
-  callActive: number;
-  callTakenBy: string | null;
-  storeContactEmail: string | null;
-  callDuration: number;
-  optomCallStartTime: string | null;
-  offeredToOptomEmail: string | null;
-  declinedByOptomEmails: string | null;
+  storeContactEmail: null | string;
+  storeFeedback: string;
+  storeName: string;
 }
 
-export interface CustomerLogRow {
-  id: number;
+export interface FeedbackTokenRow {
+  createdAt: string;
   customerId: string;
-  lastUpdatedOn: string | null;
+  expiresAt: string;
+  token: string;
+  usedAt: null | string;
+}
+
+export type SqlParam = bigint | Buffer | null | number | string;
+
+export interface UserRow {
+  activeTokenSig: null | string;
+  azureObjectId: null | string;
+  email: string;
+  failedLoginAttempts: number;
+  lastLogin: null | string;
+  lockedUntil: null | string;
+  microsoftUpn: null | string;
+  mobile: null | string;
+  name: string;
+  password: string;
+  role: string;
   status: string;
-  callDuration: number | null;
-  callTakenBy: string | null;
-  callStartTime: string | null;
-  optomCallStartTime: string | null;
+  storeName: null | string;
 }
 
 const DB_PATH = process.env.DATABASE_PATH || 'database.db';
 
 const dbDir = path.dirname(DB_PATH);
+
 if (dbDir && dbDir !== '.') {
   fs.mkdirSync(dbDir, { recursive: true });
 }
@@ -77,31 +88,18 @@ try {
   logger.warn('DB pragmas warning', { errorMessage: (e as Error).message });
 }
 
-export function query<T>(sql: string, params: SqlParam[] = []): T[] {
-  const stmt = db.prepare(sql);
-  return stmt.all(...params) as T[];
-}
-
-export function queryOne<T>(sql: string, params: SqlParam[] = []): T | undefined {
-  const stmt = db.prepare(sql);
-  return stmt.get(...params) as T | undefined;
-}
-
-export function execute(sql: string, params: SqlParam[] = []): Database.RunResult {
-  const stmt = db.prepare(sql);
-  return stmt.run(...params);
-}
-
 export async function all<T>(sql: string, params: SqlParam[] = []): Promise<T[]> {
   return query<T>(sql, params);
 }
 
-export async function get<T>(sql: string, params: SqlParam[] = []): Promise<T | undefined> {
-  return queryOne<T>(sql, params);
+export function execute(sql: string, params: SqlParam[] = []): Database.RunResult {
+  const stmt = db.prepare(sql);
+
+  return stmt.run(...params);
 }
 
-export async function run(sql: string, params: SqlParam[] = []): Promise<Database.RunResult> {
-  return execute(sql, params);
+export async function get<T>(sql: string, params: SqlParam[] = []): Promise<T | undefined> {
+  return queryOne<T>(sql, params);
 }
 
 export async function initializeDatabase(): Promise<void> {
@@ -151,22 +149,45 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   try { await run(`ALTER TABLE customers ADD COLUMN optomFeedback TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN optomRxData TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN callStartTime TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN callActive INTEGER DEFAULT 0`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN storeContactEmail TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN optomCallStartTime TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN offeredToOptomEmail TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN declinedByOptomEmails TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customers ADD COLUMN createdOn TEXT`); } catch (e) { }
+
+  try { await run(`ALTER TABLE customers ADD COLUMN patientFeedback TEXT`); } catch (e) { }
 
   // Legacy rows predate the createdOn column; lastUpdatedOn is the closest
   // available timestamp for them and only backfills rows still missing it.
   await run(`UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS feedback_tokens (
+      token TEXT PRIMARY KEY,
+      customerId TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      expiresAt TEXT NOT NULL,
+      usedAt TEXT
+    )
+  `);
+
   try { await run(`ALTER TABLE customer_logs ADD COLUMN callStartTime TEXT`); } catch (e) { }
+
   try { await run(`ALTER TABLE customer_logs ADD COLUMN optomCallStartTime TEXT`); } catch (e) { }
 
   await run(`
@@ -222,6 +243,7 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   const logsCount = await get<{ count: number }>('SELECT COUNT(*) as count FROM customer_logs');
+
   if (logsCount && logsCount.count === 0) {
     await run(`
       INSERT INTO customer_logs (
@@ -235,7 +257,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optomCallStartTime, offeredToOptomEmail, declinedByOptomEmails
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optomCallStartTime, offeredToOptomEmail, declinedByOptomEmails, patientFeedback
     FROM customers
   `);
 
@@ -248,15 +270,34 @@ export async function initializeDatabase(): Promise<void> {
   const adminPassword = process.env.ADMIN_PASSWORD || 'pass@123';
 
   const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
+
   if (!existingAdmin) {
     await run('INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)', [
       adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)
     ]);
   } else {
     await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', ['active', adminEmail]);
+
     if (!existingAdmin.password.includes(':')) {
       await run('UPDATE users SET password = ? WHERE email = ?', [hashPassword(adminPassword), existingAdmin.email]);
     }
   }
+
   logger.info('Seeded default admin and optom accounts.');
+}
+
+export function query<T>(sql: string, params: SqlParam[] = []): T[] {
+  const stmt = db.prepare(sql);
+
+  return stmt.all(...params) as T[];
+}
+
+export function queryOne<T>(sql: string, params: SqlParam[] = []): T | undefined {
+  const stmt = db.prepare(sql);
+
+  return stmt.get(...params) as T | undefined;
+}
+
+export async function run(sql: string, params: SqlParam[] = []): Promise<Database.RunResult> {
+  return execute(sql, params);
 }

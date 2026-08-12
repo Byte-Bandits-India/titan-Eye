@@ -15,6 +15,7 @@ export interface ApiCustomer {
   optomCallStartTime: null | string;
   optomFeedback: string;
   optomRxData: CustomerOptomRxData | undefined;
+  patientFeedback: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
   rxData: CustomerRxData | undefined;

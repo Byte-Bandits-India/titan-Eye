@@ -118,6 +118,22 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
   }
 };
 
+export const completeCallAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.post<{ customer: Customer; ok: boolean; token: string; }>(`/customers/${encodeURIComponent(id)}/complete`);
+
+    if (response.data.customer) {
+      dispatch(customerUpdated(response.data.customer));
+    }
+
+    return response.data;
+  } catch (e) {
+    const err = e as Error;
+    const msg = handleApiError(err, dispatch, 'Failed to mark the call as completed.');
+    throw new Error(msg);
+  }
+};
+
 export const fetchCustomerLogsAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.get<CustomerLog[]>(`/customers/${encodeURIComponent(id)}/logs`);

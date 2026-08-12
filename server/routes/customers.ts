@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 import { Response, Router } from 'express';
 
 import type { CustomerInput } from '../types.js';
@@ -401,6 +403,13 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.preferredLanguage = existing.preferredLanguage;
       c.preferredLanguage2 = existing.preferredLanguage2;
       c.storeFeedback = existing.storeFeedback;
+
+      // Only the store can close out a visit (POST /:id/complete, which also
+      // issues the patient feedback QR token) - block Optoms from setting
+      // this status through the generic update route.
+      if (c.status === 'Completed') {
+        c.status = existing.status;
+      }
     }
 
     if (c.rxData === undefined) {
@@ -655,11 +664,13 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
+    // Ending the call no longer marks the customer Completed - only the store
+    // can do that (via POST /:id/complete), after they've confirmed the visit
+    // is actually done. Status is left as-is (still 'Accepted').
     await run(`
       UPDATE customers SET
         callActive = 0,
         callTakenBy = NULL,
-        status = 'Completed',
         lastUpdatedOn = ?,
         callDuration = ?
       WHERE id = ?
@@ -682,6 +693,68 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
   } catch (err) {
     const error = err as Error;
     logger.error('End call error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+const FEEDBACK_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
+router.post('/:id/complete', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'store') {
+      return res.status(403).json({ error: 'Only Store users can mark a call as completed.' });
+    }
+
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {return;}
+
+    if (customer.status !== 'Accepted' || customer.callActive) {
+      return res.status(409).json({ error: 'This customer has no completed consultation to close out yet.' });
+    }
+
+    const timestamp = new Date().toLocaleString('en-US', {
+      day: 'numeric',
+      hour: 'numeric',
+      hour12: true,
+      minute: '2-digit',
+      month: 'short',
+      second: '2-digit',
+      year: 'numeric',
+    });
+
+    await run(`
+      UPDATE customers SET
+        status = 'Completed',
+        lastUpdatedOn = ?
+      WHERE id = ?
+    `, [timestamp, id]);
+
+    const token = crypto.randomBytes(24).toString('hex');
+    const createdAt = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + FEEDBACK_TOKEN_EXPIRY_MS).toISOString();
+
+    await run(`
+      INSERT INTO feedback_tokens (token, customerId, createdAt, expiresAt, usedAt)
+      VALUES (?, ?, ?, ?, NULL)
+    `, [token, id, createdAt, expiresAt]);
+
+    const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+
+    if (!updatedRow) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    const updatedCustomer = toApiCustomer(updatedRow);
+
+    broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+    return res.json({ customer: updatedCustomer, ok: true, token });
+  } catch (err) {
+    const error = err as Error;
+    logger.error('Complete call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
   }

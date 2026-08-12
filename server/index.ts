@@ -13,6 +13,7 @@ import { authenticateToken } from './middleware/auth.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
+import feedbackRouter from './routes/feedback.js';
 import ssoAuthRouter from './routes/ssoAuth.js';
 import systemRouter from './routes/system.js';
 import usersRouter from './routes/users.js';
@@ -246,6 +247,10 @@ app.use('/api/auth/microsoft', authLimiter, ssoAuthRouter);
 app.post('/api/customers', customerCreateLimiter);
 app.use('/api/customers', apiLimiter, authenticateToken, customersRouter);
 app.use('/api/webhooks', apiLimiter, webhooksRouter);
+// No authenticateToken: the patient scans a QR code on their own device with
+// no account of any kind. Access is scoped by the random per-customer token
+// itself, not a session.
+app.use('/api/feedback', apiLimiter, feedbackRouter);
 app.use('/api', apiLimiter, authenticateToken, systemRouter);
 app.use('/api/users', apiLimiter, authenticateToken, usersRouter);
 

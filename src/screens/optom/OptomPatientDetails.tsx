@@ -605,7 +605,7 @@ export function OptomPatientDetails({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full md:w-auto justify-end">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <label className="text-xs font-bold text-gray-600 dark:text-muted-foreground whitespace-nowrap">Status:</label>
-                <Select className="rounded-[50px] flex-1 h-10" onChange={(e) => handleStatusChange(e.target.value)} options={[{ label: 'Created', value: 'Created' }, { label: 'Initiated', value: 'Initiated' }, { label: 'Accepted', value: 'Accepted' }, { label: 'Completed', value: 'Completed' }]} value={form.status} />
+                <Select className="rounded-[50px] flex-1 h-10" onChange={(e) => handleStatusChange(e.target.value)} options={[{ label: 'Created', value: 'Created' }, { label: 'Initiated', value: 'Initiated' }, { label: 'Accepted', value: 'Accepted' }]} value={form.status} />
               </div>
               <Button className="w-full sm:w-auto md:w-auto h-10 px-5 rounded-[50px] bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-98 cursor-pointer shrink-0 whitespace-nowrap" type="submit">
                 Update Customer Details

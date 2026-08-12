@@ -42,6 +42,7 @@ export type Customer = {
   callDuration?: number;
   optomCallStartTime?: string | null;
   offeredToOptomEmail?: string | null;
+  patientFeedback?: string | null;
   rxData?: {
     autoRefRe: RxValues;
     autoRefLe: RxValues;
