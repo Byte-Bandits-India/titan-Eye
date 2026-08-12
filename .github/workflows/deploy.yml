@@ -1,0 +1,121 @@
+name: 🚀 Build & Deploy Titan React App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies
+        run: npm install
+
+      - name: 🏗 Set Build Environment Variables for Vite
+        run: |
+          echo "VITE_API_BASE_URL=/api" > .env.production
+
+      - name: 🏗 Build Vite App
+        run: npm run build
+
+      - name: 🏗 Build Server App
+        run: npx tsc -p tsconfig.server.json
+
+      - name: 📦 Create Deployment Package
+        run: |
+          tar -czf deploy.tar.gz \
+            dist \
+            dist-server \
+            server.js \
+            package.json \
+            package-lock.json
+
+      - name: 🔑 Configure SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_HOST_KEY }}" | while read -r line || [ -n "$line" ]; do
+            # Skip empty lines
+            [ -z "$line" ] && continue
+            WORD_COUNT=$(echo "$line" | wc -w)
+            if [ "$WORD_COUNT" -eq 2 ]; then
+              echo "${{ secrets.SERVER_IP }} $line" >> ~/.ssh/known_hosts
+            elif [ "$WORD_COUNT" -gt 2 ]; then
+              KEY_DATA=$(echo "$line" | cut -d' ' -f2-)
+              echo "${{ secrets.SERVER_IP }} $KEY_DATA" >> ~/.ssh/known_hosts
+            fi
+          done
+
+      - name: 📤 Upload to Server (SCP)
+        run: |
+          scp -v -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
+
+      - name: 🚀 Deploy on Server (SSH)
+        run: |
+          ssh -v -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
+            echo "🚀 Starting deployment..."
+            echo "📦 PRODUCTION DEPLOY"
+
+            APP_DIR="/home/ec2-user/titan"
+            DATA_DIR="/home/ec2-user/titan-data"
+            PORT=3000
+            APP_NAME="titan-prod"
+            AGENT_NAME="titan-agent"
+            AGENT_PORT=3001
+
+            mkdir -p $APP_DIR
+            mkdir -p "$DATA_DIR/backups"
+
+            echo "🗄️  Ensuring database lives outside the deploy directory..."
+            if [ -f "$APP_DIR/database.db" ] && [ ! -f "$DATA_DIR/database.db" ]; then
+              echo "📦 One-time migration of existing database to $DATA_DIR ..."
+              mv "$APP_DIR/database.db" "$DATA_DIR/database.db"
+              mv "$APP_DIR/database.db-wal" "$DATA_DIR/database.db-wal" 2>/dev/null || true
+              mv "$APP_DIR/database.db-shm" "$DATA_DIR/database.db-shm" 2>/dev/null || true
+            fi
+
+            cd $APP_DIR
+
+            echo "🧹 Cleaning old build files (preserving server .env)..."
+            rm -rf dist dist-server package.json package-lock.json server.js
+
+            echo "📦 Extracting new build..."
+            tar -xzf /tmp/deploy.tar.gz -C $APP_DIR
+            rm -f /tmp/deploy.tar.gz
+
+            echo "📦 Installing production dependencies..."
+            npm install --omit=dev
+
+            echo "🔧 Rebuilding native sqlite3 addon for this OS (GLIBC compatibility)..."
+            npm rebuild sqlite3 --build-from-source
+
+            echo "🧹 Stopping and cleaning up redundant titan-prod static process..."
+            pm2 delete titan-prod > /dev/null 2>&1 || true
+
+            echo "🔁 Restarting PM2 agent (titan-agent)..."
+            pm2 describe $AGENT_NAME > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+              pm2 restart $AGENT_NAME --update-env
+            else
+              pm2 start server.js --name "$AGENT_NAME"
+            fi
+
+            pm2 save
+
+            echo "🗓️  Scheduling daily database backup..."
+            BACKUP_CMD="cd $APP_DIR && DATABASE_PATH=$DATA_DIR/database.db BACKUP_DIR=$DATA_DIR/backups /usr/bin/node dist-server/scripts/backup.js >> $DATA_DIR/backup.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v "dist-server/scripts/backup.js"; echo "0 2 * * * $BACKUP_CMD") | crontab -
+
+            echo "✅ Deployment completed!"
+          EOF

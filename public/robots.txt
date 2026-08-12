@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /api/
+Disallow: /assets/
+Allow: /
+Sitemap: https://titan.thebytebandits.com/sitemap.xml
