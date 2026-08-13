@@ -17,6 +17,12 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { CallTimer } from '../ui/CallTimer';
 
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 interface OptomIncomingCallAlertProps {
   onSelectCustomer?: (customerId: string) => void;
 }
@@ -33,11 +39,15 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
 
   const isTakenByOptomUser = React.useCallback(
     (callTakenBy?: null | string) => {
-      if (!callTakenBy) {return false;}
+      if (!callTakenBy) {
+        return false;
+      }
 
       const takenByLower = callTakenBy.toLowerCase();
 
-      if (takenByLower.startsWith('dr.')) {return true;}
+      if (takenByLower.startsWith('dr.')) {
+        return true;
+      }
 
       return users.some(
         (u) =>
@@ -49,23 +59,28 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
   );
 
   const pendingCalls = React.useMemo(() => {
-    if (!user || user.role !== 'optom') {return [];}
+    if (!user || user.role !== 'optom') {
+      return [];
+    }
 
     const isOptomUserInCall = customers.some((c) => {
-      if (!c.callActive || !c.callTakenBy) {return false;}
+      if (!c.callActive || !c.callTakenBy) {
+        return false;
+      }
 
       const takenByLower = c.callTakenBy.toLowerCase();
 
-      return (
-        takenByLower === user.name.toLowerCase() ||
-        takenByLower === user.email.toLowerCase()
-      );
+      return takenByLower === user.name.toLowerCase() || takenByLower === user.email.toLowerCase();
     });
 
-    if (isOptomUserInCall) {return [];}
+    if (isOptomUserInCall) {
+      return [];
+    }
 
     return customers.filter((c) => {
-      if (c.status === 'Closed' || c.status === 'Completed' || c.status === 'Accepted') {return false;}
+      if (c.status === 'Closed' || c.status === 'Completed' || c.status === 'Accepted') {
+        return false;
+      }
 
       const isInitiated = c.status === 'Initiated' || c.callActive;
       const isTakenByOptom = isTakenByOptomUser(c.callTakenBy);
@@ -76,15 +91,9 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
   }, [user, customers, dismissedIds, isTakenByOptomUser]);
 
   React.useEffect(() => {
-    if (currentIndex >= pendingCalls.length && pendingCalls.length > 0) {
-      setCurrentIndex(pendingCalls.length - 1);
-    }
-  }, [pendingCalls.length, currentIndex]);
-
-  React.useEffect(() => {
     if (!user || user.role !== 'optom' || pendingCalls.length === 0 || isMuted) {
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => null);
         audioContextRef.current = null;
       }
 
@@ -95,11 +104,11 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
 
     const playChime = () => {
       try {
-        const AudioCtx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
 
-        if (!AudioCtx) {return;}
+        if (!AudioCtx) {
+          return;
+        }
 
         if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
           audioContextRef.current = new AudioCtx();
@@ -108,7 +117,7 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
         const ctx = audioContextRef.current;
 
         if (ctx.state === 'suspended') {
-          ctx.resume().catch(() => {});
+          ctx.resume().catch(() => undefined);
         }
 
         const now = ctx.currentTime;
@@ -142,23 +151,29 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
     intervalId = setInterval(playChime, 2500);
 
     return () => {
-      if (intervalId) {clearInterval(intervalId);}
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
 
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => undefined);
         audioContextRef.current = null;
       }
     };
   }, [user, pendingCalls.length, isMuted]);
 
   const userHasActiveCall = React.useMemo(() => {
-    if (!user) {return false;}
+    if (!user) {
+      return false;
+    }
 
     const userNameLower = user.name.toLowerCase();
     const userEmailLower = user.email.toLowerCase();
 
     return customers.some((c) => {
-      if (!c.callActive || !c.callTakenBy) {return false;}
+      if (!c.callActive || !c.callTakenBy) {
+        return false;
+      }
 
       const takenByLower = c.callTakenBy.toLowerCase();
 
@@ -170,9 +185,12 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
     return null;
   }
 
-  const currentCall = pendingCalls[currentIndex] ?? pendingCalls[0];
+  const safeIndex = Math.min(currentIndex, pendingCalls.length - 1);
+  const currentCall = pendingCalls[safeIndex];
 
-  if (!currentCall) {return null;}
+  if (!currentCall) {
+    return null;
+  }
 
   const handleDismiss = (customerId: string) => {
     setDismissedIds((prev) => new Set(prev).add(customerId));
@@ -187,28 +205,31 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
   };
 
   return (
-    <div className="fixed top-5 right-5 z-[100] w-full max-w-sm sm:max-w-md animate-in slide-in-from-top-5 fade-in duration-300 pointer-events-auto">
-      <div className="bg-white text-slate-900 rounded-2xl border border p-5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-100 rounded-full blur-2xl pointer-events-none animate-pulse opacity-60" />
+    <div className="pointer-events-auto fixed right-5 top-5 z-[100] w-full max-w-sm duration-300 animate-in fade-in slide-in-from-top-5 sm:max-w-md">
+      <div className="relative overflow-hidden rounded-2xl border bg-white p-5 text-slate-900">
+        <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 animate-pulse rounded-full bg-rose-100 opacity-60 blur-2xl" />
 
-        <div className="flex items-start justify-between gap-3 relative z-10">
+        <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center shrink-0">
-              <span className="animate-ping absolute inline-flex h-9 w-9 rounded-full bg-rose-400 opacity-60" />
-              <div className="w-9 h-9 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center font-bold relative z-10 shadow-xs">
-                <Bell className="w-4 h-4 animate-bounce" />
+            <div className="relative flex shrink-0 items-center justify-center">
+              <span className="absolute inline-flex h-9 w-9 animate-ping rounded-full bg-rose-400 opacity-60" />
+              <div className="shadow-xs relative z-10 flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 bg-rose-50 font-bold text-rose-600">
+                <Bell className="h-4 w-4 animate-bounce" />
               </div>
             </div>
 
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-black text-[10px] uppercase tracking-wider bg-rose-50 text-rose-700 px-2 py-0.5 rounded border border-rose-200 flex items-center gap-1">
-                  <ShieldAlert className="w-3 h-3 text-rose-600" />
+                <span className="flex items-center gap-1 rounded border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-700">
+                  <ShieldAlert className="h-3 w-3 text-rose-600" />
                   Incoming Call
                 </span>
                 {pendingCalls.length > 1 && (
-                  <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] font-bold" variant="outline">
-                    {currentIndex + 1} of {pendingCalls.length}
+                  <Badge
+                    className="border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-700"
+                    variant="outline"
+                  >
+                    {safeIndex + 1} of {pendingCalls.length}
                   </Badge>
                 )}
               </div>
@@ -217,82 +238,85 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
 
           <div className="flex items-center gap-1">
             <Button
-              className="h-7 w-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 cursor-pointer rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800"
               onClick={() => setIsMuted(!isMuted)}
               size="icon"
               title={isMuted ? 'Unmute alert sound' : 'Mute alert sound'}
               variant="ghost"
             >
-              {isMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4 text-emerald-600 animate-pulse" />}
+              {isMuted ? (
+                <VolumeX className="h-4 w-4 text-rose-500" />
+              ) : (
+                <Volume2 className="h-4 w-4 animate-pulse text-emerald-600" />
+              )}
             </Button>
 
             <Button
-              className="h-7 w-7 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+              className="h-7 w-7 cursor-pointer rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-800"
               onClick={() => handleDismiss(currentCall.id)}
               size="icon"
               title="Close alert"
               variant="ghost"
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="mt-4 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2 relative z-10">
+        <div className="relative z-10 mt-4 space-y-2 rounded-xl border border-slate-200/80 bg-slate-50 p-3.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <User className="w-4 h-4 text-rose-600 shrink-0" />
-              <span className="font-extrabold text-sm text-slate-900 truncate">{currentCall.name}</span>
+            <div className="flex min-w-0 items-center gap-2">
+              <User className="h-4 w-4 shrink-0 text-rose-600" />
+              <span className="truncate text-sm font-extrabold text-slate-900">{currentCall.name}</span>
             </div>
-            <span className="text-xs font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded shrink-0">
+            <span className="shrink-0 rounded border border-rose-200 bg-rose-50 px-2 py-0.5 font-mono text-xs font-bold text-rose-700">
               {currentCall.id}
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-200/60">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="truncate text-slate-700 font-semibold">{currentCall.storeName || 'Store'}</span>
+          <div className="flex items-center justify-between border-t border-slate-200/60 pt-1 text-xs text-slate-600">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate font-semibold text-slate-700">
+                {currentCall.storeName || 'Store'}
+              </span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-700 bg-slate-200/60 px-2 py-0.5 rounded border border-slate-300/50 shrink-0">
+            <span className="shrink-0 rounded border border-slate-300/50 bg-slate-200/60 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
               {currentCall.preferredLanguage}
             </span>
           </div>
 
-          <div className="flex items-center justify-between text-xs pt-1">
-            <span className="text-slate-500 text-[11px] font-medium">Wait Time:</span>
-            <div className="flex items-center gap-1 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full text-rose-700 font-mono font-bold text-[11px]">
-              <CallTimer
-                active={true}
-                startTime={currentCall.callStartTime || currentCall.lastUpdatedOn}
-              />
+          <div className="flex items-center justify-between pt-1 text-xs">
+            <span className="text-[11px] font-medium text-slate-500">Wait Time:</span>
+            <div className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 font-mono text-[11px] font-bold text-rose-700">
+              <CallTimer active={true} startTime={currentCall.callStartTime || currentCall.lastUpdatedOn} />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-2 relative z-10">
+        <div className="relative z-10 mt-4 flex items-center justify-between gap-2">
           {pendingCalls.length > 1 ? (
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-100 p-1">
               <Button
-                className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded cursor-pointer"
-                onClick={() => setCurrentIndex((prev) => (prev > 0 ? prev - 1 : pendingCalls.length - 1))}
+                className="h-7 w-7 cursor-pointer rounded text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                onClick={() => setCurrentIndex(safeIndex > 0 ? safeIndex - 1 : pendingCalls.length - 1)}
                 size="icon"
                 title="Previous call"
                 variant="ghost"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-[10px] font-mono px-1 font-bold text-slate-600">
-                {currentIndex + 1}/{pendingCalls.length}
+              <span className="px-1 font-mono text-[10px] font-bold text-slate-600">
+                {safeIndex + 1}/{pendingCalls.length}
               </span>
               <Button
-                className="h-7 w-7 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded cursor-pointer"
-                onClick={() => setCurrentIndex((prev) => (prev < pendingCalls.length - 1 ? prev + 1 : 0))}
+                className="h-7 w-7 cursor-pointer rounded text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                onClick={() => setCurrentIndex(safeIndex < pendingCalls.length - 1 ? safeIndex + 1 : 0)}
                 size="icon"
                 title="Next call"
                 variant="ghost"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           ) : (
@@ -300,10 +324,10 @@ export function OptomIncomingCallAlert({ onSelectCustomer }: OptomIncomingCallAl
           )}
 
           <Button
-            className="flex-1 max-w-[210px] bg-primary text-primary-foreground hover:bg-primary/90 font-extrabold text-xs h-9.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className="hover:bg-primary/90 h-9.5 flex max-w-[210px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary text-xs font-extrabold text-primary-foreground shadow-md transition-all active:scale-95"
             onClick={() => handleAcceptCall(currentCall.id)}
           >
-            <PhoneCall className="w-4 h-4 animate-bounce" />
+            <PhoneCall className="h-4 w-4 animate-bounce" />
             ACCEPT & TAKE CALL
           </Button>
         </div>

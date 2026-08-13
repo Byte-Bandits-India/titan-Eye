@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { UseFullscreenReturn } from '../types';
 
 export function useFullscreen(): UseFullscreenReturn {
@@ -10,6 +11,7 @@ export function useFullscreen(): UseFullscreenReturn {
     };
 
     document.addEventListener('fullscreenchange', handleChange);
+
     return () => document.removeEventListener('fullscreenchange', handleChange);
   }, []);
 

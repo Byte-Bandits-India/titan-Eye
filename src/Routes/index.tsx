@@ -1,28 +1,47 @@
+/* eslint-disable react-refresh/only-export-components */
 import { Navigate } from 'react-router-dom';
-import { useAppSelector } from '../store';
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { StoreScreen } from '../screens/store/StoreScreen';
-import { OptomScreen } from '../screens/optom/OptomScreen';
+
+import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
+
 import { AdminScreen } from '../screens/admin/AdminScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
+import { OptomScreen } from '../screens/optom/OptomScreen';
 import { FeedbackScreen } from '../screens/public/FeedbackScreen';
-import type { RouteProps, ProtectedRouteProps, UserRole } from '../types';
+import { StoreScreen } from '../screens/store/StoreScreen';
+import { useAppSelector } from '../store';
 
-export function getHomeRoute(role: UserRole): string {
-  if (role === 'store') return '/store';
-  if (role === 'admin') return '/admin';
-  return '/optom';
-}
-
-export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
+export function BaseRedirect() {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate replace to="/login" />;
+  }
+
+  return <Navigate replace to={getHomeRoute(user.role)} />;
+}
+
+export function getHomeRoute(role: UserRole): string {
+  if (role === 'store') {
+    return '/store';
+  }
+
+  if (role === 'admin') {
+    return '/admin';
+  }
+
+  return '/optom';
+}
+
+export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  if (!isAuthenticated || !user) {
+    return <Navigate replace to="/login" />;
   }
 
   if (user.role !== allowedRole) {
-    return <Navigate to={getHomeRoute(user.role)} replace />;
+    return <Navigate replace to={getHomeRoute(user.role)} />;
   }
 
   return children;
@@ -32,69 +51,59 @@ export function PublicRoute({ children }: RouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   if (isAuthenticated && user) {
-    return <Navigate to={getHomeRoute(user.role)} replace />;
+    return <Navigate replace to={getHomeRoute(user.role)} />;
   }
 
   return children;
 }
 
-export function BaseRedirect() {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
-
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Navigate to={getHomeRoute(user.role)} replace />;
-}
-
 export const routes = [
   {
-    path: '/login',
     element: (
       <PublicRoute>
         <LoginScreen />
       </PublicRoute>
     ),
+    path: '/login',
   },
   {
-    path: '/store',
     element: (
       <ProtectedRoute allowedRole="store">
         <StoreScreen />
       </ProtectedRoute>
     ),
+    path: '/store',
   },
   {
-    path: '/optom',
     element: (
       <ProtectedRoute allowedRole="optom">
         <OptomScreen />
       </ProtectedRoute>
     ),
+    path: '/optom',
   },
   {
-    path: '/admin',
     element: (
       <ProtectedRoute allowedRole="admin">
         <AdminScreen />
       </ProtectedRoute>
     ),
+    path: '/admin',
   },
   {
-    path: '/sso/callback',
     element: <SsoCallbackScreen />,
+    path: '/sso/callback',
   },
   {
-    path: '/feedback/:token',
     element: <FeedbackScreen />,
+    path: '/feedback/:token',
   },
   {
+    element: <BaseRedirect />,
     path: '/',
-    element: <BaseRedirect />,
   },
   {
-    path: '*',
     element: <BaseRedirect />,
+    path: '*',
   },
 ];

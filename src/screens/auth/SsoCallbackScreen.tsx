@@ -16,15 +16,20 @@ export function SsoCallbackScreen() {
   React.useEffect(() => {
     let cancelled = false;
 
-    apiClient.get<{ user: User }>('/me')
+    apiClient
+      .get<{ user: User }>('/me')
       .then((response) => {
-        if (cancelled) {return;}
+        if (cancelled) {
+          return;
+        }
 
         dispatch(loginSuccess({ user: response.data.user }));
         setRedirectTo(getHomeRoute(response.data.user.role));
       })
       .catch(() => {
-        if (cancelled) {return;}
+        if (cancelled) {
+          return;
+        }
 
         dispatch(loginFailure('Microsoft sign-in failed.'));
         setRedirectTo('/login?error=sso_failed');
@@ -40,9 +45,9 @@ export function SsoCallbackScreen() {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center min-h-[80vh]">
+    <div className="flex min-h-[80vh] flex-1 items-center justify-center">
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin" />
+        <Loader2 className="h-6 w-6 animate-spin" />
         <span className="text-sm font-medium">Completing sign-in...</span>
       </div>
     </div>

@@ -1,139 +1,317 @@
 import * as React from 'react';
+export type { DateFilterRange } from '../utils/dateFilter';
 
-export type CustomerStatus = 'Created' | 'Initiated' | 'Accepted' | 'Completed' | 'Closed';
+// ─── Admin Tab ────────────────────────────────────────────────────────────────
+export type AdminTab = 'auditLogs' | 'customers' | 'users';
 
-export type CommonRxValues = {
-  sph: string;
-  cyl: string;
-  axis: string;
-  prism: string;
-  base: string;
-  add: string;
+export type AppLayoutProps = {
+  activeTab?: AdminTab;
+  children: React.ReactNode;
+  consoleLabel?: string;
+  onSearchChange?: (value: string) => void;
+  onSelectCustomer?: (customerId: string) => void;
+  searchPlaceholder?: string;
+  searchValue?: string;
+  setActiveTab?: (tab: AdminTab) => void;
 };
 
-export type RxValues = CommonRxValues & {
-  pd: string;
+export type AuditLog = {
+  callActive?: boolean;
+  callDuration: null | number;
+  callStartTime?: null | string;
+  callTakenBy: null | string;
+  customerId: string;
+  customerName?: string;
+  id: number | string;
+  lastUpdatedOn: null | string;
+  optomCallStartTime?: null | string;
+  role?: UserRole;
+  status: CustomerStatus;
+  storeName?: string;
+};
+
+export type AuthState = {
+  error: null | string;
+  isAuthenticated: boolean;
+  loading: boolean;
+  user: null | User;
+};
+
+export type CallTimerProps = {
+  active?: boolean;
+  maxDurationSeconds?: number;
+  onTimeout?: () => void;
+  startTime?: string;
+};
+
+export type CollisionData = {
+  id: string;
+  name: string;
+  takenBy: string;
+  targetView?: 'info' | 'rx';
+};
+
+// ─── Optom Screen ─────────────────────────────────────────────────────────────
+export type CollisionModalData = {
+  id: string;
+  name: string;
+  takenBy: string;
+};
+
+export type CollisionModalProps = {
+  onCancel: () => void;
+  onViewData: () => void;
+  takenBy: string;
+};
+
+export interface ColumnOption {
+  id: string;
+  isMandatory?: boolean;
+  label: string;
+}
+
+export type CommonRxValues = {
+  add: string;
+  axis: string;
+  base: string;
+  cyl: string;
+  prism: string;
+  sph: string;
+};
+
+export type CreateUserPayload = {
+  email: string;
+  mobile?: string;
+  name: string;
+  password: string;
+  role: UserRole;
+  storeName?: string;
+};
+
+export type Customer = {
+  activeProfile: boolean;
+  age: string;
+  callActive?: boolean;
+  callDuration?: number;
+  callStartTime?: null | string;
+  callTakenBy?: null | string;
+  createdOn?: null | string;
+  customerType: string;
+  gender: string;
+  id: string;
+  lastUpdatedOn?: string;
+  mobile: string;
+  name: string;
+  offeredToOptomEmail?: null | string;
+  optomCallStartTime?: null | string;
+  optomFeedback?: string;
+  optomRxData?: {
+    le: OptomRxValues;
+    re: OptomRxValues;
+  };
+  patientFeedback?: null | string;
+  preferredLanguage: string;
+  preferredLanguage2: string;
+  rxData?: {
+    autoRefLe: RxValues;
+    autoRefRe: RxValues;
+    pgpLe: RxValues;
+    pgpRe: RxValues;
+  };
+  status: CustomerStatus;
+  storeContactEmail?: null | string;
+  storeFeedback: string;
+  storeName: string;
+};
+
+export type CustomerLog = {
+  callDuration: null | number;
+  callTakenBy: null | string;
+  customerId: string;
+  id: number;
+  lastUpdatedOn: null | string;
+  status: CustomerStatus;
+};
+
+export type CustomerState = {
+  customers: Customer[];
+  error: null | string;
+  loading: boolean;
+};
+
+export type CustomerStatus = 'Accepted' | 'Closed' | 'Completed' | 'Created' | 'Initiated';
+
+// ─── Admin Screen ─────────────────────────────────────────────────────────────
+export type CustomerStatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
+
+export type CustomerTabCounts = {
+  all: number;
+  completed: number;
+  inProgress: number;
+  pending: number;
+};
+
+export type HeaderProps = {
+  activeTab?: AdminTab;
+  consoleLabel?: string;
+  onSearchChange?: (value: string) => void;
+  onSelectCustomer?: (customerId: string) => void;
+  searchPlaceholder?: string;
+  searchValue?: string;
+  setActiveTab?: (tab: AdminTab) => void;
+};
+
+export type LoginResponse = {
+  user: User;
+};
+
+export type LogNotification = {
+  customerId?: string;
+  description: string;
+  id: string;
+  timestamp: number;
+  title: string;
+  type: LogNotificationType;
+};
+
+// ─── Notification Log ─────────────────────────────────────────────────────────
+export type LogNotificationType =
+  | 'assessment_accepted'
+  | 'assessment_complete'
+  | 'call_closed'
+  | 'call_ended'
+  | 'call_initiated'
+  | 'no_optom_available'
+  | 'optom_available'
+  | 'patient_registered';
+
+export type ManagedUser = {
+  email: string;
+  isLoggedIn?: boolean;
+  lastLogin?: null | string;
+  microsoftUpn?: null | string;
+  mobile?: null | string;
+  name: string;
+  role: UserRole;
+  status: 'active' | 'inactive';
+  storeName?: null | string;
+};
+
+export type NetworkStatus = {
+  speed: string;
+  statusColor: string;
+  statusLabel: string;
+  wifiIconColor: string;
+};
+
+// ─── SSE Events ───────────────────────────────────────────────────────────────
+export type NoOptomEventPayload = {
+  customerId: string;
+  customerName: string;
+  storeName: null | string;
+};
+
+// ─── Notification Popover ─────────────────────────────────────────────────────
+export type NotificationPopoverProps = {
+  autoOpen?: boolean;
+  onSelectCustomer?: (customerId: string) => void;
+  trigger?: React.ReactNode;
+  variant?: 'drawer' | 'popover';
+};
+
+export type OptomPatientDetailsProps = {
+  onBack: () => void;
+  selectedCustomer: Customer | null;
 };
 
 export type OptomRxValues = CommonRxValues & {
   va: string;
 };
 
-export type Customer = {
-  id: string;
-  name: string;
-  age: string;
-  gender: string;
-  mobile: string;
-  customerType: string;
-  storeName: string;
-  preferredLanguage: string;
-  preferredLanguage2: string;
-  storeFeedback: string;
-  optomFeedback?: string;
-  status: CustomerStatus;
-  activeProfile: boolean;
-  createdOn?: string | null;
-  lastUpdatedOn?: string;
-  callStartTime?: string | null;
-  callActive?: boolean;
-  callTakenBy?: string | null;
-  storeContactEmail?: string | null;
-  callDuration?: number;
-  optomCallStartTime?: string | null;
-  offeredToOptomEmail?: string | null;
-  patientFeedback?: string | null;
-  rxData?: {
-    autoRefRe: RxValues;
-    autoRefLe: RxValues;
-    pgpRe: RxValues;
-    pgpLe: RxValues;
-  };
-  optomRxData?: {
-    re: OptomRxValues;
-    le: OptomRxValues;
-  };
+export type OptomUserAvailability = {
+  badgeClass: string;
+  dotClass: string;
+  ping: boolean;
+  statusLabel: string;
 };
 
-export type CustomerLog = {
-  id: number;
-  customerId: string;
-  lastUpdatedOn: string | null;
-  status: CustomerStatus;
-  callDuration: number | null;
-  callTakenBy: string | null;
+export type OptomUserRow = ManagedUser & {
+  activeCall: Customer | null;
+  avail: OptomUserAvailability;
 };
 
-export type UserRole = 'store' | 'optom' | 'admin';
-
-export type User = {
-  email: string;
-  name: string;
-  role: UserRole;
-  storeName?: string | null;
-  mobile?: string | null;
-  microsoftUpn?: string | null;
+export type PaginationBarProps = {
+  columns?: ColumnOption[];
+  currentPage: number;
+  itemsPerPage: number;
+  onItemsPerPageChange?: (size: number) => void;
+  onNext: () => void;
+  onPrev: () => void;
+  onResetColumns?: () => void;
+  onToggleColumn?: (columnId: string) => void;
+  totalItems: number;
+  totalPages: number;
+  visibleColumns?: string[];
 };
 
-export type ManagedUser = {
-  email: string;
-  name: string;
-  role: UserRole;
-  storeName?: string | null;
-  mobile?: string | null;
-  microsoftUpn?: string | null;
-  lastLogin?: string | null;
-  status: 'active' | 'inactive';
-  isLoggedIn?: boolean;
-};
-
-export type CreateUserPayload = {
-  email: string;
-  name: string;
-  password: string;
-  role: UserRole;
-  mobile?: string;
-  storeName?: string;
-};
-
-export type UpdateUserPayload = {
-  name: string;
-  password?: string;
-  role: UserRole;
-  mobile?: string;
-  storeName?: string;
-};
-
-export type UserState = {
-  users: ManagedUser[];
-  loading: boolean;
-  error: string | null;
-};
-
-export type Session = {
-  user: User | null;
-  isAuthenticated: boolean;
-};
-
-export type AuthState = {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  error: string | null;
-};
-
-export type CustomerState = {
-  customers: Customer[];
-  loading: boolean;
-  error: string | null;
+export type ProtectedRouteProps = RouteProps & {
+  allowedRole: UserRole;
 };
 
 export type RouteProps = {
   children: React.ReactElement;
 };
 
-export type ProtectedRouteProps = RouteProps & {
-  allowedRole: UserRole;
+export type RxValues = CommonRxValues & {
+  pd: string;
+};
+
+export type Session = {
+  isAuthenticated: boolean;
+  user: null | User;
+};
+
+export type SSEEventDetail =
+  | {
+      data: Customer;
+      type: 'ADMIN_LOG_CREATED' | 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
+    }
+  | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
+  | { data: NoOptomEventPayload; type: 'NO_OPTOM_AVAILABLE' | 'OPTOM_NO_RESPONSE' };
+
+export type StatsGridProps = {
+  customers: Customer[];
+};
+
+// ─── Store Screen ─────────────────────────────────────────────────────────────
+export type StatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
+
+export type StorePatientDetailsProps = {
+  isAddingNew: boolean;
+  layout?: 'page' | 'sheet';
+  onBack: () => void;
+  selectedCustomer: Customer | null;
+  setSelectedCustomerId: (id: null | string) => void;
+};
+
+export type StoreRxDetailsProps = {
+  onBack: () => void;
+  selectedCustomer: Customer | null;
+};
+
+export type TabCounts = {
+  all: number;
+  completed: number;
+  inProgress: number;
+  pending: number;
+};
+
+export type UpdateUserPayload = {
+  mobile?: string;
+  name: string;
+  password?: string;
+  role: UserRole;
+  storeName?: string;
 };
 
 export type UseFullscreenReturn = {
@@ -141,114 +319,39 @@ export type UseFullscreenReturn = {
   toggleFullscreen: () => void;
 };
 
-export type NetworkStatus = {
-  speed: string;
-  statusLabel: string;
-  statusColor: string;
-  wifiIconColor: string;
-};
-
 export type UsePaginationReturn<T> = {
-  paginatedItems: T[];
   currentPage: number;
-  totalPages: number;
-  totalItems: number;
   goToPage: (page: number) => void;
   nextPage: () => void;
+  paginatedItems: T[];
   prevPage: () => void;
   resetPage: () => void;
-};
-
-export type LoginResponse = {
-  user: User;
-};
-
-export type AuditLog = {
-  id: number | string;
-  customerId: string;
-  customerName?: string;
-  storeName?: string;
-  lastUpdatedOn: string | null;
-  status: CustomerStatus;
-  callDuration: number | null;
-  callTakenBy: string | null;
-  callStartTime?: string | null;
-  optomCallStartTime?: string | null;
-  role?: UserRole;
-};
-
-export type AppLayoutProps = {
-  consoleLabel?: string;
-  children: React.ReactNode;
-  activeTab?: 'users' | 'customers' | 'auditLogs';
-  setActiveTab?: (tab: 'users' | 'customers' | 'auditLogs') => void;
-  onSelectCustomer?: (customerId: string) => void;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  searchPlaceholder?: string;
-};
-
-export type HeaderProps = {
-  consoleLabel?: string;
-  activeTab?: 'users' | 'customers' | 'auditLogs';
-  setActiveTab?: (tab: 'users' | 'customers' | 'auditLogs') => void;
-  onSelectCustomer?: (customerId: string) => void;
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  searchPlaceholder?: string;
-};
-
-export interface ColumnOption {
-  id: string;
-  label: string;
-  isMandatory?: boolean;
-}
-
-export type PaginationBarProps = {
-  currentPage: number;
-  totalPages: number;
   totalItems: number;
-  itemsPerPage: number;
-  onPrev: () => void;
-  onNext: () => void;
-  onItemsPerPageChange?: (size: number) => void;
-  columns?: ColumnOption[];
-  visibleColumns?: string[];
-  onToggleColumn?: (columnId: string) => void;
-  onResetColumns?: () => void;
+  totalPages: number;
 };
 
-export type StatsGridProps = {
-  customers: Customer[];
+export type User = {
+  email: string;
+  microsoftUpn?: null | string;
+  mobile?: null | string;
+  name: string;
+  role: UserRole;
+  storeName?: null | string;
 };
 
-export type CollisionModalProps = {
-  takenBy: string;
-  onCancel: () => void;
-  onViewData: () => void;
+export type UserFormData = {
+  email: string;
+  mobile: string;
+  name: string;
+  password: string;
+  role: UserRole;
+  storeName: string;
 };
 
-export type CallTimerProps = {
-  startTime?: string;
-  active?: boolean;
-  maxDurationSeconds?: number;
-  onTimeout?: () => void;
-};
+export type UserRole = 'admin' | 'optom' | 'store';
 
-export type OptomPatientDetailsProps = {
-  selectedCustomer: Customer | null;
-  onBack: () => void;
-};
-
-export type StorePatientDetailsProps = {
-  isAddingNew: boolean;
-  selectedCustomer: Customer | null;
-  onBack: () => void;
-  setSelectedCustomerId: (id: string | null) => void;
-  layout?: 'page' | 'sheet';
-};
-
-export type StoreRxDetailsProps = {
-  selectedCustomer: Customer | null;
-  onBack: () => void;
+export type UserState = {
+  error: null | string;
+  loading: boolean;
+  users: ManagedUser[];
 };

@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../options/Option';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,  // sends the httpOnly auth cookie automatically
+  withCredentials: true, // sends the httpOnly auth cookie automatically
 });
 
 let _store: import('../store').AppStore | null = null;
@@ -18,7 +18,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;
-      const data   = error.response.data as { error?: string; message?: string };
+      const data = error.response.data as { error?: string; message?: string };
 
       if (status === 401) {
         if (data?.error === 'SESSION_EXPIRED') {

@@ -44,7 +44,7 @@ export const fetchCustomersAction = () => async (dispatch: AppDispatch) => {
 
 export const createCustomerAction = (customer: Partial<Customer>) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.post<{ id: string; ok: boolean; }>('/customers', customer);
+    const response = await apiClient.post<{ id: string; ok: boolean }>('/customers', customer);
     const created: Customer = {
       ...customer,
       id: response.data.id,
@@ -59,20 +59,26 @@ export const createCustomerAction = (customer: Partial<Customer>) => async (disp
   }
 };
 
-export const updateCustomerAction = (id: string, customer: Partial<Customer>) => async (dispatch: AppDispatch) => {
-  try {
-    const response = await apiClient.put<{ customer: Customer; ok: boolean; }>(`/customers/${encodeURIComponent(id)}`, customer);
-    dispatch(customerUpdated(response.data.customer));
-  } catch (e) {
-    const err = e as Error;
-    const msg = handleApiError(err, dispatch, 'Failed to update customer.');
-    throw new Error(msg);
-  }
-};
+export const updateCustomerAction =
+  (id: string, customer: Partial<Customer>) => async (dispatch: AppDispatch) => {
+    try {
+      const response = await apiClient.put<{ customer: Customer; ok: boolean }>(
+        `/customers/${encodeURIComponent(id)}`,
+        customer
+      );
+      dispatch(customerUpdated(response.data.customer));
+    } catch (e) {
+      const err = e as Error;
+      const msg = handleApiError(err, dispatch, 'Failed to update customer.');
+      throw new Error(msg);
+    }
+  };
 
 export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.post<{ customer: Customer; ok: boolean; }>(`/customers/${encodeURIComponent(id)}/initiate-call`);
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/initiate-call`
+    );
 
     if (response.data.customer) {
       dispatch(customerUpdated(response.data.customer));
@@ -86,9 +92,29 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
   }
 };
 
+export const cancelCallAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/cancel-call`
+    );
+
+    if (response.data.customer) {
+      dispatch(customerUpdated(response.data.customer));
+    }
+
+    return response.data;
+  } catch (e) {
+    const err = e as Error;
+    const msg = handleApiError(err, dispatch, 'Failed to cancel call request.');
+    throw new Error(msg);
+  }
+};
+
 export const rejectCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.post<{ customer: Customer; ok: boolean; }>(`/customers/${encodeURIComponent(id)}/reject-call`);
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/reject-call`
+    );
 
     if (response.data.customer) {
       dispatch(customerUpdated(response.data.customer));
@@ -104,7 +130,9 @@ export const rejectCallAction = (id: string) => async (dispatch: AppDispatch) =>
 
 export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.post<{ customer: Customer; ok: boolean; }>(`/customers/${encodeURIComponent(id)}/end-call`);
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/end-call`
+    );
 
     if (response.data.customer) {
       dispatch(customerUpdated(response.data.customer));
@@ -120,7 +148,9 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
 
 export const completeCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
-    const response = await apiClient.post<{ customer: Customer; ok: boolean; token: string; }>(`/customers/${encodeURIComponent(id)}/complete`);
+    const response = await apiClient.post<{ customer: Customer; ok: boolean; token: string }>(
+      `/customers/${encodeURIComponent(id)}/complete`
+    );
 
     if (response.data.customer) {
       dispatch(customerUpdated(response.data.customer));

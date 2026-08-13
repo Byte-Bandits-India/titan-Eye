@@ -50,7 +50,13 @@ function rateLimitHandler(req: Request, res: Response, _next: NextFunction, mess
 }
 
 const authLimiter = rateLimit({
-  handler: (req, res, next) => rateLimitHandler(req, res, next, 'Too many login attempts from this IP, please try again after 15 minutes.'),
+  handler: (req, res, next) =>
+    rateLimitHandler(
+      req,
+      res,
+      next,
+      'Too many login attempts from this IP, please try again after 15 minutes.'
+    ),
   legacyHeaders: false,
   max: 20,
   message: { error: 'Too many login attempts from this IP, please try again after 15 minutes.' },
@@ -59,7 +65,8 @@ const authLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-  handler: (req, res, next) => rateLimitHandler(req, res, next, 'Too many requests from this IP, please slow down.'),
+  handler: (req, res, next) =>
+    rateLimitHandler(req, res, next, 'Too many requests from this IP, please slow down.'),
   legacyHeaders: false,
   max: 1000,
   message: { error: 'Too many requests from this IP, please slow down.' },
@@ -68,7 +75,8 @@ const apiLimiter = rateLimit({
 });
 
 const customerCreateLimiter = rateLimit({
-  handler: (req, res, next) => rateLimitHandler(req, res, next, 'Too many customer creation requests. Please slow down.'),
+  handler: (req, res, next) =>
+    rateLimitHandler(req, res, next, 'Too many customer creation requests. Please slow down.'),
   legacyHeaders: false,
   max: 10,
   message: { error: 'Too many customer creation requests. Please slow down.' },
@@ -78,7 +86,7 @@ const customerCreateLimiter = rateLimit({
 
 const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
-  .map(s => s.trim().replace(/\/$/, ''))
+  .map((s) => s.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
 const defaultOrigins = [
@@ -90,7 +98,7 @@ const defaultOrigins = [
 ];
 
 const allowedOrigins = Array.from(new Set([...defaultOrigins, ...rawAllowedOrigins]));
-const hasHttpsOrigin = allowedOrigins.some(origin => origin.startsWith('https://'));
+const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https://'));
 
 function isAllowedOrigin(origin: string): boolean {
   return allowedOrigins.includes(origin.trim().replace(/\/$/, ''));
@@ -101,29 +109,39 @@ app.set('trust proxy', 1);
 
 app.use(requestLogger);
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      childSrc: ["'self'", "blob:"],
-      connectSrc: ["'self'", "http://localhost:3001", "http://localhost:5173", "https://trvcstaging.titan.in", "https://trvc.titan.in", "https://titan.thebytebandits.com", "https://titan-dev.thebytebandits.com"],
-      defaultSrc: ["'self'"],
-      fontSrc: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'none'"],
-      imgSrc: ["'self'", "data:", "blob:"],
-      objectSrc: ["'none'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
-      workerSrc: ["'self'", "blob:"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        childSrc: ["'self'", 'blob:'],
+        connectSrc: [
+          "'self'",
+          'http://localhost:3001',
+          'http://localhost:5173',
+          'https://trvcstaging.titan.in',
+          'https://trvc.titan.in',
+          'https://titan.thebytebandits.com',
+          'https://titan-dev.thebytebandits.com',
+        ],
+        defaultSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        objectSrc: ["'none'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
+        workerSrc: ["'self'", 'blob:'],
+      },
     },
-  },
-  hsts: {
-    includeSubDomains: true,
-    maxAge: 31536000, // 1 year
-    preload: true,
-  },
-}));
+    hsts: {
+      includeSubDomains: true,
+      maxAge: 31536000, // 1 year
+      preload: true,
+    },
+  })
+);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
@@ -176,26 +194,36 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
 
   if (origin && !isAllowedOrigin(origin)) {
-    logSecurityEvent('CORS_REJECTED', { ip: req.ip, method: req.method, origin, path: req.path, requestId: req.requestId });
+    logSecurityEvent('CORS_REJECTED', {
+      ip: req.ip,
+      method: req.method,
+      origin,
+      path: req.path,
+      requestId: req.requestId,
+    });
   }
 
   next();
 });
 
-app.use(cors({
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  origin: (origin, callback) => {
-    if (!origin) {return callback(null, true);}
+app.use(
+  cors({
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
 
-    if (isAllowedOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new HttpError(`CORS policy does not allow access from ${origin}`, 403));
-    }
-  },
-}));
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new HttpError(`CORS policy does not allow access from ${origin}`, 403));
+      }
+    },
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -219,9 +247,9 @@ app.get('/api/events', (req: Request, res: Response) => {
 
   res.writeHead(200, {
     'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
     'Content-Type': 'text/event-stream',
-    'X-Accel-Buffering': 'no'
+    'X-Accel-Buffering': 'no',
   });
   res.write('\n');
 
@@ -265,16 +293,18 @@ if (fs.existsSync(distPath)) {
     next();
   });
 
-  app.use(express.static(distPath, {
-    index: false,
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.html')) {
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-      }
-    }
-  }));
+  app.use(
+    express.static(distPath, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      },
+    })
+  );
 }
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -313,13 +343,14 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
     url: req.url,
   });
 
-  const clientMessage = process.env.NODE_ENV === 'production' && status === 500
-    ? 'Internal Server Error'
-    : err.message || 'Internal Server Error';
+  const clientMessage =
+    process.env.NODE_ENV === 'production' && status === 500
+      ? 'Internal Server Error'
+      : err.message || 'Internal Server Error';
 
   res.status(status).json({
     error: clientMessage,
-    status
+    status,
   });
 });
 
@@ -327,11 +358,18 @@ const PORT = 3001;
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      logger.info(`API server running on http://localhost:${PORT}`, { env: process.env.NODE_ENV || 'development', logDir: resolveLogDir(), port: PORT });
+      logger.info(`API server running on http://localhost:${PORT}`, {
+        env: process.env.NODE_ENV || 'development',
+        logDir: resolveLogDir(),
+        port: PORT,
+      });
     });
   })
   .catch((err: unknown) => {
     const error = err instanceof Error ? err : new Error(String(err));
-    alertCritical('Failed to initialize database — server did not start', { errorMessage: error.message, stack: error.stack });
+    alertCritical('Failed to initialize database — server did not start', {
+      errorMessage: error.message,
+      stack: error.stack,
+    });
     process.exit(1);
   });

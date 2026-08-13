@@ -2,12 +2,12 @@ const FORMULA_TRIGGERS = ['=', '+', '-', '@', '\t', '\r', '\n'];
 
 export function buildSafeCsv(headers: string[], rows: string[][]): string {
   const headerLine = sanitizeCsvRow(headers)
-    .map(h => `"${h.replace(/"/g, '""')}"`)
+    .map((h) => `"${h.replace(/"/g, '""')}"`)
     .join(',');
 
-  const dataLines = rows.map(row =>
+  const dataLines = rows.map((row) =>
     sanitizeCsvRow(row)
-      .map(cell => `"${cell.replace(/"/g, '""')}"`)
+      .map((cell) => `"${cell.replace(/"/g, '""')}"`)
       .join(',')
   );
 
@@ -15,13 +15,17 @@ export function buildSafeCsv(headers: string[], rows: string[][]): string {
 }
 
 export function sanitizeCsvField(value: string): string {
-  if (typeof value !== 'string') {return String(value ?? '');}
+  if (typeof value !== 'string') {
+    return String(value ?? '');
+  }
 
   const trimmed = value.trim();
 
-  if (trimmed.length === 0) {return trimmed;}
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
 
-  if (FORMULA_TRIGGERS.some(trigger => trimmed.startsWith(trigger))) {
+  if (FORMULA_TRIGGERS.some((trigger) => trimmed.startsWith(trigger))) {
     return `'${trimmed}`;
   }
 

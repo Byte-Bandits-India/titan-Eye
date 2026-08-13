@@ -1,6 +1,6 @@
-import { Response, Router } from 'express';
-
 import type { Request } from 'express';
+
+import { Response, Router } from 'express';
 
 import { CustomerRow, FeedbackTokenRow, get, run } from '../db/database.js';
 import { logger } from '../utils/logger.js';
@@ -12,11 +12,17 @@ const MAX_FEEDBACK_LENGTH = 2000;
 async function findValidToken(token: string): Promise<FeedbackTokenRow | null> {
   const row = await get<FeedbackTokenRow>('SELECT * FROM feedback_tokens WHERE token = ?', [token]);
 
-  if (!row) {return null;}
+  if (!row) {
+    return null;
+  }
 
-  if (row.usedAt) {return null;}
+  if (row.usedAt) {
+    return null;
+  }
 
-  if (new Date(row.expiresAt).getTime() < Date.now()) {return null;}
+  if (new Date(row.expiresAt).getTime() < Date.now()) {
+    return null;
+  }
 
   return row;
 }
@@ -65,7 +71,10 @@ router.post('/:token', async (req: Request, res: Response) => {
     const rawFeedback = req.body?.feedback;
     const feedback = typeof rawFeedback === 'string' ? rawFeedback.trim().slice(0, MAX_FEEDBACK_LENGTH) : '';
 
-    await run('UPDATE customers SET patientFeedback = ? WHERE id = ?', [feedback || null, tokenRow.customerId]);
+    await run('UPDATE customers SET patientFeedback = ? WHERE id = ?', [
+      feedback || null,
+      tokenRow.customerId,
+    ]);
     await run('UPDATE feedback_tokens SET usedAt = ? WHERE token = ?', [new Date().toISOString(), token]);
 
     return res.json({ ok: true });

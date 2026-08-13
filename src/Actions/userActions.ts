@@ -65,39 +65,41 @@ export const createUserAction = (payload: CreateUserPayload) => async (dispatch:
   }
 };
 
-export const toggleUserStatusAction = (email: string, status: 'active' | 'inactive') => async (dispatch: AppDispatch) => {
-  try {
-    await apiClient.put(`/users/${encodeURIComponent(email)}/status`, { status });
-    dispatch(userStatusUpdated({ email, status }));
-  } catch (e) {
-    const err = e as Error;
-    let message = 'Failed to update user status.';
+export const toggleUserStatusAction =
+  (email: string, status: 'active' | 'inactive') => async (dispatch: AppDispatch) => {
+    try {
+      await apiClient.put(`/users/${encodeURIComponent(email)}/status`, { status });
+      dispatch(userStatusUpdated({ email, status }));
+    } catch (e) {
+      const err = e as Error;
+      let message = 'Failed to update user status.';
 
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as { error?: string };
-      message = data.error || message;
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as { error?: string };
+        message = data.error || message;
+      }
+
+      throw new Error(message);
     }
+  };
 
-    throw new Error(message);
-  }
-};
+export const updateUserAction =
+  (email: string, payload: UpdateUserPayload) => async (dispatch: AppDispatch) => {
+    try {
+      const response = await apiClient.put<ManagedUser>(`/users/${encodeURIComponent(email)}`, payload);
+      dispatch(userUpdated(response.data));
+    } catch (e) {
+      const err = e as Error;
+      let message = 'Failed to update user.';
 
-export const updateUserAction = (email: string, payload: UpdateUserPayload) => async (dispatch: AppDispatch) => {
-  try {
-    const response = await apiClient.put<ManagedUser>(`/users/${encodeURIComponent(email)}`, payload);
-    dispatch(userUpdated(response.data));
-  } catch (e) {
-    const err = e as Error;
-    let message = 'Failed to update user.';
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as { error?: string };
+        message = data.error || message;
+      }
 
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as { error?: string };
-      message = data.error || message;
+      throw new Error(message);
     }
-
-    throw new Error(message);
-  }
-};
+  };
 
 export const deleteUserAction = (email: string) => async (dispatch: AppDispatch) => {
   try {

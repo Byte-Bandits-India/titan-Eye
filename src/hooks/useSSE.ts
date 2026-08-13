@@ -1,17 +1,13 @@
 import * as React from 'react';
-import { API_BASE_URL } from '../options/Option';
-import { useAppDispatch, useAppSelector } from '../store';
-import { customerCreated, customerUpdated } from '../Reducers/customerReducer';
-import { fetchUsersAction } from '../Actions/userActions';
-import { fetchCustomersAction } from '../Actions/customerActions';
-import { useNotificationLog } from '../components/ui/notificationLog';
-import type { Customer } from '../types';
 
-type NoOptomEventPayload = {
-  customerId: string;
-  customerName: string;
-  storeName: null | string;
-};
+import type { NoOptomEventPayload, SSEEventDetail } from '../types';
+
+import { fetchCustomersAction } from '../Actions/customerActions';
+import { fetchUsersAction } from '../Actions/userActions';
+import { useNotificationLog } from '../components/ui/notificationLog';
+import { API_BASE_URL } from '../options/Option';
+import { customerCreated, customerUpdated } from '../Reducers/customerReducer';
+import { useAppDispatch, useAppSelector } from '../store';
 
 export function useSSE(): void {
   const dispatch = useAppDispatch();
@@ -31,7 +27,9 @@ export function useSSE(): void {
   }, [user]);
 
   React.useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      return;
+    }
 
     // Initial fetch on mount / authentication
     dispatch(fetchCustomersAction());
@@ -43,24 +41,21 @@ export function useSSE(): void {
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
-        const { type, data } = JSON.parse(event.data as string) as {
-          type: string;
-          data: Customer;
-        };
+        const { data, type } = JSON.parse(event.data as string) as SSEEventDetail;
         const currentCustomers = customersRef.current;
 
         if (type === 'CUSTOMER_CREATED') {
           dispatch(customerCreated(data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { type, data } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
 
           // Patient registration is a store/admin administrative event -
           // Optoms only care once a call is actually offered to them.
           if (userRef.current?.role !== 'optom' && !currentCustomers.some((c) => c.id === data.id)) {
             addLogNotification({
-              title: 'Patient Registered',
               description: `Successfully added ${data.name} with ID ${data.id}.`,
+              title: 'Patient Registered',
               type: 'patient_registered',
             });
           }
@@ -80,31 +75,27 @@ export function useSSE(): void {
           if (data.callActive && (!oldCust || !oldCust.callActive)) {
             if (!skipCallInitiatedLog) {
               addLogNotification({
-                title: 'Call Initiated',
                 description: `Call initiated by ${data.storeName} for ${data.name}.`,
+                title: 'Call Initiated',
                 type: 'call_initiated',
               });
             }
           } else if (data.status === 'Closed' && oldCust?.status !== 'Closed') {
             addLogNotification({
-              title: 'Call Closed',
               description: `Consultation request for ${data.name} has been closed automatically.`,
+              title: 'Call Closed',
               type: 'call_closed',
             });
           } else if (data.status === 'Completed' && (!oldCust || oldCust.status !== 'Completed')) {
             addLogNotification({
-              title: 'Assessment Complete',
               description: `Clinical assessment submitted for ${data.name} (ID: ${data.id}).`,
+              title: 'Assessment Complete',
               type: 'assessment_complete',
             });
-          } else if (
-            data.status === 'Accepted' &&
-            oldCust?.status === 'Initiated' &&
-            !data.callActive
-          ) {
+          } else if (data.status === 'Accepted' && oldCust?.status === 'Initiated' && !data.callActive) {
             addLogNotification({
-              title: 'Assessment Accepted',
               description: 'Patient assessment status updated to Accepted.',
+              title: 'Assessment Accepted',
               type: 'assessment_accepted',
             });
           }
@@ -112,9 +103,9 @@ export function useSSE(): void {
           dispatch(customerUpdated(data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { type, data } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
         } else if (type === 'NO_OPTOM_AVAILABLE' || type === 'OPTOM_NO_RESPONSE') {
-          const payload = data as unknown as NoOptomEventPayload;
+          const payload = data as NoOptomEventPayload;
           const currentUser = userRef.current;
           const isMatchingStore =
             currentUser?.role === 'store' &&
@@ -148,7 +139,7 @@ export function useSSE(): void {
         ) {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { type, data } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
         }
       } catch (err) {
         console.error('Error handling SSE message:', err);

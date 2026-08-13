@@ -29,8 +29,7 @@ export const loginAction = (email: string, password: string) => async (dispatch:
 export const logoutAction = () => async (dispatch: AppDispatch) => {
   try {
     await apiClient.post('/logout');
-  } catch {
-  }
+  } catch {}
 
   dispatch(logout());
 };

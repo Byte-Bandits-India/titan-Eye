@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { UsePaginationReturn } from '../types';
 
 export function usePagination<T>(items: T[], pageSize: number): UsePaginationReturn<T> {
@@ -8,11 +9,13 @@ export function usePagination<T>(items: T[], pageSize: number): UsePaginationRet
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage((prev) => Math.min(prev, totalPages));
   }, [totalPages]);
 
   const paginatedItems = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
+
     return items.slice(start, start + pageSize);
   }, [items, currentPage, pageSize]);
 
@@ -20,7 +23,7 @@ export function usePagination<T>(items: T[], pageSize: number): UsePaginationRet
     (page: number) => {
       setCurrentPage(Math.max(1, Math.min(page, totalPages)));
     },
-    [totalPages],
+    [totalPages]
   );
 
   const nextPage = React.useCallback(() => {
@@ -36,13 +39,13 @@ export function usePagination<T>(items: T[], pageSize: number): UsePaginationRet
   }, []);
 
   return {
-    paginatedItems,
     currentPage,
-    totalPages,
-    totalItems,
     goToPage,
     nextPage,
+    paginatedItems,
     prevPage,
     resetPage,
+    totalItems,
+    totalPages,
   };
 }

@@ -13,9 +13,9 @@ import { revokeToken } from '../utils/tokenBlacklist.js';
 
 const router = Router();
 
-const LOCKOUT_THRESHOLD    = 5;                      // failed attempts before lockout
-const LOCKOUT_DURATION_MS  = 30 * 60 * 1000;         // 30 minutes lockout
-const TOKEN_MAX_AGE_MS     = 24 * 60 * 60 * 1000;    // 24 hours absolute token max age
+const LOCKOUT_THRESHOLD = 5; // failed attempts before lockout
+const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes lockout
+const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours absolute token max age
 
 interface LoginBody {
   email?: string;
@@ -24,114 +24,142 @@ interface LoginBody {
 
 type LoginResponseBody = ErrorResponse | { user: AuthUserResponse };
 
-router.post('/login', async (req: Request<ParamsDictionary, LoginResponseBody, LoginBody>, res: Response<LoginResponseBody>) => {
-  try {
-    const { email, password } = req.body;
+router.post(
+  '/login',
+  async (req: Request<ParamsDictionary, LoginResponseBody, LoginBody>, res: Response<LoginResponseBody>) => {
+    try {
+      const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
 
-    const user = await get<UserRow>(
-      `SELECT email, name, role, storeName, status, password,
+      const user = await get<UserRow>(
+        `SELECT email, name, role, storeName, status, password,
               failedLoginAttempts, lockedUntil, activeTokenSig
        FROM users WHERE LOWER(email) = LOWER(?)`,
-      [email.trim()]
-    );
+        [email.trim()]
+      );
 
-    if (user && user.lockedUntil) {
-      const lockExpiry = new Date(user.lockedUntil).getTime();
+      if (user && user.lockedUntil) {
+        const lockExpiry = new Date(user.lockedUntil).getTime();
 
-      if (Date.now() < lockExpiry) {
-        const minutesLeft = Math.ceil((lockExpiry - Date.now()) / 60000);
-        logSecurityEvent('LOGIN_BLOCKED_ACCOUNT_LOCKED', { email: user.email, ip: req.ip, requestId: req.requestId });
+        if (Date.now() < lockExpiry) {
+          const minutesLeft = Math.ceil((lockExpiry - Date.now()) / 60000);
+          logSecurityEvent('LOGIN_BLOCKED_ACCOUNT_LOCKED', {
+            email: user.email,
+            ip: req.ip,
+            requestId: req.requestId,
+          });
 
-        return res.status(423).json({
-          error: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`
+          return res.status(423).json({
+            error: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`,
+          });
+        }
+
+        await run('UPDATE users SET failedLoginAttempts = 0, lockedUntil = NULL WHERE email = ?', [
+          user.email,
+        ]);
+      }
+
+      if (user && verifyPassword(password, user.password)) {
+        if (user.status === 'inactive') {
+          return res.status(403).json({ error: 'This account has been deactivated' });
+        }
+
+        const token = generateToken(
+          { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
+          SESSION_IDLE_MS
+        );
+        const newTokenSig = token.split('.')[2];
+        const loginTimestamp = new Date().toISOString();
+
+        await run(
+          `UPDATE users SET lastLogin = ?, failedLoginAttempts = 0, lockedUntil = NULL, activeTokenSig = ?
+         WHERE email = ?`,
+          [loginTimestamp, newTokenSig, user.email]
+        );
+
+        broadcastEvent('USER_UPDATED', {
+          email: user.email,
+          isLoggedIn: true,
+          lastLogin: loginTimestamp,
+          name: user.name,
+          role: user.role,
+          status: user.status,
+        });
+
+        logSecurityEvent('LOGIN_SUCCESS', {
+          email: user.email,
+          ip: req.ip,
+          requestId: req.requestId,
+          role: user.role,
+        });
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          maxAge: TOKEN_MAX_AGE_MS,
+          sameSite: 'strict',
+          secure: process.env.NODE_ENV === 'production',
+        });
+
+        return res.json({
+          user: {
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            storeName: user.storeName,
+          },
         });
       }
-
-      await run('UPDATE users SET failedLoginAttempts = 0, lockedUntil = NULL WHERE email = ?', [user.email]);
-    }
-
-    if (user && verifyPassword(password, user.password)) {
-      if (user.status === 'inactive') {
-        return res.status(403).json({ error: 'This account has been deactivated' });
-      }
-
-      const token = generateToken(
-        { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-        SESSION_IDLE_MS
-      );
-      const newTokenSig = token.split('.')[2];
-      const loginTimestamp = new Date().toISOString();
-
-      await run(
-        `UPDATE users SET lastLogin = ?, failedLoginAttempts = 0, lockedUntil = NULL, activeTokenSig = ?
-         WHERE email = ?`,
-        [loginTimestamp, newTokenSig, user.email]
-      );
-
-      broadcastEvent('USER_UPDATED', {
-        email: user.email,
-        isLoggedIn: true,
-        lastLogin: loginTimestamp,
-        name: user.name,
-        role: user.role,
-        status: user.status,
-      });
-
-      logSecurityEvent('LOGIN_SUCCESS', { email: user.email, ip: req.ip, requestId: req.requestId, role: user.role });
-
-      res.cookie('token', token, {
-        httpOnly: true,
-        maxAge: TOKEN_MAX_AGE_MS,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
-      });
-
-      return res.json({
-        user: {
-          email: user.email,
-          name:  user.name,
-          role:  user.role,
-          storeName: user.storeName,
-        },
-      });
-    }
 
       if (user) {
         const newCount = (user.failedLoginAttempts || 0) + 1;
 
         if (newCount >= LOCKOUT_THRESHOLD) {
           const lockUntil = new Date(Date.now() + LOCKOUT_DURATION_MS).toISOString();
-          await run(
-            'UPDATE users SET failedLoginAttempts = ?, lockedUntil = ? WHERE email = ?',
-            [newCount, lockUntil, user.email]
-          );
-          logSecurityEvent('ACCOUNT_LOCKED', { email: user.email, failedAttempts: newCount, ip: req.ip, requestId: req.requestId });
-          alertCritical('Account locked after repeated failed logins', { email: user.email, failedAttempts: newCount, ip: req.ip });
+          await run('UPDATE users SET failedLoginAttempts = ?, lockedUntil = ? WHERE email = ?', [
+            newCount,
+            lockUntil,
+            user.email,
+          ]);
+          logSecurityEvent('ACCOUNT_LOCKED', {
+            email: user.email,
+            failedAttempts: newCount,
+            ip: req.ip,
+            requestId: req.requestId,
+          });
+          alertCritical('Account locked after repeated failed logins', {
+            email: user.email,
+            failedAttempts: newCount,
+            ip: req.ip,
+          });
 
           return res.status(423).json({
-            error: 'Account locked due to too many failed attempts. Try again after 30 minutes.'
+            error: 'Account locked due to too many failed attempts. Try again after 30 minutes.',
           });
         }
 
         await run('UPDATE users SET failedLoginAttempts = ? WHERE email = ?', [newCount, user.email]);
-        logSecurityEvent('LOGIN_FAILED', { email: user.email, failedAttempts: newCount, ip: req.ip, requestId: req.requestId });
+        logSecurityEvent('LOGIN_FAILED', {
+          email: user.email,
+          failedAttempts: newCount,
+          ip: req.ip,
+          requestId: req.requestId,
+        });
       } else {
         logSecurityEvent('LOGIN_FAILED_UNKNOWN_EMAIL', { ip: req.ip, requestId: req.requestId });
       }
 
       return res.status(401).json({ error: 'Invalid email or password' });
+    } catch (err) {
+      const error = err as Error;
+      logger.error('Login error', { errorMessage: error.message, requestId: req.requestId });
 
-  } catch (err) {
-    const error = err as Error;
-    logger.error('Login error', { errorMessage: error.message, requestId: req.requestId });
-
-    return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 type MeResponseBody = ErrorResponse | { user: AuthUserResponse };
 
@@ -149,12 +177,12 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
 
     return res.json({
       user: {
-        email:        user.email,
+        email: user.email,
         microsoftUpn: user.microsoftUpn,
-        mobile:       user.mobile,
-        name:         user.name,
-        role:         user.role,
-        storeName:    user.storeName,
+        mobile: user.mobile,
+        name: user.name,
+        role: user.role,
+        storeName: user.storeName,
       },
     });
   } catch (err) {
@@ -165,7 +193,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
   }
 });
 
-type LogoutResponseBody = { message: string; ok: true; };
+type LogoutResponseBody = { message: string; ok: true };
 
 router.post('/logout', (req: Request, res: Response<LogoutResponseBody>) => {
   let token = req.cookies?.token;
@@ -185,7 +213,10 @@ router.post('/logout', (req: Request, res: Response<LogoutResponseBody>) => {
         broadcastEvent('USER_UPDATED', { email: payload.email, isLoggedIn: false });
         logSecurityEvent('LOGOUT', { email: payload.email, ip: req.ip, requestId: req.requestId });
       } catch (e) {
-        logger.warn('Logout cleanup failed', { errorMessage: (e as Error).message, requestId: req.requestId });
+        logger.warn('Logout cleanup failed', {
+          errorMessage: (e as Error).message,
+          requestId: req.requestId,
+        });
       }
     }
   }

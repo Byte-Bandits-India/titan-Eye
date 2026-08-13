@@ -9,7 +9,9 @@ const clientSecret = process.env.ENTRA_CLIENT_SECRET;
 export const isGraphConfigured = Boolean(tenantId && clientId && clientSecret);
 
 if (!isGraphConfigured) {
-  logger.warn('[Graph] ENTRA_TENANT_ID, ENTRA_CLIENT_ID or ENTRA_CLIENT_SECRET missing. Graph endpoints will be disabled.');
+  logger.warn(
+    '[Graph] ENTRA_TENANT_ID, ENTRA_CLIENT_ID or ENTRA_CLIENT_SECRET missing. Graph endpoints will be disabled.'
+  );
 }
 
 const graphClient = isGraphConfigured

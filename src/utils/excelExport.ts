@@ -3,8 +3,8 @@ import * as XLSX from 'xlsx';
 import type { Customer } from '../types';
 
 function buildCustomerRow(cust: Customer) {
-  const rx = (cust.rxData || {}) as any;
-  const opt = (cust.optomRxData || {}) as any;
+  const rx = cust.rxData;
+  const opt = cust.optomRxData;
 
   const autoRe = rx.autoRefRe || {};
   const autoLe = rx.autoRefLe || {};
@@ -81,20 +81,26 @@ function buildCustomerRow(cust: Customer) {
 }
 
 function formatWaitTime(cust: Customer): string {
-  if (!cust.callStartTime) {return '00m:00s';}
+  if (!cust.callStartTime) {
+    return '00m:00s';
+  }
 
   const startMs = parseInt(cust.callStartTime, 10) || new Date(cust.callStartTime).getTime();
 
-  if (isNaN(startMs)) {return '00m:00s';}
+  if (isNaN(startMs)) {
+    return '00m:00s';
+  }
 
   const optomCallStartTime = cust.optomCallStartTime;
   const endMs = optomCallStartTime
-    ? (parseInt(optomCallStartTime, 10) || new Date(optomCallStartTime).getTime())
+    ? parseInt(optomCallStartTime, 10) || new Date(optomCallStartTime).getTime()
     : cust.lastUpdatedOn
-    ? (parseInt(cust.lastUpdatedOn, 10) || new Date(cust.lastUpdatedOn).getTime())
-    : Date.now();
+      ? parseInt(cust.lastUpdatedOn, 10) || new Date(cust.lastUpdatedOn).getTime()
+      : Date.now();
 
-  if (isNaN(endMs) || endMs < startMs) {return '00m:00s';}
+  if (isNaN(endMs) || endMs < startMs) {
+    return '00m:00s';
+  }
 
   const diffSecs = Math.floor((endMs - startMs) / 1000);
   const capped = Math.min(diffSecs, 3540);
@@ -105,7 +111,9 @@ function formatWaitTime(cust: Customer): string {
 }
 
 function parseTimestampFormatted(val: null | number | string | undefined): string {
-  if (!val) {return '—';}
+  if (!val) {
+    return '—';
+  }
 
   if (typeof val === 'number') {
     return new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -121,25 +129,120 @@ function parseTimestampFormatted(val: null | number | string | undefined): strin
 }
 
 const GROUP_HEADER_ROW = [
-  '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
-  'Auto Ref', '', '', '', '', '', '', '', '', '', '', '',
-  'PGP', '', '', '', '', '', '', '', '', '', '', '',
-  'Final RX', '', '', '', '', '', '', '', '', '', '', ''
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  'Auto Ref',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  'PGP',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  'Final RX',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
 ];
 
 const COLUMN_HEADER_ROW = [
-  'Date', 'Store Code', 'Location', 'Customer Name', 'Age', 'Gender', 'Customer Type', 'Optom Name',
-  'Ticket Raise Time', 'Ticket Attended Time', 'Time Taken', 'Ticket Close Time', 'Running Status',
-  'Conversion', 'Sales Order No', 'Final Ticket Status', 'Store comment', 'Optom comment',
+  'Date',
+  'Store Code',
+  'Location',
+  'Customer Name',
+  'Age',
+  'Gender',
+  'Customer Type',
+  'Optom Name',
+  'Ticket Raise Time',
+  'Ticket Attended Time',
+  'Time Taken',
+  'Ticket Close Time',
+  'Running Status',
+  'Conversion',
+  'Sales Order No',
+  'Final Ticket Status',
+  'Store comment',
+  'Optom comment',
   // Auto Ref
-  'SPH-R', 'CYL-R', 'Axis-R', 'Prism', 'Base', 'ADD',
-  'SPH-L', 'CYL-L', 'Axis-L', 'Prism', 'Base', 'ADD',
+  'SPH-R',
+  'CYL-R',
+  'Axis-R',
+  'Prism',
+  'Base',
+  'ADD',
+  'SPH-L',
+  'CYL-L',
+  'Axis-L',
+  'Prism',
+  'Base',
+  'ADD',
   // PGP
-  'SPH-R', 'CYL-R', 'Axis-R', 'Prism', 'Base', 'ADD',
-  'SPH-L', 'CYL-L', 'Axis-L', 'Prism', 'Base', 'ADD',
+  'SPH-R',
+  'CYL-R',
+  'Axis-R',
+  'Prism',
+  'Base',
+  'ADD',
+  'SPH-L',
+  'CYL-L',
+  'Axis-L',
+  'Prism',
+  'Base',
+  'ADD',
   // Final RX
-  'SPH-R', 'CYL-R', 'Axis-R', 'Prism', 'Base', 'ADD',
-  'SPH-L', 'CYL-L', 'Axis-L', 'Prism', 'Base', 'ADD'
+  'SPH-R',
+  'CYL-R',
+  'Axis-R',
+  'Prism',
+  'Base',
+  'ADD',
+  'SPH-L',
+  'CYL-L',
+  'Axis-L',
+  'Prism',
+  'Base',
+  'ADD',
 ];
 
 const REFERENCE_PARAMETERS_DATA = [
@@ -149,7 +252,7 @@ const REFERENCE_PARAMETERS_DATA = [
   ['Axis', '180°', '0°', 'Valid axis range: 0°–180°'],
   ['ADD', '+3.00 D', '-0.75 D', 'Reading addition power'],
   ['Prism', '10.00Δ', '0.00Δ', 'Prism power (if applicable)'],
-  ['Base', '–', '–', 'Accepted values: Up, Down, In, Out']
+  ['Base', '–', '–', 'Accepted values: Up, Down, In, Out'],
 ];
 
 export function exportAllCustomersReport(customers: Customer[]) {
@@ -167,24 +270,65 @@ export function exportSingleCustomerReport(cust: Customer) {
 export function generateCustomersWorkbook(customers: Customer[]): XLSX.WorkBook {
   const wb = XLSX.utils.book_new();
 
-  const sheetData = [
-    GROUP_HEADER_ROW,
-    COLUMN_HEADER_ROW,
-    ...customers.map(buildCustomerRow)
-  ];
+  const sheetData = [GROUP_HEADER_ROW, COLUMN_HEADER_ROW, ...customers.map(buildCustomerRow)];
 
   const ws1 = XLSX.utils.aoa_to_sheet(sheetData);
 
   ws1['!cols'] = [
-    { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 6 }, { wch: 8 }, { wch: 14 }, { wch: 16 },
-    { wch: 18 }, { wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 18 },
-    { wch: 24 }, { wch: 24 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 },
-    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 20 },
+    { wch: 6 },
+    { wch: 8 },
+    { wch: 14 },
+    { wch: 16 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 12 },
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 18 },
+    { wch: 24 },
+    { wch: 24 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
+    { wch: 8 },
   ];
 
   XLSX.utils.book_append_sheet(wb, ws1, 'Customer Report');

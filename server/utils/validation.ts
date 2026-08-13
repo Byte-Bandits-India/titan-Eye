@@ -9,155 +9,249 @@ const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
 const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed'];
 
 interface FieldResult {
-  valid: boolean;
   error?: string;
   sanitized?: string;
+  valid: boolean;
 }
 
 function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, '').trim();
 }
-function validateString(value: string | undefined, fieldName: string, maxLength: number, strip: boolean = true): FieldResult {
+
+function validateOptionalString(
+  value: string | undefined,
+  fieldName: string,
+  maxLength: number,
+  strip: boolean = true
+): FieldResult {
   if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
-    return { valid: false, error: `${fieldName} is required` };
+    return { sanitized: '', valid: true };
   }
-  if (typeof value !== 'string') {
-    return { valid: false, error: `${fieldName} must be a string` };
-  }
-  const sanitized = strip ? stripHtml(value) : value.trim();
-  if (sanitized.length === 0) {
-    return { valid: false, error: `${fieldName} cannot be empty after sanitization` };
-  }
-  if (sanitized.length > maxLength) {
-    return { valid: false, error: `${fieldName} must be at most ${maxLength} characters` };
-  }
-  return { valid: true, sanitized };
+
+  return validateString(value, fieldName, maxLength, strip);
 }
 
-function validateOptionalString(value: string | undefined, fieldName: string, maxLength: number, strip: boolean = true): FieldResult {
+function validateString(
+  value: string | undefined,
+  fieldName: string,
+  maxLength: number,
+  strip: boolean = true
+): FieldResult {
   if (value === undefined || (typeof value === 'string' && value.trim() === '')) {
-    return { valid: true, sanitized: '' };
+    return { error: `${fieldName} is required`, valid: false };
   }
-  return validateString(value, fieldName, maxLength, strip);
+
+  if (typeof value !== 'string') {
+    return { error: `${fieldName} must be a string`, valid: false };
+  }
+
+  const sanitized = strip ? stripHtml(value) : value.trim();
+
+  if (sanitized.length === 0) {
+    return { error: `${fieldName} cannot be empty after sanitization`, valid: false };
+  }
+
+  if (sanitized.length > maxLength) {
+    return { error: `${fieldName} must be at most ${maxLength} characters`, valid: false };
+  }
+
+  return { sanitized, valid: true };
 }
 
 const SAFE_NAME_REGEX = /^[A-Za-z][A-Za-z\s.\-']*$/;
 
-function validateName(value: string | undefined, fieldName: string, maxLength: number): FieldResult {
-  const base = validateString(value, fieldName, maxLength);
-  if (!base.valid) return base;
-  if (!SAFE_NAME_REGEX.test(base.sanitized!)) {
-    return {
-      valid: false,
-      error: `${fieldName} contains invalid characters. Only letters, spaces, hyphens, periods, and apostrophes are allowed.`
-    };
-  }
-  return base;
-}
-
-function validateMobile(value: string | undefined): FieldResult {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return { valid: false, error: 'Mobile number is required' };
-  }
-  const sanitized = value.trim();
-  if (!/^\+?[\d\s\-()]{6,15}$/.test(sanitized)) {
-    return { valid: false, error: 'Mobile number format is invalid' };
-  }
-  return { valid: true, sanitized };
-}
-
-function validateAge(value: string | undefined): FieldResult {
-  if (value === undefined || value.trim() === '') {
-    return { valid: false, error: 'Age is required' };
-  }
-  const str = value.trim();
-  const num = parseInt(str, 10);
-  if (isNaN(num) || num < 0 || num > 120) {
-    return { valid: false, error: 'Age must be a valid number between 0 and 120' };
-  }
-  return { valid: true, sanitized: str };
-}
-
-function validateEnum(value: string | undefined, fieldName: string, allowed: string[]): FieldResult {
-  if (typeof value !== 'string' || !allowed.includes(value)) {
-    return { valid: false, error: `${fieldName} must be one of: ${allowed.join(', ')}` };
-  }
-  return { valid: true, sanitized: value };
-}
-
 export interface CustomerValidationResult {
-  valid: boolean;
   errors: string[];
   sanitized: Partial<SanitizedCustomer>;
+  valid: boolean;
 }
 
-export function validateCustomerData(data: CustomerInput, isUpdate: boolean = false): CustomerValidationResult {
+export function validateCustomerData(
+  data: CustomerInput,
+  _isUpdate: boolean = false
+): CustomerValidationResult {
   const errors: string[] = [];
   const sanitized: Partial<SanitizedCustomer> = {};
 
   const nameResult = validateName(data.name, 'Name', MAX_NAME_LENGTH);
-  if (!nameResult.valid) errors.push(nameResult.error!);
-  else sanitized.name = nameResult.sanitized;
+
+  if (!nameResult.valid) {
+    errors.push(nameResult.error!);
+  } else {
+    sanitized.name = nameResult.sanitized;
+  }
 
   const ageResult = validateAge(data.age);
-  if (!ageResult.valid) errors.push(ageResult.error!);
-  else sanitized.age = ageResult.sanitized;
+
+  if (!ageResult.valid) {
+    errors.push(ageResult.error!);
+  } else {
+    sanitized.age = ageResult.sanitized;
+  }
 
   const genderResult = validateEnum(data.gender, 'Gender', VALID_GENDERS);
-  if (!genderResult.valid) errors.push(genderResult.error!);
-  else sanitized.gender = genderResult.sanitized;
+
+  if (!genderResult.valid) {
+    errors.push(genderResult.error!);
+  } else {
+    sanitized.gender = genderResult.sanitized;
+  }
 
   const mobileResult = validateMobile(data.mobile);
-  if (!mobileResult.valid) errors.push(mobileResult.error!);
-  else sanitized.mobile = mobileResult.sanitized;
+
+  if (!mobileResult.valid) {
+    errors.push(mobileResult.error!);
+  } else {
+    sanitized.mobile = mobileResult.sanitized;
+  }
 
   const customerTypeResult = validateEnum(data.customerType, 'Customer type', VALID_CUSTOMER_TYPES);
-  if (!customerTypeResult.valid) errors.push(customerTypeResult.error!);
-  else sanitized.customerType = customerTypeResult.sanitized;
+
+  if (!customerTypeResult.valid) {
+    errors.push(customerTypeResult.error!);
+  } else {
+    sanitized.customerType = customerTypeResult.sanitized;
+  }
 
   const storeNameResult = validateString(data.storeName, 'Store name', MAX_GENERIC_LENGTH);
-  if (!storeNameResult.valid) errors.push(storeNameResult.error!);
-  else sanitized.storeName = storeNameResult.sanitized;
+
+  if (!storeNameResult.valid) {
+    errors.push(storeNameResult.error!);
+  } else {
+    sanitized.storeName = storeNameResult.sanitized;
+  }
 
   const langResult = validateString(data.preferredLanguage, 'Preferred language', MAX_GENERIC_LENGTH);
-  if (!langResult.valid) errors.push(langResult.error!);
-  else sanitized.preferredLanguage = langResult.sanitized;
 
-  const lang2Result = validateOptionalString(data.preferredLanguage2, 'Preferred language 2', MAX_GENERIC_LENGTH);
-  if (!lang2Result.valid) errors.push(lang2Result.error!);
-  else sanitized.preferredLanguage2 = lang2Result.sanitized;
+  if (!langResult.valid) {
+    errors.push(langResult.error!);
+  } else {
+    sanitized.preferredLanguage = langResult.sanitized;
+  }
 
-  const storeFeedbackResult = validateOptionalString(data.storeFeedback, 'Store feedback', MAX_FEEDBACK_LENGTH, false);
-  if (!storeFeedbackResult.valid) errors.push(storeFeedbackResult.error!);
-  else sanitized.storeFeedback = storeFeedbackResult.sanitized;
+  const lang2Result = validateOptionalString(
+    data.preferredLanguage2,
+    'Preferred language 2',
+    MAX_GENERIC_LENGTH
+  );
 
-  const optomFeedbackResult = validateOptionalString(data.optomFeedback, 'Optom feedback', MAX_FEEDBACK_LENGTH, false);
-  if (!optomFeedbackResult.valid) errors.push(optomFeedbackResult.error!);
-  else sanitized.optomFeedback = optomFeedbackResult.sanitized;
+  if (!lang2Result.valid) {
+    errors.push(lang2Result.error!);
+  } else {
+    sanitized.preferredLanguage2 = lang2Result.sanitized;
+  }
+
+  const storeFeedbackResult = validateOptionalString(
+    data.storeFeedback,
+    'Store feedback',
+    MAX_FEEDBACK_LENGTH,
+    false
+  );
+
+  if (!storeFeedbackResult.valid) {
+    errors.push(storeFeedbackResult.error!);
+  } else {
+    sanitized.storeFeedback = storeFeedbackResult.sanitized;
+  }
+
+  const optomFeedbackResult = validateOptionalString(
+    data.optomFeedback,
+    'Optom feedback',
+    MAX_FEEDBACK_LENGTH,
+    false
+  );
+
+  if (!optomFeedbackResult.valid) {
+    errors.push(optomFeedbackResult.error!);
+  } else {
+    sanitized.optomFeedback = optomFeedbackResult.sanitized;
+  }
 
   const statusResult = validateEnum(data.status, 'Status', VALID_STATUSES);
-  if (!statusResult.valid) errors.push(statusResult.error!);
-  else sanitized.status = statusResult.sanitized;
+
+  if (!statusResult.valid) {
+    errors.push(statusResult.error!);
+  } else {
+    sanitized.status = statusResult.sanitized;
+  }
 
   sanitized.activeProfile = data.activeProfile === true || data.activeProfile === 1;
-  sanitized.lastUpdatedOn = typeof data.lastUpdatedOn === 'string' ? stripHtml(data.lastUpdatedOn).slice(0, MAX_GENERIC_LENGTH) : '';
+  sanitized.lastUpdatedOn =
+    typeof data.lastUpdatedOn === 'string' ? stripHtml(data.lastUpdatedOn).slice(0, MAX_GENERIC_LENGTH) : '';
 
   sanitized.rxData = data.rxData ?? null;
   sanitized.optomRxData = data.optomRxData ?? null;
 
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
   sanitized.callActive = data.callActive === true || data.callActive === 1;
+
   if (typeof data.callTakenBy === 'string') {
     const stripped = stripHtml(data.callTakenBy).slice(0, MAX_NAME_LENGTH);
     sanitized.callTakenBy = SAFE_NAME_REGEX.test(stripped) ? stripped : null;
   } else {
     sanitized.callTakenBy = null;
   }
-  sanitized.callDuration = typeof data.callDuration === 'number' ? data.callDuration : (parseInt(String(data.callDuration), 10) || 0);
+
+  sanitized.callDuration =
+    typeof data.callDuration === 'number' ? data.callDuration : parseInt(String(data.callDuration), 10) || 0;
 
   return {
-    valid: errors.length === 0,
     errors,
     sanitized,
+    valid: errors.length === 0,
   };
+}
+
+function validateAge(value: string | undefined): FieldResult {
+  if (value === undefined || value.trim() === '') {
+    return { error: 'Age is required', valid: false };
+  }
+
+  const str = value.trim();
+  const num = parseInt(str, 10);
+
+  if (isNaN(num) || num < 0 || num > 120) {
+    return { error: 'Age must be a valid number between 0 and 120', valid: false };
+  }
+
+  return { sanitized: str, valid: true };
+}
+
+function validateEnum(value: string | undefined, fieldName: string, allowed: string[]): FieldResult {
+  if (typeof value !== 'string' || !allowed.includes(value)) {
+    return { error: `${fieldName} must be one of: ${allowed.join(', ')}`, valid: false };
+  }
+
+  return { sanitized: value, valid: true };
+}
+
+function validateMobile(value: string | undefined): FieldResult {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return { error: 'Mobile number is required', valid: false };
+  }
+
+  const sanitized = value.trim();
+
+  if (!/^\+?[\d\s\-()]{6,15}$/.test(sanitized)) {
+    return { error: 'Mobile number format is invalid', valid: false };
+  }
+
+  return { sanitized, valid: true };
+}
+
+function validateName(value: string | undefined, fieldName: string, maxLength: number): FieldResult {
+  const base = validateString(value, fieldName, maxLength);
+
+  if (!base.valid) {
+    return base;
+  }
+
+  if (!SAFE_NAME_REGEX.test(base.sanitized!)) {
+    return {
+      error: `${fieldName} contains invalid characters. Only letters, spaces, hyphens, periods, and apostrophes are allowed.`,
+      valid: false,
+    };
+  }
+
+  return base;
 }

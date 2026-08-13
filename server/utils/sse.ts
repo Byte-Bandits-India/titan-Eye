@@ -14,7 +14,7 @@ export function addSseClient(client: SseClient) {
 }
 
 export function broadcastEvent<T>(type: string, data: T) {
-  sseClients.forEach(client => {
+  sseClients.forEach((client) => {
     try {
       client.res.write(`data: ${JSON.stringify({ data, type })}\n\n`);
     } catch (err) {
@@ -25,5 +25,5 @@ export function broadcastEvent<T>(type: string, data: T) {
 }
 
 export function removeSseClient(clientId: number) {
-  sseClients = sseClients.filter(c => c.id !== clientId);
+  sseClients = sseClients.filter((c) => c.id !== clientId);
 }

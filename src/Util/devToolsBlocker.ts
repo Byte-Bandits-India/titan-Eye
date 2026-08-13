@@ -1,5 +1,7 @@
 export function disableDevToolsShortcuts(): void {
-  if (typeof window === 'undefined') {return;}
+  if (typeof window === 'undefined') {
+    return;
+  }
 
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();

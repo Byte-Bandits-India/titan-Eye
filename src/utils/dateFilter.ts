@@ -2,7 +2,7 @@ import type { AuditLog, Customer, ManagedUser } from '../types';
 
 export type DateFilterRange = 'all' | 'day' | 'month' | 'week' | 'year';
 
-export const DATE_FILTER_OPTIONS: { label: string; value: DateFilterRange; }[] = [
+export const DATE_FILTER_OPTIONS: { label: string; value: DateFilterRange }[] = [
   { label: 'All Time', value: 'all' },
   { label: 'Today (Day)', value: 'day' },
   { label: 'This Week', value: 'week' },
@@ -11,43 +11,57 @@ export const DATE_FILTER_OPTIONS: { label: string; value: DateFilterRange; }[] =
 ];
 
 export function filterAuditLogsByDate(logs: AuditLog[], range: DateFilterRange): AuditLog[] {
-  if (range === 'all') {return logs;}
+  if (range === 'all') {
+    return logs;
+  }
 
   return logs.filter((log) => {
     const d = parseAnyDate(log.lastUpdatedOn || log.callStartTime);
 
-    if (!d) {return false;}
+    if (!d) {
+      return false;
+    }
 
     return isDateInRange(d, range);
   });
 }
 
 export function filterCustomersByDate(customers: Customer[], range: DateFilterRange): Customer[] {
-  if (range === 'all') {return customers;}
+  if (range === 'all') {
+    return customers;
+  }
 
   return customers.filter((cust) => {
     const d = parseAnyDate(cust.lastUpdatedOn || cust.callStartTime);
 
-    if (!d) {return false;}
+    if (!d) {
+      return false;
+    }
 
     return isDateInRange(d, range);
   });
 }
 
 export function filterUsersByDate(users: ManagedUser[], range: DateFilterRange): ManagedUser[] {
-  if (range === 'all') {return users;}
+  if (range === 'all') {
+    return users;
+  }
 
   return users.filter((u) => {
     const d = parseAnyDate(u.lastLogin);
 
-    if (!d) {return false;}
+    if (!d) {
+      return false;
+    }
 
     return isDateInRange(d, range);
   });
 }
 
 export function isDateInRange(d: Date, range: DateFilterRange): boolean {
-  if (range === 'all') {return true;}
+  if (range === 'all') {
+    return true;
+  }
 
   const now = new Date();
 
@@ -81,7 +95,9 @@ export function isDateInRange(d: Date, range: DateFilterRange): boolean {
 }
 
 export function parseAnyDate(val: null | number | string | undefined): Date | null {
-  if (!val) {return null;}
+  if (!val) {
+    return null;
+  }
 
   if (typeof val === 'number') {
     return new Date(val);
@@ -89,7 +105,9 @@ export function parseAnyDate(val: null | number | string | undefined): Date | nu
 
   const strVal = String(val).trim();
 
-  if (!strVal || strVal.toLowerCase() === 'never') {return null;}
+  if (!strVal || strVal.toLowerCase() === 'never') {
+    return null;
+  }
 
   const parsedNum = parseInt(strVal, 10);
 

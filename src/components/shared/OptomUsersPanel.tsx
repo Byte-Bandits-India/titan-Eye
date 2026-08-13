@@ -3,7 +3,9 @@ import * as React from 'react';
 import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION } from '../../options/Option';
 import { useAppSelector } from '../../store';
+import { ScrollArea } from '../ui/scroll-area';
 import { Table, TableBody, TableCell, TableRow } from '../ui/table';
+import { OptomAvatar } from './OptomAvatar';
 import { PaginationBar } from './PaginationBar';
 
 export function OptomUsersPanel() {
@@ -18,6 +20,7 @@ export function OptomUsersPanel() {
       if (optomUser.status === 'inactive') {
         return {
           ...optomUser,
+          activeCall: null,
           avail: { dotClass: 'bg-rose-500', tooltip: 'Inactive' },
         };
       }
@@ -27,6 +30,7 @@ export function OptomUsersPanel() {
       if (!isOnline) {
         return {
           ...optomUser,
+          activeCall: null,
           avail: { dotClass: 'bg-slate-400', tooltip: 'Offline' },
         };
       }
@@ -37,25 +41,29 @@ export function OptomUsersPanel() {
       const activeCall = customers.find((c) => {
         const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
 
-        if (!isCallActiveState || !c.callTakenBy) {return false;}
+        if (!isCallActiveState || !c.callTakenBy) {
+          return false;
+        }
 
         const takenByLower = c.callTakenBy.toLowerCase();
 
-        return (
-          takenByLower === optomNameLower ||
-          takenByLower === optomEmailLower
-        );
+        return takenByLower === optomNameLower || takenByLower === optomEmailLower;
       });
 
       if (activeCall) {
         return {
           ...optomUser,
-          avail: { dotClass: 'bg-amber-500', tooltip: `In a call with ${activeCall.storeName || 'a store'}` },
+          activeCall,
+          avail: {
+            dotClass: 'bg-amber-500',
+            tooltip: `In a call with ${activeCall.name} (${activeCall.storeName || 'Store'})`,
+          },
         };
       }
 
       return {
         ...optomUser,
+        activeCall: null,
         avail: { dotClass: 'bg-emerald-500', tooltip: 'Available' },
       };
     });
@@ -71,46 +79,67 @@ export function OptomUsersPanel() {
     totalPages: optomTotalPages,
   } = usePagination(optomUsersWithStatus, pageSize);
 
-  const handleOptomPageSizeChange = React.useCallback((newSize: number) => {
-    setPageSize(newSize);
-    optomResetPage();
-  }, [optomResetPage]);
+  const handleOptomPageSizeChange = React.useCallback(
+    (newSize: number) => {
+      setPageSize(newSize);
+      optomResetPage();
+    },
+    [optomResetPage]
+  );
 
   return (
-    <div className="w-full lg:w-[330px] shrink-0 bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-      <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-muted/30 gap-2">
-        <div className="text-xs sm:text-sm font-bold text-foreground truncate">
+    <div className="flex min-h-[400px] w-full shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:w-[330px]">
+      <div className="bg-muted/30 flex items-center justify-between gap-2 border-b border-border px-5 py-3">
+        <div className="truncate text-xs font-bold text-foreground sm:text-sm">
           Optom Users & Availability
         </div>
       </div>
 
-      <div className="flex-1">
+      <ScrollArea className="min-h-0 w-full flex-1">
         <Table>
           <TableBody>
             {paginatedOptomUsers.length === 0 ? (
               <TableRow>
-                <TableCell className="text-center py-8 text-muted-foreground">
+                <TableCell className="py-8 text-center text-muted-foreground">
                   No Optom users found.
                 </TableCell>
               </TableRow>
             ) : (
               paginatedOptomUsers.map((u) => {
                 const avail = u.avail;
+                const activeCall = u.activeCall;
 
                 return (
                   <TableRow className="hover:bg-muted/50 transition-colors" key={u.email}>
-                    <TableCell className="font-semibold text-foreground text-xs py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="relative shrink-0" title={avail.tooltip}>
-                          <div className="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-bold text-xs flex items-center justify-center border border-teal-200 dark:border-teal-800">
-                            {u.name.charAt(0).toUpperCase()}
+                    <TableCell className="py-3 text-xs font-semibold text-foreground">
+                      <div className="flex w-full items-center justify-between gap-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="relative shrink-0" title={avail.tooltip}>
+                            <OptomAvatar className="h-9 w-9" email={u.email} name={u.name} />
+                            <span
+                              className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card ${avail.dotClass}`}
+                            />
                           </div>
-                          <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card ${avail.dotClass}`} />
+                          <div className="flex min-w-0 flex-col">
+                            <span className="truncate text-xs font-semibold text-foreground">{u.name}</span>
+                            <span className="truncate font-mono text-[10px] text-muted-foreground">
+                              {u.email}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="truncate font-semibold text-foreground">{u.name}</span>
-                          <span className="truncate text-[10px] text-muted-foreground font-mono">{u.email}</span>
-                        </div>
+
+                        {activeCall ? (
+                          <div className="flex min-w-0 max-w-[120px] shrink-0 flex-col items-end text-right">
+                            <span className="truncate text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                              {activeCall.name}
+                            </span>
+                            <span className="truncate text-[10px] text-muted-foreground">
+                              {activeCall.storeName || activeCall.id}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="shrink-0 text-xs text-muted-foreground">—</span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -119,7 +148,7 @@ export function OptomUsersPanel() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </ScrollArea>
 
       <PaginationBar
         currentPage={optomCurrentPage}

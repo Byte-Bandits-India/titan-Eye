@@ -16,12 +16,13 @@ function SessionGuard() {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
-  const authError  = useAppSelector((s) => s.auth.error);
-  const prevError  = useRef<null | string>(null);
+  const authError = useAppSelector((s) => s.auth.error);
+  const prevError = useRef<null | string>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
-      apiClient.get('/me')
+      apiClient
+        .get('/me')
         .then((res) => {
           dispatch(loginSuccess({ user: res.data.user }));
         })
@@ -87,7 +88,9 @@ export default function App() {
         <NotificationLogProvider>
           <SSEBridge />
           <SessionGuard />
-           <div className="min-h-screen flex flex-col font-sans antialiased"> {/* use select none */}
+          <div className="flex min-h-screen flex-col font-sans antialiased">
+            {' '}
+            {/* use select none */}
             <RouterProvider router={router} />
           </div>
         </NotificationLogProvider>

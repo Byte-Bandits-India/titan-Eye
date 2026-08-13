@@ -52,15 +52,22 @@ router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, re
     const half = Math.floor(sw / 2);
     const chromePath = getChromePath();
 
-    const proc = spawn(chromePath, [
-      '--profile-directory=Profile 54',
-      '--app=https://teams.microsoft.com/',
-      '--window-position=0,0',
-      `--window-size=${half},${sh}`,
-    ], { detached: true, stdio: 'ignore' });
+    const proc = spawn(
+      chromePath,
+      [
+        '--profile-directory=Profile 54',
+        '--app=https://teams.microsoft.com/',
+        '--window-position=0,0',
+        `--window-size=${half},${sh}`,
+      ],
+      { detached: true, stdio: 'ignore' }
+    );
 
     proc.on('error', (err) => {
-      logger.error('Failed to launch Teams Chrome app', { errorMessage: err.message, requestId: req.requestId });
+      logger.error('Failed to launch Teams Chrome app', {
+        errorMessage: err.message,
+        requestId: req.requestId,
+      });
     });
     proc.unref();
   });
@@ -80,7 +87,10 @@ router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedReques
     if (process.platform === 'darwin') {
       const proc = spawn('open', ['-a', 'TeamViewer'], { detached: true, stdio: 'ignore' });
       proc.on('error', (err) => {
-        logger.error('Failed to execute open command for TeamViewer', { errorMessage: err.message, requestId: req.requestId });
+        logger.error('Failed to execute open command for TeamViewer', {
+          errorMessage: err.message,
+          requestId: req.requestId,
+        });
       });
       proc.unref();
 
@@ -96,15 +106,22 @@ router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedReques
           end tell
         `;
         exec(`osascript -e '${appleScript}'`, (errScript) => {
-          if (errScript) {logger.error('AppleScript TeamViewer window position failed', { errorMessage: errScript.message, requestId: req.requestId });}
+          if (errScript) {
+            logger.error('AppleScript TeamViewer window position failed', {
+              errorMessage: errScript.message,
+              requestId: req.requestId,
+            });
+          }
         });
       }, 2000);
-
     } else if (process.platform === 'win32') {
       const tvPath = getTeamViewerPath();
       const proc = spawn(tvPath, [], { detached: true, stdio: 'ignore' });
       proc.on('error', (err) => {
-        logger.error('Failed to spawn TeamViewer on Windows', { errorMessage: err.message, requestId: req.requestId });
+        logger.error('Failed to spawn TeamViewer on Windows', {
+          errorMessage: err.message,
+          requestId: req.requestId,
+        });
       });
       proc.unref();
 
@@ -118,14 +135,21 @@ router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedReques
           }
         `;
         exec(`powershell -command "${psScript.replace(/\n/g, ' ')}"`, (errScript) => {
-          if (errScript) {logger.error('PowerShell TeamViewer window position failed', { errorMessage: errScript.message, requestId: req.requestId });}
+          if (errScript) {
+            logger.error('PowerShell TeamViewer window position failed', {
+              errorMessage: errScript.message,
+              requestId: req.requestId,
+            });
+          }
         });
       }, 2000);
-
     } else {
       const proc = spawn('teamviewer', [], { detached: true, stdio: 'ignore' });
       proc.on('error', (err) => {
-        logger.error('Failed to spawn teamviewer binary', { errorMessage: err.message, requestId: req.requestId });
+        logger.error('Failed to spawn teamviewer binary', {
+          errorMessage: err.message,
+          requestId: req.requestId,
+        });
       });
       proc.unref();
 
@@ -140,15 +164,20 @@ router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedReques
 
             if (trimmedWid) {
               clearInterval(interval);
-              exec(`DISPLAY=:0 xdotool windowstate --remove MAXIMIZED_VERT --remove MAXIMIZED_HORZ ${trimmedWid}`, () => {
-                setTimeout(() => {
-                  exec(`DISPLAY=:0 xdotool windowmove --sync ${trimmedWid} ${x} 0`);
-                  exec(`DISPLAY=:0 xdotool windowsize --sync ${trimmedWid} ${half} ${sh}`);
-                }, 500);
-              });
+              exec(
+                `DISPLAY=:0 xdotool windowstate --remove MAXIMIZED_VERT --remove MAXIMIZED_HORZ ${trimmedWid}`,
+                () => {
+                  setTimeout(() => {
+                    exec(`DISPLAY=:0 xdotool windowmove --sync ${trimmedWid} ${x} 0`);
+                    exec(`DISPLAY=:0 xdotool windowsize --sync ${trimmedWid} ${half} ${sh}`);
+                  }, 500);
+                }
+              );
             }
 
-            if (attempts > 20) {clearInterval(interval);}
+            if (attempts > 20) {
+              clearInterval(interval);
+            }
           });
         }, 500);
       }
@@ -167,7 +196,9 @@ router.get('/me/presence', async (req: AuthenticatedRequest, res: Response) => {
     const entraId = await resolveEntraUserId(req.user.email);
 
     if (!entraId) {
-      return res.status(404).json({ message: 'No matching Microsoft account found for this email', success: false });
+      return res
+        .status(404)
+        .json({ message: 'No matching Microsoft account found for this email', success: false });
     }
 
     const presence = await getUserPresence(entraId);
@@ -177,7 +208,9 @@ router.get('/me/presence', async (req: AuthenticatedRequest, res: Response) => {
     const error = err as Error;
     logger.error('Graph presence error', { errorMessage: error.message, requestId: req.requestId });
 
-    return res.status(500).json({ message: error.message || 'Failed to get Microsoft presence', success: false });
+    return res
+      .status(500)
+      .json({ message: error.message || 'Failed to get Microsoft presence', success: false });
   }
 });
 
@@ -211,7 +244,9 @@ router.get('/me/photo', async (req: AuthenticatedRequest, res: Response) => {
     const error = err as Error;
     logger.error('Graph photo error', { errorMessage: error.message, requestId: req.requestId });
 
-    return res.status(500).json({ message: error.message || 'Failed to get Microsoft photo', success: false });
+    return res
+      .status(500)
+      .json({ message: error.message || 'Failed to get Microsoft photo', success: false });
   }
 });
 
@@ -255,7 +290,9 @@ router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Respons
     const error = err as Error;
     logger.error('Graph photo error', { errorMessage: error.message, requestId: req.requestId });
 
-    return res.status(500).json({ message: error.message || 'Failed to get Microsoft photo', success: false });
+    return res
+      .status(500)
+      .json({ message: error.message || 'Failed to get Microsoft photo', success: false });
   }
 });
 

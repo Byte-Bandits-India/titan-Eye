@@ -1,22 +1,16 @@
-import js from '@eslint/js'
-import perfectionist from 'eslint-plugin-perfectionist'
-import react from 'eslint-plugin-react'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import unusedImports from 'eslint-plugin-unused-imports'
-import { defineConfig, globalIgnores } from 'eslint/config'
-import globals from 'globals'
-import tseslint from 'typescript-eslint'
+import js from '@eslint/js';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import unusedImports from 'eslint-plugin-unused-imports';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['dist', 'dist-server']),
-  perfectionist.configs['recommended-natural'],
+  globalIgnores(['dist', 'dist-server', 'localData', '**/dist*/**', 'node_modules', '.git']),
   {
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
+    extends: [js.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       globals: globals.browser,
@@ -34,16 +28,6 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
-  },
-  {
-    extends: [...tseslint.configs.recommended],
-    files: ['server/**/*.ts'],
-    languageOptions: {
-      globals: globals.node,
-    },
-  },
-  {
-    files: ['**/*.{ts,tsx}'],
     name: 'app/rules',
     plugins: {
       react,
@@ -93,6 +77,10 @@ export default defineConfig([
         },
       ],
       'prefer-template': 'error',
+      'react-hooks/refs': 'warn',
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/use-memo': 'warn',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       'react/jsx-curly-brace-presence': ['error', 'never'],
       'sort-imports': 'off',
       'unused-imports/no-unused-imports': 'error',
@@ -108,6 +96,22 @@ export default defineConfig([
     },
   },
   {
+    extends: [...tseslint.configs.recommended],
+    files: ['server/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
+  {
     name: 'app/whitespace',
     rules: {
       'eol-last': ['error', 'always'],
@@ -116,4 +120,4 @@ export default defineConfig([
       'no-trailing-spaces': 'error',
     },
   },
-])
+]);

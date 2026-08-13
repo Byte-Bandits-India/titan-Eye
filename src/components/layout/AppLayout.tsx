@@ -1,11 +1,21 @@
 import type { AppLayoutProps } from '../../types';
 
+import { NotificationPopover } from '../shared/NotificationPopover';
 import { Footer } from './Footer';
 import { Header } from './Header';
 
-export function AppLayout({ activeTab, children, consoleLabel, onSearchChange, onSelectCustomer, searchPlaceholder, searchValue, setActiveTab }: AppLayoutProps) {
+export function AppLayout({
+  activeTab,
+  children,
+  consoleLabel,
+  onSearchChange,
+  onSelectCustomer,
+  searchPlaceholder,
+  searchValue,
+  setActiveTab,
+}: AppLayoutProps) {
   return (
-    <div className="flex-1 flex flex-col bg-[#F2F3F3] min-h-screen">
+    <div className="flex min-h-screen flex-1 flex-col bg-[#F2F3F3]">
       <Header
         activeTab={activeTab}
         consoleLabel={consoleLabel}
@@ -17,6 +27,7 @@ export function AppLayout({ activeTab, children, consoleLabel, onSearchChange, o
       />
       {children}
       <Footer />
+      <NotificationPopover onSelectCustomer={onSelectCustomer} variant="drawer" />
     </div>
   );
 }

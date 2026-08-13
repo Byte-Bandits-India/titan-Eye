@@ -1,24 +1,23 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { User, AuthState } from '../types';
-import { STORAGE_KEYS } from '../options/Option';
 
-// ── VAPT Fix #8/#14: Only non-sensitive, non-token data stored in localStorage ──
-// Token is now in httpOnly cookie only — never readable by JavaScript.
-// On page load we restore user identity (name/role/email) from localStorage
-// so the UI knows who is logged in, but actual authentication happens via cookie.
+import type { AuthState, User } from '../types';
+
+import { STORAGE_KEYS } from '../options/Option';
 
 const getInitialState = (): AuthState => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.USER);
+
     if (stored) {
       const user = JSON.parse(stored) as User;
+
       // Validate that the stored object has the required identity fields
       if (user && user.email && user.role) {
         return {
-          user,
+          error: null,
           isAuthenticated: true,
           loading: false,
-          error: null,
+          user,
         };
       }
     }
@@ -26,18 +25,25 @@ const getInitialState = (): AuthState => {
     // corrupted storage — clear it
     localStorage.removeItem(STORAGE_KEYS.USER);
   }
+
   return {
-    user: null,
+    error: null,
     isAuthenticated: false,
     loading: false,
-    error: null,
+    user: null,
   };
 };
 
 const authSlice = createSlice({
-  name: 'auth',
   initialState: getInitialState(),
+  name: 'auth',
   reducers: {
+    loginFailure(state, action: PayloadAction<string>) {
+      state.loading = false;
+      state.error = action.payload;
+      state.isAuthenticated = false;
+      state.user = null;
+    },
     loginStart(state) {
       state.loading = true;
       state.error = null;
@@ -47,15 +53,8 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.isAuthenticated = true;
       state.error = null;
-      // Store ONLY non-sensitive identity fields — NO token (VAPT fix)
       const { email, name, role, storeName } = action.payload.user;
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify({ email, name, role, storeName }));
-    },
-    loginFailure(state, action: PayloadAction<string>) {
-      state.loading = false;
-      state.error = action.payload;
-      state.isAuthenticated = false;
-      state.user = null;
     },
     logout(state) {
       state.user = null;
@@ -64,7 +63,6 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem(STORAGE_KEYS.USER);
     },
-    // Dispatched when the server returns SESSION_EXPIRED (single-session kick)
     sessionExpired(state) {
       state.user = null;
       state.isAuthenticated = false;
@@ -75,5 +73,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, sessionExpired } = authSlice.actions;
+export const { loginFailure, loginStart, loginSuccess, logout, sessionExpired } = authSlice.actions;
 export default authSlice.reducer;

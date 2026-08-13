@@ -1,0 +1,46 @@
+import { CheckCircle2, Clock, FlaskConical, Users2 } from 'lucide-react';
+
+import type { TabCounts } from '../../../types';
+
+import { MetricCard } from '../../../components/shared/MetricCard';
+
+type MetricCardGridProps = {
+  tabCounts: TabCounts;
+};
+
+export function MetricCardGrid({ tabCounts }: MetricCardGridProps) {
+  const cards = [
+    {
+      icon: Clock,
+      iconGradient: 'from-[#EF427F] to-[#892649]',
+      label: 'Customer Queue',
+      value: tabCounts.pending,
+    },
+    {
+      icon: FlaskConical,
+      iconGradient: 'from-indigo-500 to-indigo-800',
+      label: 'Testing',
+      value: tabCounts.inProgress,
+    },
+    {
+      icon: CheckCircle2,
+      iconGradient: 'from-orange-500 to-orange-800',
+      label: 'Completed',
+      value: tabCounts.completed,
+    },
+    {
+      icon: Users2,
+      iconGradient: 'from-green-500 to-green-800',
+      label: 'Total customers',
+      value: tabCounts.all,
+    },
+  ] as const;
+
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      {cards.map((card) => (
+        <MetricCard key={card.label} {...card} />
+      ))}
+    </div>
+  );
+}

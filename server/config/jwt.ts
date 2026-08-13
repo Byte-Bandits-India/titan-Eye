@@ -46,7 +46,7 @@ export function verifyToken(token: string): null | UserPayload {
     }
 
     return payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

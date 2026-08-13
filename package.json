@@ -10,6 +10,8 @@
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node server.js",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
     "preview": "vite preview",
     "verify-logs": "npm run build:server && node dist-server/scripts/verifySecurityLog.js"
   },

@@ -1,18 +1,33 @@
-import { AlertTriangle, Bell, CheckCheck, CheckCircle2, ClipboardCheck, Clock, PhoneIncoming, PhoneOff, UserCheck, UserPlus, Volume2, VolumeX, X, XCircle } from "lucide-react";
-import * as React from "react";
+import {
+  AlertTriangle,
+  Bell,
+  CheckCheck,
+  CheckCircle2,
+  ClipboardCheck,
+  PhoneIncoming,
+  PhoneOff,
+  UserCheck,
+  UserPlus,
+  Volume2,
+  VolumeX,
+  X,
+  XCircle,
+} from 'lucide-react';
+import * as React from 'react';
 
-import { fetchCustomersAction, initiateCallAction, rejectCallAction } from "../../Actions/customerActions";
-import { fetchUsersAction } from "../../Actions/userActions";
-import { useAppDispatch, useAppSelector } from "../../store";
-import { openTeamsCallWindow } from "../../Util/teamsCall";
-import { Avatar, AvatarFallback } from "../ui/avatar";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { type LogNotificationType, useNotificationLog } from "../ui/notificationLog";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { ScrollArea } from "../ui/scroll-area";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
-import { useToast } from "../ui/toast";
+import type { LogNotificationType, NotificationPopoverProps } from '../../types';
+
+import { fetchCustomersAction, initiateCallAction, rejectCallAction } from '../../Actions/customerActions';
+import { fetchUsersAction } from '../../Actions/userActions';
+import { useAppDispatch, useAppSelector } from '../../store';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { useNotificationLog } from '../ui/notificationLog';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { ScrollArea } from '../ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
+import { useToast } from '../ui/toast';
 
 const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: string }>> = {
   assessment_accepted: ClipboardCheck,
@@ -25,16 +40,11 @@ const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: s
   patient_registered: UserPlus,
 };
 
-interface NotificationPopoverProps {
-  onSelectCustomer?: (customerId: string) => void;
-  trigger?: React.ReactNode;
-  variant?: "drawer" | "popover";
-}
-
 export function NotificationPopover({
+  autoOpen = true,
   onSelectCustomer,
   trigger,
-  variant = "popover",
+  variant = 'popover',
 }: NotificationPopoverProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
@@ -45,21 +55,14 @@ export function NotificationPopover({
 
   const [open, setOpen] = React.useState(false);
   const [isMuted, setIsMuted] = React.useState(false);
-  const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(
-    new Set(),
-  );
+  const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(new Set());
   const [retryingLogId, setRetryingLogId] = React.useState<null | string>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  // play() is async - a pause() issued while a play() request is still
-  // in-flight can lose the race in some (especially embedded/webview)
-  // browsers, leaving the ring audibly running after the app's own state
-  // says it should be stopped. This flag records the *latest intent* so it
-  // can be re-applied once the in-flight play() promise actually settles.
   const wantsPlayingRef = React.useRef(false);
 
   const getAudioElement = React.useCallback(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio("/call-Notification.mp3");
+      audioRef.current = new Audio('/call-Notification.mp3');
       audioRef.current.loop = true;
     }
 
@@ -75,17 +78,17 @@ export function NotificationPopover({
     }
   }, []);
 
-  // Browsers block audio.play() until the page has seen a user gesture.
-  // Priming (muted play + immediate pause) on the first click/keypress unlocks
-  // playback for this session, so the ring can autoplay later when an SSE
-  // event arrives with no gesture attached.
   React.useEffect(() => {
-    if (user?.role !== "optom" && user?.role !== "store") return;
+    if (user?.role !== 'optom') {
+      return;
+    }
 
     let unlocked = false;
 
     const unlock = () => {
-      if (unlocked) return;
+      if (unlocked) {
+        return;
+      }
 
       const el = getAudioElement();
       const previousVolume = el.volume;
@@ -103,16 +106,16 @@ export function NotificationPopover({
         });
     };
 
-    document.addEventListener("pointerdown", unlock);
-    document.addEventListener("keydown", unlock);
+    document.addEventListener('pointerdown', unlock);
+    document.addEventListener('keydown', unlock);
 
     return () => {
-      document.removeEventListener("pointerdown", unlock);
-      document.removeEventListener("keydown", unlock);
+      document.removeEventListener('pointerdown', unlock);
+      document.removeEventListener('keydown', unlock);
     };
   }, [user, getAudioElement]);
 
-  const [now, setNow] = React.useState<number>(Date.now());
+  const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -121,15 +124,6 @@ export function NotificationPopover({
 
     return () => clearInterval(timer);
   }, []);
-
-  const prevLogCountRef = React.useRef(logNotifications.length);
-  React.useEffect(() => {
-    if (variant === "drawer" && logNotifications.length > prevLogCountRef.current) {
-      setOpen(true);
-    }
-
-    prevLogCountRef.current = logNotifications.length;
-  }, [logNotifications.length, variant]);
 
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
@@ -140,28 +134,30 @@ export function NotificationPopover({
       dispatch(fetchUsersAction());
     };
 
-    window.addEventListener("titan:sse_event", handleSseEvent);
+    window.addEventListener('titan:sse_event', handleSseEvent);
 
-    return () => window.removeEventListener("titan:sse_event", handleSseEvent);
+    return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [dispatch]);
 
   const isTakenByOptomUser = React.useCallback(
     (callTakenBy?: null | string) => {
-      if (!callTakenBy) {return false;}
+      if (!callTakenBy) {
+        return false;
+      }
 
       const takenByLower = callTakenBy.toLowerCase();
 
-      if (takenByLower.startsWith("dr.") || takenByLower.includes("optom"))
-        {return true;}
+      if (takenByLower.startsWith('dr.') || takenByLower.includes('optom')) {
+        return true;
+      }
 
       return users.some(
         (u) =>
-          u.role === "optom" &&
-          (u.name.toLowerCase() === takenByLower ||
-            u.email.toLowerCase() === takenByLower),
+          u.role === 'optom' &&
+          (u.name.toLowerCase() === takenByLower || u.email.toLowerCase() === takenByLower)
       );
     },
-    [users],
+    [users]
   );
 
   type NotificationItem = {
@@ -170,22 +166,23 @@ export function NotificationPopover({
     subtitle: string;
     timestamp: number | string;
     title: string;
-    type: "admin_status" | "call_accepted" | "call_completed" | "incoming_call";
+    type: 'admin_status' | 'call_accepted' | 'call_completed' | 'incoming_call';
   };
 
   const notifications = React.useMemo<NotificationItem[]>(() => {
-    if (!user) {return [];}
+    if (!user) {
+      return [];
+    }
 
-    if (user.role === "optom") {
+    if (user.role === 'optom') {
       const isOptomUserInCall = customers.some((c) => {
-        if (!(c.status === "Initiated" || c.status === "Accepted") || !c.callTakenBy) {return false;}
+        if (!(c.status === 'Initiated' || c.status === 'Accepted') || !c.callTakenBy) {
+          return false;
+        }
 
         const takenByLower = c.callTakenBy.toLowerCase();
 
-        return (
-          takenByLower === user.name.toLowerCase() ||
-          takenByLower === user.email.toLowerCase()
-        );
+        return takenByLower === user.name.toLowerCase() || takenByLower === user.email.toLowerCase();
       });
 
       if (isOptomUserInCall) {
@@ -194,11 +191,15 @@ export function NotificationPopover({
 
       return customers
         .filter((c) => {
-          if (c.status !== "Initiated") {return false;}
+          if (c.status !== 'Initiated') {
+            return false;
+          }
 
-          const offeredTo = (c.offeredToOptomEmail || "").toLowerCase();
+          const offeredTo = (c.offeredToOptomEmail || '').toLowerCase();
 
-          if (offeredTo !== user.email.toLowerCase()) {return false;}
+          if (offeredTo !== user.email.toLowerCase()) {
+            return false;
+          }
 
           return !dismissedIds.has(c.id);
         })
@@ -212,56 +213,49 @@ export function NotificationPopover({
             customer: c,
             id: c.id,
             subtitle: isUrgent
-              ? `URGENT ALERT (Minute ${waitMins}/59): Patient waiting for ${waitMins} mins! Pick up call immediately • Store: ${c.storeName || "Store"}`
-              : `Requesting access permission • Store: ${c.storeName || "Store"}`,
+              ? `URGENT ALERT (Minute ${waitMins}/59): Patient waiting for ${waitMins} mins! Pick up call immediately • Store: ${c.storeName || 'Store'}`
+              : `Requesting access permission • Store: ${c.storeName || 'Store'}`,
             timestamp: c.lastUpdatedOn || now,
-            title: isUrgent
-              ? `🚨 URGENT CALL (Min ${waitMins}/59): ${c.name}`
-              : c.name,
-            type: "incoming_call" as const,
+            title: isUrgent ? `🚨 URGENT CALL (Min ${waitMins}/59): ${c.name}` : c.name,
+            type: 'incoming_call' as const,
           };
         });
     }
 
-    if (user.role === "store") {
+    if (user.role === 'store') {
       return customers
         .filter((c) => {
           const isMyStore =
-            !user.storeName ||
-            (c.storeName &&
-              c.storeName.toLowerCase() === user.storeName.toLowerCase());
+            !user.storeName || (c.storeName && c.storeName.toLowerCase() === user.storeName.toLowerCase());
 
-          if (!isMyStore) {return false;}
+          if (!isMyStore) {
+            return false;
+          }
 
-          if (dismissedIds.has(c.id)) {return false;}
+          if (dismissedIds.has(c.id)) {
+            return false;
+          }
 
-          const isAccepted =
-            c.status === "Accepted" ||
-            (c.callActive && isTakenByOptomUser(c.callTakenBy));
-          const isCompleted = c.status === "Completed";
+          const isAccepted = c.status === 'Accepted' || (c.callActive && isTakenByOptomUser(c.callTakenBy));
+          const isCompleted = c.status === 'Completed';
 
           return isAccepted || isCompleted;
         })
         .map((c) => {
-          const isAccepted =
-            c.status === "Accepted" ||
-            (c.callActive && isTakenByOptomUser(c.callTakenBy));
+          const isAccepted = c.status === 'Accepted' || (c.callActive && isTakenByOptomUser(c.callTakenBy));
           const startMs = parseTimestamp(c.callStartTime);
           const optomCallStartTime = c.optomCallStartTime;
           const optomMs = parseTimestamp(optomCallStartTime || c.lastUpdatedOn);
-          const waitSecs =
-            startMs > 0 && optomMs >= startMs
-              ? Math.floor((optomMs - startMs) / 1000)
-              : 0;
+          const waitSecs = startMs > 0 && optomMs >= startMs ? Math.floor((optomMs - startMs) / 1000) : 0;
           const isPost59Min = waitSecs >= 3540;
 
-          let subtitleText = `Consultation completed by ${c.callTakenBy || "Optom Doctor"}`;
+          let subtitleText = `Consultation completed by ${c.callTakenBy || 'Optom Doctor'}`;
 
           if (isAccepted) {
             if (isPost59Min) {
-              subtitleText = `Optom Doctor Calling: ${c.callTakenBy || "Optom Doctor"} is calling for ${c.name} after 59 mins. Please attend!`;
+              subtitleText = `Optom Doctor Calling: ${c.callTakenBy || 'Optom Doctor'} is calling for ${c.name} after 59 mins. Please attend!`;
             } else {
-              subtitleText = `Call accepted by ${c.callTakenBy || "Optom Doctor"}`;
+              subtitleText = `Call accepted by ${c.callTakenBy || 'Optom Doctor'}`;
             }
           }
 
@@ -270,36 +264,72 @@ export function NotificationPopover({
             id: c.id,
             subtitle: subtitleText,
             timestamp: c.lastUpdatedOn || now,
-            title:
-              isPost59Min && isAccepted ? `📞 ATTEND CALL: ${c.name}` : c.name,
-            type: isAccepted ? "call_accepted" : "call_completed",
+            title: isPost59Min && isAccepted ? `📞 ATTEND CALL: ${c.name}` : c.name,
+            type: isAccepted ? 'call_accepted' : 'call_completed',
           };
         });
     }
 
-    if (user.role === "admin") {
+    if (user.role === 'admin') {
       return customers
         .filter((c) => !dismissedIds.has(c.id))
         .map((c) => ({
           customer: c,
           id: c.id,
-          subtitle: `${c.name} (${c.storeName || "Store"})`,
+          subtitle: `${c.name} (${c.storeName || 'Store'})`,
           timestamp: c.lastUpdatedOn || now,
           title: `Status: ${c.status}`,
-          type: "admin_status" as const,
+          type: 'admin_status' as const,
         }));
     }
 
     return [];
   }, [user, customers, dismissedIds, isTakenByOptomUser, now]);
 
+  const currentNotificationIds = React.useMemo(
+    () => [...notifications.map((n) => n.id), ...logNotifications.map((n) => n.id)].join(','),
+    [notifications, logNotifications]
+  );
+
+  const prevNotificationIdsRef = React.useRef<null | string>(null);
+
   React.useEffect(() => {
-    if (
-      !user ||
-      user.role !== "optom" ||
-      notifications.length === 0 ||
-      isMuted
-    ) {
+    if (!autoOpen) {
+      return;
+    }
+
+    if (prevNotificationIdsRef.current === null) {
+      prevNotificationIdsRef.current = currentNotificationIds;
+
+      return;
+    }
+
+    const prevIds = new Set(prevNotificationIdsRef.current.split(',').filter(Boolean));
+    const currentIds = currentNotificationIds.split(',').filter(Boolean);
+
+    const hasNewNotification = currentIds.some((id) => !prevIds.has(id));
+
+    if (hasNewNotification && currentIds.length > 0) {
+      setOpen(true);
+    }
+
+    prevNotificationIdsRef.current = currentNotificationIds;
+  }, [currentNotificationIds, autoOpen]);
+
+  React.useEffect(() => {
+    const handleOpenNotificationDrawer = () => {
+      setOpen(true);
+    };
+
+    window.addEventListener('titan:open_notifications', handleOpenNotificationDrawer);
+
+    return () => {
+      window.removeEventListener('titan:open_notifications', handleOpenNotificationDrawer);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!user || user.role !== 'optom' || notifications.length === 0 || isMuted) {
       stopAudio();
 
       return;
@@ -313,16 +343,13 @@ export function NotificationPopover({
     if (playPromise !== undefined) {
       playPromise
         .then(() => {
-          // The desired state may have flipped to "stopped" while this
-          // request was still resolving - re-apply it now instead of
-          // leaving a stray loop running.
           if (!wantsPlayingRef.current) {
             el.pause();
             el.currentTime = 0;
           }
         })
         .catch((e) => {
-          console.warn("Audio notification playback error:", e);
+          console.warn('Audio notification playback error:', e);
         });
     }
 
@@ -331,40 +358,11 @@ export function NotificationPopover({
     };
   }, [user, notifications.length, isMuted, stopAudio, getAudioElement]);
 
-  // Stores don't get the continuous optom ring, but a "no Optom available/
-  // answered" log entry is time-sensitive enough to deserve a one-shot alert
-  // rather than relying on someone noticing the bell badge.
-  const seenNoOptomLogIdsRef = React.useRef<Set<string>>(new Set());
-
-  React.useEffect(() => {
-    if (!user || user.role !== "store") return;
-
-    const currentIds = logNotifications
-      .filter((n) => n.type === "no_optom_available")
-      .map((n) => n.id);
-    const hasNewAlert = currentIds.some((id) => !seenNoOptomLogIdsRef.current.has(id));
-
-    seenNoOptomLogIdsRef.current = new Set(currentIds);
-
-    if (!hasNewAlert || isMuted) return;
-
-    // This element is shared with the (mutually exclusive, optom-only)
-    // continuous ring effect above - a store session never runs that one, so
-    // it's safe to pin loop off here for a single play-through.
-    const el = getAudioElement();
-
-    el.loop = false;
-    el.currentTime = 0;
-    el.play().catch((e) => {
-      console.warn("Audio notification playback error:", e);
-    });
-  }, [logNotifications, user, isMuted, getAudioElement]);
-
   const handleDecline = (customerId: string) => {
     setDismissedIds((prev) => new Set(prev).add(customerId));
     stopAudio();
-    dispatch(rejectCallAction(customerId)).catch(() => {
-      /* handled via toast in the future if needed; SSE refetch will reconcile state */
+    dispatch(rejectCallAction(customerId)).catch((e) => {
+      console.warn('rejectCallAction error:', e);
     });
   };
 
@@ -382,22 +380,19 @@ export function NotificationPopover({
     }
   };
 
-  const handleAttend = async (customerId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(customerId));
+  const handleClearAll = () => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      notifications.forEach((n) => next.add(n.customer.id));
+
+      return next;
+    });
+
+    logNotifications.forEach((l) => {
+      dismissLogNotification(l.id);
+    });
+
     stopAudio();
-    setOpen(false);
-
-    try {
-      const result = await dispatch(initiateCallAction(customerId));
-      const targetEmail = result?.customer?.storeContactEmail;
-
-      if (targetEmail) {
-        openTeamsCallWindow(targetEmail);
-      }
-    } catch (e) {
-      const err = e as Error;
-      toast({ description: err.message || "Failed to attend the call.", title: "System Error", type: "error" });
-    }
   };
 
   const handleRetryFromLog = async (customerId: string, logId: string) => {
@@ -407,17 +402,17 @@ export function NotificationPopover({
       await dispatch(initiateCallAction(customerId));
       dismissLogNotification(logId);
       toast({
-        description: "Your request has been sent to the available Optom doctor.",
-        title: "Optom Requested",
-        type: "success",
+        description: 'Your request has been sent to the available Optom doctor.',
+        title: 'Optom Requested',
+        type: 'success',
       });
     } catch (e) {
       const err = e as Error;
 
       toast({
-        description: err.message || "Failed to request an Optom doctor.",
-        title: "Retry Failed",
-        type: "error",
+        description: err.message || 'Failed to request an Optom doctor.',
+        title: 'Retry Failed',
+        type: 'error',
       });
     } finally {
       setRetryingLogId(null);
@@ -426,9 +421,9 @@ export function NotificationPopover({
 
   const unreadCount = notifications.length + logNotifications.length;
 
-  const muteButton = user?.role === "optom" && unreadCount > 0 && (
+  const muteButton = user?.role === 'optom' && unreadCount > 0 && (
     <Button
-      className="h-7 w-7 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg cursor-pointer"
+      className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       onClick={() => {
         setIsMuted((prev) => {
           const next = !prev;
@@ -441,210 +436,256 @@ export function NotificationPopover({
         });
       }}
       size="icon"
-      title={isMuted ? "Unmute chime" : "Mute chime"}
+      title={isMuted ? 'Unmute chime' : 'Mute chime'}
       variant="ghost"
     >
       {isMuted ? (
-        <VolumeX className="w-4 h-4 text-rose-500" />
+        <VolumeX className="h-4 w-4 text-rose-500" />
       ) : (
-        <Volume2 className="w-4 h-4 text-emerald-600" />
+        <Volume2 className="h-4 w-4 text-emerald-600" />
       )}
     </Button>
   );
 
+  type UnifiedNotificationItem =
+    | {
+        category: 'customer';
+        customer: (typeof customers)[0];
+        id: string;
+        subtitle: string;
+        timestamp: number;
+        title: string;
+        type: 'admin_status' | 'call_accepted' | 'call_completed' | 'incoming_call';
+      }
+    | {
+        category: 'log';
+        customerId?: string;
+        description: string;
+        id: string;
+        logType: LogNotificationType;
+        timestamp: number;
+        title: string;
+      };
+
+  const allNotifications = React.useMemo<UnifiedNotificationItem[]>(() => {
+    const list: UnifiedNotificationItem[] = [];
+
+    notifications.forEach((n) => {
+      list.push({
+        category: 'customer',
+        customer: n.customer,
+        id: n.id,
+        subtitle: n.subtitle,
+        timestamp: parseTimestamp(n.timestamp),
+        title: n.title,
+        type: n.type,
+      });
+    });
+
+    logNotifications.forEach((l) => {
+      list.push({
+        category: 'log',
+        customerId: l.customerId,
+        description: l.description,
+        id: l.id,
+        logType: l.type,
+        timestamp: parseTimestamp(l.timestamp),
+        title: l.title,
+      });
+    });
+
+    return list.sort((a, b) => b.timestamp - a.timestamp);
+  }, [notifications, logNotifications]);
+
   const defaultTrigger = (
     <button
-      className="relative text-gray-500 hover:text-gray-900 hover:bg-slate-100 p-2 rounded-xl transition-all cursor-pointer focus:outline-none"
+      className="relative cursor-pointer rounded-xl p-2 text-gray-500 transition-all hover:bg-slate-100 hover:text-gray-900 focus:outline-none dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       title="Notifications"
       type="button"
     >
       <Bell
-        className={`w-5 h-5 ${unreadCount > 0 ? "text-blue-600 animate-bounce" : "text-gray-500"}`}
+        className={`h-5 w-5 ${unreadCount > 0 ? 'animate-bounce text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-zinc-400'}`}
       />
       {unreadCount > 0 && (
-        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white animate-pulse">
+        <span className="absolute right-1 top-1 flex h-4 w-4 animate-pulse items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white dark:ring-zinc-900">
           {unreadCount}
         </span>
       )}
     </button>
   );
 
-  const logNotificationList = logNotifications.length > 0 && (
-    <div className="p-3 space-y-2 border-b border-border bg-slate-50/60 dark:bg-zinc-800/30">
-      {logNotifications.map((item) => {
-        const Icon = LOG_ICONS[item.type] ?? Bell;
-        const formattedTime = new Date(item.timestamp).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          hour12: true,
-          minute: "2-digit",
-        });
-
-        return (
-          <div
-            className="relative flex items-start gap-2.5 rounded-lg border border-border bg-white dark:bg-zinc-900 shadow-sm p-3 pr-8"
-            key={item.id}
-          >
-            <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0 text-blue-600 dark:text-blue-400">
-              <Icon className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <div className="font-bold text-xs text-foreground leading-snug">{item.title}</div>
-              <div className="text-[11px] text-muted-foreground leading-tight">{item.description}</div>
-              {item.type === "no_optom_available" && item.customerId && (
-                <button
-                  className="mt-1 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={retryingLogId === item.id}
-                  onClick={() => handleRetryFromLog(item.customerId!, item.id)}
-                  type="button"
-                >
-                  {retryingLogId === item.id ? "Retrying…" : "Retry"}
-                </button>
-              )}
-              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-medium pt-0.5">
-                <Clock className="w-3 h-3 text-slate-400" />
-                <span>{formattedTime}</span>
-              </div>
-            </div>
-            <button
-              className="absolute top-2 right-2 h-5 w-5 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-              onClick={() => dismissLogNotification(item.id)}
-              title="Close notification"
-              type="button"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   const notificationList = (
-    <ScrollArea className="max-h-[400px] w-full">
-      {logNotificationList}
-      {notifications.length === 0 && logNotifications.length === 0 ? (
-            <div className="p-8 text-center flex flex-col items-center justify-center space-y-2">
-              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400">
-                <CheckCheck className="w-5 h-5" />
-              </div>
-              <p className="text-xs font-semibold text-muted-foreground">
-                No new notifications
-              </p>
-              <p className="text-[11px] text-slate-400">
-                All notifications have been addressed.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {notifications.map((item) => {
-                const initials = item.title
-                  ? item.title
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)
-                  : "P";
+    <ScrollArea className="max-h-[460px] w-full">
+      {allNotifications.length === 0 ? (
+        <div className="flex flex-col items-center justify-center space-y-3 px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 shadow-inner dark:bg-zinc-800 dark:text-zinc-500">
+            <CheckCheck className="h-6 w-6" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-foreground">No new notifications</p>
+            <p className="max-w-[220px] text-xs text-muted-foreground">
+              You're all caught up! New updates and requests will appear here.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2.5 p-3">
+          {allNotifications.map((item) => {
+            const formattedTime =
+              item.timestamp > 0
+                ? new Date(item.timestamp).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    hour12: true,
+                    minute: '2-digit',
+                  })
+                : '';
 
-                const formattedTime = new Date(
-                  item.timestamp,
-                ).toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  hour12: true,
-                  minute: "2-digit",
-                });
+            if (item.category === 'log') {
+              const Icon = LOG_ICONS[item.logType] ?? Bell;
 
-                return (
-                  <div
-                    className="p-4 hover:bg-slate-50/70 dark:hover:bg-zinc-800/40 transition-colors relative group"
-                    key={item.id}
-                  >
-                    <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white" />
-                    <div className="flex items-start gap-3">
-                      <Avatar className="w-10 h-10 shrink-0 ring-2 ring-slate-200 dark:ring-zinc-700">
-                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white font-bold text-xs">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0 pr-4 space-y-1">
-                        <div className="font-bold text-sm text-foreground leading-snug truncate">
-                          {item.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground font-medium leading-tight">
-                          {item.subtitle}
-                        </div>
-                        {item.type === "incoming_call" ? (
-                          <div className="flex items-center gap-2 pt-2">
-                            <button
-                              className="px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
-                              onClick={() => handleAttend(item.customer.id)}
-                              type="button"
-                            >
-                              Attend
-                            </button>
-
-                            <button
-                              className="px-3.5 py-1.5 rounded-md border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95"
-                              onClick={() => handleAccept(item.customer.id)}
-                              type="button"
-                            >
-                              View
-                            </button>
-
-                            <button
-                              className="px-3.5 py-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer active:scale-95"
-                              onClick={() => handleDecline(item.customer.id)}
-                              type="button"
-                            >
-                              Ignore
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 pt-2">
-                            <button
-                              className="px-3 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-[11px] font-semibold transition-colors cursor-pointer"
-                              onClick={() => handleDismiss(item.customer.id)}
-                              type="button"
-                            >
-                              Dismiss
-                            </button>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium pt-1.5">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          <span>{formattedTime}</span>
-                        </div>
-                      </div>
-                    </div>
+              return (
+                <div
+                  className="shadow-xs group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                  key={`log-${item.id}`}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-2 ring-blue-100 dark:bg-blue-950/60 dark:text-blue-400 dark:ring-blue-900/40">
+                    <Icon className="w-4.5 h-4.5" />
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <div className="min-w-0 flex-1 space-y-1 pr-24">
+                    <div className="text-xs font-bold leading-snug text-foreground">{item.title}</div>
+                    <div className="text-[11px] leading-relaxed text-muted-foreground">
+                      {item.description}
+                    </div>
+                    {item.logType === 'no_optom_available' && item.customerId && (
+                      <button
+                        className="shadow-xs mt-1.5 cursor-pointer rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={retryingLogId === item.id}
+                        onClick={() => handleRetryFromLog(item.customerId!, item.id)}
+                        type="button"
+                      >
+                        {retryingLogId === item.id ? 'Retrying…' : 'Retry'}
+                      </button>
+                    )}
+                  </div>
+                  <div className="absolute right-3.5 top-3.5 flex items-center gap-1.5">
+                    {formattedTime && (
+                      <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500">
+                        {formattedTime}
+                      </span>
+                    )}
+                    <button
+                      className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                      onClick={() => dismissLogNotification(item.id)}
+                      title="Close notification"
+                      type="button"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            const initials = item.title
+              ? item.title
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)
+              : 'P';
+
+            return (
+              <div
+                className="shadow-xs group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                key={`cust-${item.id}`}
+              >
+                <Avatar className="shadow-xs h-9 w-9 shrink-0 ring-2 ring-blue-100 dark:ring-zinc-700">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-xs font-bold text-white">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1 space-y-1 pr-24">
+                  <div className="truncate text-xs font-bold leading-snug text-foreground">{item.title}</div>
+                  <div className="text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</div>
+                  {item.type === 'incoming_call' && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
+                        onClick={() => handleAccept(item.customer.id)}
+                        type="button"
+                      >
+                        View
+                      </button>
+
+                      <button
+                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        onClick={() => handleDecline(item.customer.id)}
+                        type="button"
+                      >
+                        Ignore
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute right-3.5 top-3.5 flex items-center gap-1.5">
+                  {formattedTime && (
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-zinc-500">
+                      {formattedTime}
+                    </span>
+                  )}
+                  <button
+                    className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    onClick={() => handleDismiss(item.customer.id)}
+                    title="Dismiss notification"
+                    type="button"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </ScrollArea>
   );
 
-  if (variant === "drawer") {
+  if (variant === 'drawer') {
     return (
       <Sheet onOpenChange={setOpen} open={open}>
-        <SheetTrigger asChild>{trigger ?? defaultTrigger}</SheetTrigger>
-        <SheetContent className="p-0 sm:max-w-sm" side="left">
-          <SheetHeader className="flex-row items-center justify-between gap-2">
+        {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
+        <SheetContent className="w-full p-0 sm:max-w-md" side="left">
+          <SheetHeader className="flex-row items-center justify-between gap-2 space-y-0 border-b border-border bg-slate-50/80 px-4 py-3.5 dark:bg-zinc-900/80">
             <div className="flex items-center gap-2">
-              <SheetTitle className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-blue-600" />
-                Notifications
-              </SheetTitle>
-              {unreadCount > 0 && (
-                <Badge
-                  className="bg-blue-100 text-blue-700 font-extrabold text-[10px] px-2 py-0.5"
-                  variant="secondary"
-                >
-                  {unreadCount} new
-                </Badge>
-              )}
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                <Bell className="h-4 w-4" />
+              </div>
+              <div className="flex items-center gap-2">
+                <SheetTitle className="text-sm font-bold text-foreground">Notifications</SheetTitle>
+                {unreadCount > 0 && (
+                  <Badge
+                    className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                    variant="secondary"
+                  >
+                    {unreadCount} new
+                  </Badge>
+                )}
+              </div>
             </div>
-            {muteButton}
+            <div className="mr-6 flex items-center gap-1.5">
+              {unreadCount > 0 && (
+                <Button
+                  className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  onClick={handleClearAll}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Clear all
+                </Button>
+              )}
+              {muteButton}
+            </div>
           </SheetHeader>
           {notificationList}
         </SheetContent>
@@ -658,25 +699,39 @@ export function NotificationPopover({
 
       <PopoverContent
         align="end"
-        className="w-[360px] p-0 shadow-2xl rounded-2xl overflow-hidden border border-border"
+        className="w-[380px] overflow-hidden rounded-2xl border border-border p-0 shadow-2xl"
       >
-        <div className="bg-slate-50 dark:bg-zinc-800/80 border-b border-border px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-border bg-slate-50 px-4 py-3.5 dark:bg-zinc-900/90">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-blue-600" />
-            <span className="font-bold text-sm text-foreground">
-              Notifications
-            </span>
-            {unreadCount > 0 && (
-              <Badge
-                className="bg-blue-100 text-blue-700 font-extrabold text-[10px] px-2 py-0.5"
-                variant="secondary"
-              >
-                {unreadCount} new
-              </Badge>
-            )}
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+              <Bell className="h-4 w-4" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-foreground">Notifications</span>
+              {unreadCount > 0 && (
+                <Badge
+                  className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                  variant="secondary"
+                >
+                  {unreadCount} new
+                </Badge>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1">{muteButton}</div>
+          <div className="flex items-center gap-1">
+            {unreadCount > 0 && (
+              <Button
+                className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                onClick={handleClearAll}
+                size="sm"
+                variant="ghost"
+              >
+                Clear all
+              </Button>
+            )}
+            {muteButton}
+          </div>
         </div>
 
         {notificationList}
@@ -686,13 +741,19 @@ export function NotificationPopover({
 }
 
 function parseTimestamp(val: null | number | string | undefined): number {
-  if (!val) {return 0;}
+  if (!val) {
+    return 0;
+  }
 
-  if (typeof val === "number") {return val;}
+  if (typeof val === 'number') {
+    return val;
+  }
 
   const num = parseInt(val, 10);
 
-  if (!isNaN(num) && String(num).length >= 10) {return num;}
+  if (!isNaN(num) && String(num).length >= 10) {
+    return num;
+  }
 
   const dateMs = new Date(val).getTime();
 

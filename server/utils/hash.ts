@@ -10,7 +10,9 @@ export function hashPassword(password: string): string {
 export function verifyPassword(password: string, storedValue: string): boolean {
   const [salt, hash] = storedValue.split(':');
 
-  if (!salt || !hash) {return false;}
+  if (!salt || !hash) {
+    return false;
+  }
 
   const inputHash = crypto.scryptSync(password, salt, 64).toString('hex');
 

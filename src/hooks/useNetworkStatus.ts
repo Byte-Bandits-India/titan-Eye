@@ -1,10 +1,12 @@
 import * as React from 'react';
-import { APP_CONFIG } from '../options/Option';
+
 import type { NetworkStatus } from '../types';
+
+import { APP_CONFIG } from '../options/Option';
 
 export function useNetworkStatus(
   fallbackSpeed: string = '25',
-  fallbackStatus: string = 'EXCELLENT',
+  fallbackStatus: string = 'EXCELLENT'
 ): NetworkStatus {
   const [speed, setSpeed] = React.useState(fallbackSpeed);
   const [statusLabel, setStatusLabel] = React.useState(fallbackStatus);
@@ -13,7 +15,7 @@ export function useNetworkStatus(
 
   React.useEffect(() => {
     let active = true;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let timeoutId: null | ReturnType<typeof setTimeout> = null;
 
     const runSpeedTest = async () => {
       if (!navigator.onLine) {
@@ -23,20 +25,28 @@ export function useNetworkStatus(
           setStatusColor('bg-red-500 text-white animate-pulse');
           setWifiIconColor('text-red-500');
         }
+
         timeoutId = setTimeout(runSpeedTest, 1000);
+
         return;
       }
 
       try {
         const startTime = performance.now();
-        const response = await fetch('/api/ping?t=' + Date.now(), { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to ping');
+        const response = await fetch(`/api/ping?t=${Date.now()}`, { cache: 'no-store' });
+
+        if (!response.ok) {
+          throw new Error('Failed to ping');
+        }
 
         const endTime = performance.now();
         const latencyMs = Math.max(1, endTime - startTime);
 
         let speedMbps = 600 / (latencyMs + 2);
-        if (speedMbps > 150) speedMbps = 150;
+
+        if (speedMbps > 150) {
+          speedMbps = 150;
+        }
 
         if (active) {
           setSpeed(speedMbps.toFixed(1));
@@ -77,7 +87,10 @@ export function useNetworkStatus(
     };
 
     const handleOnlineStatus = () => {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
       void runSpeedTest();
     };
 
@@ -88,11 +101,15 @@ export function useNetworkStatus(
 
     return () => {
       active = false;
-      if (timeoutId) clearTimeout(timeoutId);
+
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
     };
   }, [fallbackSpeed, fallbackStatus]);
 
-  return { speed, statusLabel, statusColor, wifiIconColor };
+  return { speed, statusColor, statusLabel, wifiIconColor };
 }

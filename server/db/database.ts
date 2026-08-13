@@ -148,33 +148,59 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
-  try { await run(`ALTER TABLE customers ADD COLUMN optomFeedback TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optomFeedback TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN optomRxData TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optomRxData TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN callStartTime TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN callStartTime TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN callActive INTEGER DEFAULT 0`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN callActive INTEGER DEFAULT 0`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN callTakenBy TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN storeContactEmail TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN storeContactEmail TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN callDuration INTEGER DEFAULT 0`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN optomCallStartTime TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optomCallStartTime TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN offeredToOptomEmail TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN offeredToOptomEmail TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN declinedByOptomEmails TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN declinedByOptomEmails TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN createdOn TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN createdOn TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customers ADD COLUMN patientFeedback TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN patientFeedback TEXT`);
+  } catch {}
 
   // Legacy rows predate the createdOn column; lastUpdatedOn is the closest
   // available timestamp for them and only backfills rows still missing it.
-  await run(`UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`);
+  await run(
+    `UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`
+  );
 
   await run(`
     CREATE TABLE IF NOT EXISTS feedback_tokens (
@@ -186,9 +212,13 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
-  try { await run(`ALTER TABLE customer_logs ADD COLUMN callStartTime TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customer_logs ADD COLUMN callStartTime TEXT`);
+  } catch {}
 
-  try { await run(`ALTER TABLE customer_logs ADD COLUMN optomCallStartTime TEXT`); } catch (e) { }
+  try {
+    await run(`ALTER TABLE customer_logs ADD COLUMN optomCallStartTime TEXT`);
+  } catch {}
 
   await run(`
     CREATE TABLE IF NOT EXISTS customer_logs (
@@ -262,24 +292,25 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   const VALID_ROLES = ['store', 'optom', 'admin'];
-  await run(
-    `DELETE FROM users WHERE role NOT IN (${VALID_ROLES.map(() => '?').join(',')})`,
-    VALID_ROLES
-  );
+  await run(`DELETE FROM users WHERE role NOT IN (${VALID_ROLES.map(() => '?').join(',')})`, VALID_ROLES);
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'pass@123';
 
   const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
 
   if (!existingAdmin) {
-    await run('INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)', [
-      adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)
-    ]);
+    await run(
+      'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)]
+    );
   } else {
     await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', ['active', adminEmail]);
 
     if (!existingAdmin.password.includes(':')) {
-      await run('UPDATE users SET password = ? WHERE email = ?', [hashPassword(adminPassword), existingAdmin.email]);
+      await run('UPDATE users SET password = ? WHERE email = ?', [
+        hashPassword(adminPassword),
+        existingAdmin.email,
+      ]);
     }
   }
 

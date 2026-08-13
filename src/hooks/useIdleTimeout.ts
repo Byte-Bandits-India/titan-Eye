@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store';
+import { useCallback, useEffect, useRef } from 'react';
+
 import { logoutAction } from '../Actions/authActions';
+import { useAppDispatch, useAppSelector } from '../store';
 
 // ── VAPT Security: Inactivity / idle session timeout ─────────────────────────
 // If the user is authenticated but has not interacted with the page for
@@ -11,7 +12,12 @@ const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour — matches server SESSION_IDL
 const WARNING_BEFORE_MS = 2 * 60 * 1000; // show warning 2 minutes before timeout
 
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
-  'mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click',
+  'mousemove',
+  'mousedown',
+  'keydown',
+  'touchstart',
+  'scroll',
+  'click',
 ];
 
 interface UseIdleTimeoutOptions {
@@ -19,18 +25,26 @@ interface UseIdleTimeoutOptions {
 }
 
 export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
-  const dispatch    = useAppDispatch();
-  const isAuth      = useAppSelector((s) => s.auth.isAuthenticated);
-  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const warnRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dispatch = useAppDispatch();
+  const isAuth = useAppSelector((s) => s.auth.isAuthenticated);
+  const timerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
+  const warnRef = useRef<null | ReturnType<typeof setTimeout>>(null);
 
   const clearTimers = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (warnRef.current)  clearTimeout(warnRef.current);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+
+    if (warnRef.current) {
+      clearTimeout(warnRef.current);
+    }
   }, []);
 
   const resetTimer = useCallback(() => {
-    if (!isAuth) return;
+    if (!isAuth) {
+      return;
+    }
+
     clearTimers();
 
     // Warning timer
@@ -49,20 +63,17 @@ export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
   useEffect(() => {
     if (!isAuth) {
       clearTimers();
+
       return;
     }
 
     resetTimer();
 
-    ACTIVITY_EVENTS.forEach((evt) =>
-      window.addEventListener(evt, resetTimer, { passive: true })
-    );
+    ACTIVITY_EVENTS.forEach((evt) => window.addEventListener(evt, resetTimer, { passive: true }));
 
     return () => {
       clearTimers();
-      ACTIVITY_EVENTS.forEach((evt) =>
-        window.removeEventListener(evt, resetTimer)
-      );
+      ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, resetTimer));
     };
   }, [isAuth, resetTimer, clearTimers]);
 }

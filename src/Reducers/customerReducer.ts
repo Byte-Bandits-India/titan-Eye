@@ -1,16 +1,35 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
 import type { Customer, CustomerState } from '../types';
 
 const initialState: CustomerState = {
   customers: [],
-  loading: false,
   error: null,
+  loading: false,
 };
 
 const customerSlice = createSlice({
-  name: 'customers',
   initialState,
+  name: 'customers',
   reducers: {
+    customerCreated(state, action: PayloadAction<Customer>) {
+      if (!state.customers.some((c) => c.id === action.payload.id)) {
+        state.customers = [action.payload, ...state.customers];
+      }
+    },
+    customerUpdated(state, action: PayloadAction<Customer>) {
+      const exists = state.customers.some((c) => c.id === action.payload.id);
+
+      if (exists) {
+        state.customers = state.customers.map((c) => (c.id === action.payload.id ? action.payload : c));
+      } else {
+        state.customers = [action.payload, ...state.customers];
+      }
+    },
+    fetchFailure(state, action: PayloadAction<string>) {
+      state.loading = false;
+      state.error = action.payload;
+    },
     fetchStart(state) {
       state.loading = true;
       state.error = null;
@@ -19,34 +38,10 @@ const customerSlice = createSlice({
       state.loading = false;
       state.customers = action.payload;
     },
-    fetchFailure(state, action: PayloadAction<string>) {
-      state.loading = false;
-      state.error = action.payload;
-    },
-    customerCreated(state, action: PayloadAction<Customer>) {
-      if (!state.customers.some((c) => c.id === action.payload.id)) {
-        state.customers = [action.payload, ...state.customers];
-      }
-    },
-    customerUpdated(state, action: PayloadAction<Customer>) {
-      const exists = state.customers.some((c) => c.id === action.payload.id);
-      if (exists) {
-        state.customers = state.customers.map((c) =>
-          c.id === action.payload.id ? action.payload : c
-        );
-      } else {
-        state.customers = [action.payload, ...state.customers];
-      }
-    },
   },
 });
 
-export const {
-  fetchStart,
-  fetchSuccess,
-  fetchFailure,
-  customerCreated,
-  customerUpdated,
-} = customerSlice.actions;
+export const { customerCreated, customerUpdated, fetchFailure, fetchStart, fetchSuccess } =
+  customerSlice.actions;
 
 export default customerSlice.reducer;

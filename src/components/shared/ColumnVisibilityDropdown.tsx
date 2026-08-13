@@ -28,7 +28,9 @@ export function ColumnVisibilityDropdown({
   onToggleColumn,
   visibleColumns,
 }: ColumnVisibilityDropdownProps) {
-  if (!columns || columns.length === 0) {return null;}
+  if (!columns || columns.length === 0) {
+    return null;
+  }
 
   const optionalColumns = columns.filter((col) => !col.isMandatory);
 
@@ -37,7 +39,7 @@ export function ColumnVisibilityDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           className={cn(
-            'h-10 px-4 bg-card border border-border/80 hover:bg-accent text-foreground text-xs font-bold rounded-full flex items-center justify-between gap-2.5 shadow-xs cursor-pointer transition-all hover:border-blue-300 dark:hover:border-blue-700 shrink-0',
+            'border-border/80 shadow-xs flex h-10 shrink-0 cursor-pointer items-center justify-between gap-2.5 rounded-md border bg-card px-4 text-xs font-bold text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
             className
           )}
           size="sm"
@@ -45,17 +47,15 @@ export function ColumnVisibilityDropdown({
           variant="outline"
         >
           <div className="flex items-center gap-2 overflow-hidden">
-            <SlidersHorizontal className="text-blue-600 dark:text-blue-400 stroke-[2.2] shrink-0" size={16} />
-            <span className="truncate font-bold">
-              Columns
-            </span>
+            <SlidersHorizontal className="shrink-0 stroke-[2.2] text-blue-600 dark:text-blue-400" size={16} />
+            <span className="truncate font-bold">Columns</span>
           </div>
-          <ChevronDown className="text-muted-foreground/70 shrink-0 ml-1" size={14} />
+          <ChevronDown className="text-muted-foreground/70 ml-1 shrink-0" size={14} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
-        className="w-56 p-1.5 rounded-2xl border border-border bg-popover text-popover-foreground shadow-xl z-50"
+        className="z-50 w-56 rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl"
         sideOffset={6}
       >
         <div className="flex items-center justify-between px-2.5 py-1.5">
@@ -64,7 +64,7 @@ export function ColumnVisibilityDropdown({
           </DropdownMenuLabel>
           {onResetColumns && (
             <button
-              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+              className="flex cursor-pointer items-center gap-1 text-[10px] font-bold text-blue-600 hover:underline dark:text-blue-400"
               onClick={(e) => {
                 e.stopPropagation();
                 onResetColumns();
@@ -77,9 +77,9 @@ export function ColumnVisibilityDropdown({
           )}
         </div>
         <DropdownMenuSeparator />
-        <div className="max-h-60 overflow-y-auto py-1 space-y-0.5">
+        <div className="max-h-60 space-y-0.5 overflow-y-auto py-1">
           {optionalColumns.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+            <div className="px-3 py-2 text-center text-xs text-muted-foreground">
               All columns are default.
             </div>
           ) : (
@@ -88,7 +88,7 @@ export function ColumnVisibilityDropdown({
 
               return (
                 <DropdownMenuItem
-                  className="text-xs py-2 px-2.5 rounded-xl flex items-center gap-2.5 cursor-pointer font-medium hover:bg-accent transition-colors"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
                   key={col.id}
                   onSelect={(e) => {
                     e.preventDefault();
@@ -97,7 +97,7 @@ export function ColumnVisibilityDropdown({
                 >
                   <input
                     checked={isChecked}
-                    className="h-4 w-4 rounded border-border text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                    className="h-4 w-4 cursor-pointer rounded border-border text-blue-600 accent-blue-600 focus:ring-blue-500"
                     readOnly
                     type="checkbox"
                   />

@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const zapCommentFix = () => {
   return {
@@ -11,17 +11,32 @@ const zapCommentFix = () => {
     enforce: 'post',
     renderChunk(code) {
       let newCode = code;
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/2000\/svg"/g, '["http:", "", "www.w3.org/2000/svg"].join("/")');
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/1998\/Math\/MathML"/g, '["http:", "", "www.w3.org/1998/Math/MathML"].join("/")');
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/1999\/xlink"/g, '["http:", "", "www.w3.org/1999/xlink"].join("/")');
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/XML\/1998\/namespace"/g, '["http:", "", "www.w3.org/XML/1998/namespace"].join("/")');
-      newCode = newCode.replace(/"http:\/\/www.w3.org\/1999\/xhtml"/g, '["http:", "", "www.w3.org/1999/xhtml"].join("/")');
+      newCode = newCode.replace(
+        /"http:\/\/www.w3.org\/2000\/svg"/g,
+        '["http:", "", "www.w3.org/2000/svg"].join("/")'
+      );
+      newCode = newCode.replace(
+        /"http:\/\/www.w3.org\/1998\/Math\/MathML"/g,
+        '["http:", "", "www.w3.org/1998/Math/MathML"].join("/")'
+      );
+      newCode = newCode.replace(
+        /"http:\/\/www.w3.org\/1999\/xlink"/g,
+        '["http:", "", "www.w3.org/1999/xlink"].join("/")'
+      );
+      newCode = newCode.replace(
+        /"http:\/\/www.w3.org\/XML\/1998\/namespace"/g,
+        '["http:", "", "www.w3.org/XML/1998/namespace"].join("/")'
+      );
+      newCode = newCode.replace(
+        /"http:\/\/www.w3.org\/1999\/xhtml"/g,
+        '["http:", "", "www.w3.org/1999/xhtml"].join("/")'
+      );
       return { code: newCode, map: null };
     },
     async writeBundle(options, bundle) {
       const fs = await import('fs');
       const outDir = options.dir || 'dist';
-      
+
       const safeSplitLines = (code) => {
         let result = '';
         let i = 0;
@@ -30,18 +45,17 @@ const zapCommentFix = () => {
         let inTemplate = false;
         let inRegex = false;
         let inRegexCharacterClass = false;
-        
+
         while (i < code.length) {
           const char = code[i];
-          const prevChar = i > 0 ? code[i - 1] : '';
           const nextChar = i < code.length - 1 ? code[i + 1] : '';
-          
+
           if (char === '\\' && (inSingleQuote || inDoubleQuote || inTemplate || inRegex)) {
             result += char + (nextChar ? nextChar : '');
             i += 2;
             continue;
           }
-          
+
           if (inSingleQuote) {
             if (char === "'") inSingleQuote = false;
           } else if (inDoubleQuote) {
@@ -72,7 +86,7 @@ const zapCommentFix = () => {
                 }
                 j--;
               }
-              
+
               let isRegex = false;
               if (!lastNonWs) {
                 isRegex = true;
@@ -85,30 +99,41 @@ const zapCommentFix = () => {
                   word = code[k] + word;
                   k--;
                 }
-                const keywords = ['return', 'throw', 'yield', 'typeof', 'delete', 'void', 'instanceof', 'in', 'case', 'new'];
+                const keywords = [
+                  'return',
+                  'throw',
+                  'yield',
+                  'typeof',
+                  'delete',
+                  'void',
+                  'instanceof',
+                  'in',
+                  'case',
+                  'new',
+                ];
                 if (keywords.includes(word)) {
                   isRegex = true;
                 }
               }
-              
+
               if (isRegex) {
                 inRegex = true;
                 inRegexCharacterClass = false;
               }
             }
           }
-          
+
           result += char;
-          
+
           const inStringOrRegex = inSingleQuote || inDoubleQuote || inTemplate || inRegex;
           if (char === ';' && !inStringOrRegex) {
             result += '\n';
           } else if (char === ',' && !inStringOrRegex) {
-            if (/[a-zA-Z$_`"'{(\[]/.test(nextChar)) {
+            if (/[a-zA-Z$_`"'{([ ]/.test(nextChar)) {
               result += '\n';
             }
           }
-          
+
           i++;
         }
         return result;
@@ -122,7 +147,7 @@ const zapCommentFix = () => {
           fs.writeFileSync(filePath, code);
         }
       }
-    }
+    },
   };
 };
 
@@ -138,4 +163,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+});

@@ -1,7 +1,13 @@
 import { Request, Response, Router } from 'express';
 
 import { generateToken, SESSION_IDLE_MS } from '../config/jwt.js';
-import { cryptoProvider, ENTRA_REDIRECT_URI, ENTRA_SCOPES, isSsoConfigured, msalClient } from '../config/msal.js';
+import {
+  cryptoProvider,
+  ENTRA_REDIRECT_URI,
+  ENTRA_SCOPES,
+  isSsoConfigured,
+  msalClient,
+} from '../config/msal.js';
 import { get, run, UserRow } from '../db/database.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
@@ -89,17 +95,25 @@ router.get('/callback', async (req: Request, res: Response) => {
     }
 
     if (user.status === 'inactive') {
-      logSecurityEvent('SSO_LOGIN_INACTIVE_ACCOUNT', { email: user.email, ip: req.ip, requestId: req.requestId });
+      logSecurityEvent('SSO_LOGIN_INACTIVE_ACCOUNT', {
+        email: user.email,
+        ip: req.ip,
+        requestId: req.requestId,
+      });
 
       return res.redirect(`${FRONTEND_URL}/login?error=inactive`);
     }
 
-    await run(
-      'UPDATE users SET azureObjectId = ?, microsoftUpn = ?, lastLogin = ? WHERE email = ?',
-      [azureObjectId || null, upn || null, new Date().toISOString(), user.email]
-    );
+    await run('UPDATE users SET azureObjectId = ?, microsoftUpn = ?, lastLogin = ? WHERE email = ?', [
+      azureObjectId || null,
+      upn || null,
+      new Date().toISOString(),
+      user.email,
+    ]);
 
-    const fullUser = await get<UserRow>('SELECT email, name, role, storeName FROM users WHERE email = ?', [user.email]);
+    const fullUser = await get<UserRow>('SELECT email, name, role, storeName FROM users WHERE email = ?', [
+      user.email,
+    ]);
 
     if (!fullUser) {
       return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
@@ -107,12 +121,15 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-    const token = generateToken({
-      email: fullUser.email,
-      name: fullUser.name,
-      role: fullUser.role,
-      storeName: fullUser.storeName ?? undefined,
-    }, SESSION_IDLE_MS);
+    const token = generateToken(
+      {
+        email: fullUser.email,
+        name: fullUser.name,
+        role: fullUser.role,
+        storeName: fullUser.storeName ?? undefined,
+      },
+      SESSION_IDLE_MS
+    );
 
     const newTokenSig = token.split('.')[2];
     await run(
@@ -136,12 +153,21 @@ router.get('/callback', async (req: Request, res: Response) => {
       secure: process.env.NODE_ENV === 'production',
     });
 
-    logSecurityEvent('SSO_LOGIN_SUCCESS', { email: fullUser.email, ip: req.ip, requestId: req.requestId, role: fullUser.role });
+    logSecurityEvent('SSO_LOGIN_SUCCESS', {
+      email: fullUser.email,
+      ip: req.ip,
+      requestId: req.requestId,
+      role: fullUser.role,
+    });
 
     return res.redirect(`${FRONTEND_URL}/sso/callback`);
   } catch (err) {
     const error = err as Error;
-    logSecurityEvent('SSO_LOGIN_FAILED', { errorMessage: error.message, ip: req.ip, requestId: req.requestId });
+    logSecurityEvent('SSO_LOGIN_FAILED', {
+      errorMessage: error.message,
+      ip: req.ip,
+      requestId: req.requestId,
+    });
     logger.error('SSO callback error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);

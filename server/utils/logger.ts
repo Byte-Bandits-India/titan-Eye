@@ -11,13 +11,24 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 fs.mkdirSync(LOG_DIR, { mode: 0o750, recursive: true });
 
-try { fs.chmodSync(LOG_DIR, 0o750); } catch { /* platform doesn't support chmod */ }
+try {
+  fs.chmodSync(LOG_DIR, 0o750);
+} catch {
+  /* platform doesn't support chmod */
+}
 
 const RESTRICTED_FILE_OPTIONS = { flags: 'a', mode: 0o640 };
 
 const SENSITIVE_SUBSTRINGS = [
-  'password', 'token', 'secret', 'authorization', 'cookie',
-  'signature', 'verifier', 'apikey', 'privatekey',
+  'password',
+  'token',
+  'secret',
+  'authorization',
+  'cookie',
+  'signature',
+  'verifier',
+  'apikey',
+  'privatekey',
 ];
 
 export function stableStringify(value: unknown): string {
@@ -49,7 +60,9 @@ function redact(value: unknown, seen = new WeakSet<object>()): unknown {
   if (value && typeof value === 'object') {
     const obj = value as Record<string, unknown>;
 
-    if (seen.has(obj)) {return '[Circular]';}
+    if (seen.has(obj)) {
+      return '[Circular]';
+    }
 
     seen.add(obj);
     const out: Record<string, unknown> = {};
@@ -65,7 +78,7 @@ function redact(value: unknown, seen = new WeakSet<object>()): unknown {
 }
 
 const redactFormat = winston.format((info) => {
-  const { level, message, service, timestamp, ...meta } = info;
+  const { level: _level, message: _message, service: _service, timestamp: _timestamp, ...meta } = info;
 
   for (const key of Object.keys(meta)) {
     delete (info as Record<string, unknown>)[key];
@@ -110,7 +123,9 @@ function rotateFile(filename: string, level: string, maxFiles: string) {
 }
 
 function syslogTransport(): InstanceType<typeof Syslog> | null {
-  if (!process.env.SYSLOG_HOST) {return null;}
+  if (!process.env.SYSLOG_HOST) {
+    return null;
+  }
 
   return new Syslog({
     app_name: 'titan-server',
@@ -125,10 +140,7 @@ export const logger = winston.createLogger({
   exitOnError: false,
   format: baseFormat,
   level: LOG_LEVEL,
-  transports: [
-    rotateFile('app', 'info', '30d'),
-    rotateFile('error', 'error', '90d'),
-  ],
+  transports: [rotateFile('app', 'info', '30d'), rotateFile('error', 'error', '90d')],
 });
 
 if (!isProduction) {
@@ -139,7 +151,9 @@ if (!isProduction) {
 
 const appSyslog = syslogTransport();
 
-if (appSyslog) {logger.add(appSyslog);}
+if (appSyslog) {
+  logger.add(appSyslog);
+}
 
 const securityTransport = rotateFile('security', 'info', '365d');
 export const securityLogger = winston.createLogger({
@@ -152,7 +166,9 @@ export const securityLogger = winston.createLogger({
 
 const securitySyslog = syslogTransport();
 
-if (securitySyslog) {securityLogger.add(securitySyslog);}
+if (securitySyslog) {
+  securityLogger.add(securitySyslog);
+}
 
 export type SecurityEventMeta = Record<string, unknown>;
 
@@ -163,8 +179,12 @@ function loadChainState(): { lastHash: string } {
   try {
     const raw = JSON.parse(fs.readFileSync(CHAIN_STATE_FILE, 'utf8'));
 
-    if (typeof raw?.lastHash === 'string') {return raw;}
-  } catch { /* first run, or file missing/corrupt — restart the chain */ }
+    if (typeof raw?.lastHash === 'string') {
+      return raw;
+    }
+  } catch {
+    /* first run, or file missing/corrupt — restart the chain */
+  }
 
   return { lastHash: GENESIS_HASH };
 }
@@ -200,7 +220,9 @@ const ALERT_WEBHOOK_URL = process.env.ALERT_WEBHOOK_URL;
 export function alertCritical(message: string, meta: SecurityEventMeta = {}) {
   logger.error(`[ALERT] ${message}`, meta);
 
-  if (!ALERT_WEBHOOK_URL) {return;}
+  if (!ALERT_WEBHOOK_URL) {
+    return;
+  }
 
   const text = `🚨 Titan server alert: ${message}\n${JSON.stringify(redact(meta))}`;
   fetch(ALERT_WEBHOOK_URL, {

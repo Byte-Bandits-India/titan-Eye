@@ -39,3 +39,4 @@ database.db-wal
 !.env.production.example
 
 localData
+scripts

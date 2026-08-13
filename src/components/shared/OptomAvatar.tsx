@@ -21,17 +21,23 @@ export function OptomAvatar({ className, email, name }: OptomAvatarProps) {
     apiClient
       .get(`/users/${encodeURIComponent(email)}/photo`, { responseType: 'blob' })
       .then((res) => {
-        if (cancelled) {return;}
+        if (cancelled) {
+          return;
+        }
 
         const blob = res.data as Blob;
 
-        if (res.status === 204 || blob.size === 0) {return;}
+        if (res.status === 204 || blob.size === 0) {
+          return;
+        }
 
         objectUrl = URL.createObjectURL(blob);
         setPhotoUrl(objectUrl);
       })
       .catch((err: AxiosError) => {
-        if (err.response?.status === 404) {return;}
+        if (err.response?.status === 404) {
+          return;
+        }
 
         console.error(`Failed to load photo for ${email}:`, err.message);
       });
@@ -39,7 +45,9 @@ export function OptomAvatar({ className, email, name }: OptomAvatarProps) {
     return () => {
       cancelled = true;
 
-      if (objectUrl) {URL.revokeObjectURL(objectUrl);}
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
     };
   }, [email]);
 
@@ -51,9 +59,9 @@ export function OptomAvatar({ className, email, name }: OptomAvatarProps) {
     .slice(0, 2);
 
   return (
-    <Avatar className={cn('w-9 h-9 shrink-0', className)}>
+    <Avatar className={cn('h-9 w-9 shrink-0', className)}>
       {photoUrl && <AvatarImage alt={name} src={photoUrl} />}
-      <AvatarFallback className="bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 font-bold text-xs">
+      <AvatarFallback className="bg-teal-100 text-xs font-bold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
         {initials}
       </AvatarFallback>
     </Avatar>

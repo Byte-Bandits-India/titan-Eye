@@ -39,7 +39,7 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     const tokenSig = token.split('.')[2];
     const row = db
       .prepare('SELECT status, activeTokenSig FROM users WHERE LOWER(email) = LOWER(?)')
-      .get(user.email) as undefined | { activeTokenSig: null | string; status: string; };
+      .get(user.email) as undefined | { activeTokenSig: null | string; status: string };
 
     if (!row) {
       return res.status(401).json({ error: 'User account no longer exists' });
@@ -59,7 +59,10 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     }
 
     if (row.activeTokenSig === null && tokenSig) {
-      db.prepare('UPDATE users SET activeTokenSig = ? WHERE LOWER(email) = LOWER(?)').run(tokenSig, user.email);
+      db.prepare('UPDATE users SET activeTokenSig = ? WHERE LOWER(email) = LOWER(?)').run(
+        tokenSig,
+        user.email
+      );
     }
   } catch (e) {
     logger.error('[auth middleware] user session verification check failed', {
