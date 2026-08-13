@@ -216,6 +216,7 @@ export type NoOptomEventPayload = {
 export type NotificationPopoverProps = {
   autoOpen?: boolean;
   onSelectCustomer?: (customerId: string) => void;
+  showTrigger?: boolean;
   trigger?: React.ReactNode;
   variant?: 'drawer' | 'popover';
 };
@@ -272,13 +273,26 @@ export type Session = {
   user: null | User;
 };
 
+export type CallSessionPayload = {
+  acsEndpoint: string;
+  acsToken: string;
+  acsUserId: string;
+  customerId: string;
+  displayName: string;
+  groupId?: string;
+  meetingUrl?: string;
+  role: 'optom' | 'store';
+};
+
 export type SSEEventDetail =
   | {
       data: Customer;
       type: 'ADMIN_LOG_CREATED' | 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
     }
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
-  | { data: NoOptomEventPayload; type: 'NO_OPTOM_AVAILABLE' | 'OPTOM_NO_RESPONSE' };
+  | { data: NoOptomEventPayload; type: 'NO_OPTOM_AVAILABLE' | 'OPTOM_NO_RESPONSE' }
+  | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
+  | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' };
 
 export type StatsGridProps = {
   customers: Customer[];

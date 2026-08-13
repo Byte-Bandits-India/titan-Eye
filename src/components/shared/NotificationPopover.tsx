@@ -10,12 +10,13 @@ import {
   UserPlus,
   Volume2,
   VolumeX,
+  Video,
   X,
   XCircle,
 } from 'lucide-react';
 import * as React from 'react';
 
-import type { LogNotificationType, NotificationPopoverProps } from '../../types';
+import type { CallSessionPayload, LogNotificationType, NotificationPopoverProps } from '../../types';
 
 import { fetchCustomersAction, initiateCallAction, rejectCallAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
@@ -28,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { useToast } from '../ui/toast';
+import { TeamsCallModal } from './TeamsCallModal';
 
 const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: string }>> = {
   assessment_accepted: ClipboardCheck,
@@ -43,6 +45,7 @@ const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: s
 export function NotificationPopover({
   autoOpen = true,
   onSelectCustomer,
+  showTrigger = true,
   trigger,
   variant = 'popover',
 }: NotificationPopoverProps) {
@@ -57,8 +60,59 @@ export function NotificationPopover({
   const [isMuted, setIsMuted] = React.useState(false);
   const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(new Set());
   const [retryingLogId, setRetryingLogId] = React.useState<null | string>(null);
+  const [callSession, setCallSession] = React.useState<CallSessionPayload | null>(null);
+  const [incomingCallSessions, setIncomingCallSessions] = React.useState<Record<string, CallSessionPayload>>(
+    {}
+  );
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const wantsPlayingRef = React.useRef(false);
+
+  React.useEffect(() => {
+    const handleStartOptomCall = (e: Event) => {
+      const detail = (e as CustomEvent<CallSessionPayload>).detail;
+
+      if (detail && detail.role === 'optom') {
+        setCallSession(detail);
+      }
+    };
+
+    const handleCallSessionReady = (e: Event) => {
+      const detail = (e as CustomEvent<CallSessionPayload>).detail;
+
+      if (detail && detail.role === 'store') {
+        setIncomingCallSessions((prev) => ({
+          ...prev,
+          [detail.customerId]: detail,
+        }));
+      }
+    };
+
+    const handleCallSessionEnded = (e: Event) => {
+      const detail = (e as CustomEvent<{ customerId?: string }>).detail;
+      setCallSession(null);
+
+      if (detail?.customerId) {
+        setIncomingCallSessions((prev) => {
+          const next = { ...prev };
+          delete next[detail.customerId!];
+
+          return next;
+        });
+      } else {
+        setIncomingCallSessions({});
+      }
+    };
+
+    window.addEventListener('titan:start_optom_call', handleStartOptomCall);
+    window.addEventListener('titan:call_session_ready', handleCallSessionReady);
+    window.addEventListener('titan:call_session_ended', handleCallSessionEnded);
+
+    return () => {
+      window.removeEventListener('titan:start_optom_call', handleStartOptomCall);
+      window.removeEventListener('titan:call_session_ready', handleCallSessionReady);
+      window.removeEventListener('titan:call_session_ended', handleCallSessionEnded);
+    };
+  }, []);
 
   const getAudioElement = React.useCallback(() => {
     if (!audioRef.current) {
@@ -380,6 +434,28 @@ export function NotificationPopover({
     }
   };
 
+  const handleAttendCall = (customerId: string) => {
+    setDismissedIds((prev) => new Set(prev).add(customerId));
+    stopAudio();
+    setOpen(false);
+
+    const session = incomingCallSessions[customerId];
+
+    if (session) {
+      setCallSession(session);
+      setIncomingCallSessions((prev) => {
+        const next = { ...prev };
+        delete next[customerId];
+
+        return next;
+      });
+    }
+
+    if (onSelectCustomer) {
+      onSelectCustomer(customerId);
+    }
+  };
+
   const handleClearAll = () => {
     setDismissedIds((prev) => {
       const next = new Set(prev);
@@ -627,6 +703,26 @@ export function NotificationPopover({
                       </button>
                     </div>
                   )}
+                  {item.type === 'call_accepted' && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
+                        onClick={() => handleAttendCall(item.customer.id)}
+                        type="button"
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        <span>Attend Call</span>
+                      </button>
+
+                      <button
+                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        onClick={() => handleDismiss(item.customer.id)}
+                        type="button"
+                      >
+                        Ignore
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="absolute right-3.5 top-3.5 flex items-center gap-1.5">
                   {formattedTime && (
@@ -653,16 +749,66 @@ export function NotificationPopover({
 
   if (variant === 'drawer') {
     return (
-      <Sheet onOpenChange={setOpen} open={open}>
-        {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
-        <SheetContent className="w-full p-0 sm:max-w-md" side="left">
-          <SheetHeader className="flex-row items-center justify-between gap-2 space-y-0 border-b border-border bg-slate-50/80 px-4 py-3.5 dark:bg-zinc-900/80">
+      <>
+        <Sheet onOpenChange={setOpen} open={open}>
+          {showTrigger && <SheetTrigger asChild>{trigger ?? defaultTrigger}</SheetTrigger>}
+
+          <SheetContent side="left" className="flex w-[400px] flex-col p-0 sm:max-w-[400px]">
+            <SheetHeader className="flex flex-row items-center justify-between border-b border-border bg-slate-50 px-4 py-3.5 dark:bg-zinc-900/90">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                  <Bell className="h-4 w-4" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <SheetTitle className="text-sm font-bold text-foreground">Notifications</SheetTitle>
+                  {unreadCount > 0 && (
+                    <Badge
+                      className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                      variant="secondary"
+                    >
+                      {unreadCount} new
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="mr-6 flex items-center gap-1.5">
+                {unreadCount > 0 && (
+                  <Button
+                    className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                    onClick={handleClearAll}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    Clear all
+                  </Button>
+                )}
+                {muteButton}
+              </div>
+            </SheetHeader>
+            {notificationList}
+          </SheetContent>
+        </Sheet>
+        {callSession && <TeamsCallModal onClose={() => setCallSession(null)} session={callSession} />}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Popover onOpenChange={setOpen} open={open}>
+        {showTrigger && <PopoverTrigger asChild>{trigger ?? defaultTrigger}</PopoverTrigger>}
+
+        <PopoverContent
+          align="end"
+          className="w-[380px] overflow-hidden rounded-2xl border border-border p-0 shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-border bg-slate-50 px-4 py-3.5 dark:bg-zinc-900/90">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
                 <Bell className="h-4 w-4" />
               </div>
               <div className="flex items-center gap-2">
-                <SheetTitle className="text-sm font-bold text-foreground">Notifications</SheetTitle>
+                <span className="text-sm font-bold text-foreground">Notifications</span>
                 {unreadCount > 0 && (
                   <Badge
                     className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
@@ -673,7 +819,8 @@ export function NotificationPopover({
                 )}
               </div>
             </div>
-            <div className="mr-6 flex items-center gap-1.5">
+
+            <div className="flex items-center gap-1">
               {unreadCount > 0 && (
                 <Button
                   className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
@@ -686,57 +833,13 @@ export function NotificationPopover({
               )}
               {muteButton}
             </div>
-          </SheetHeader>
+          </div>
+
           {notificationList}
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <Popover onOpenChange={setOpen} open={open}>
-      <PopoverTrigger asChild>{trigger ?? defaultTrigger}</PopoverTrigger>
-
-      <PopoverContent
-        align="end"
-        className="w-[380px] overflow-hidden rounded-2xl border border-border p-0 shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-border bg-slate-50 px-4 py-3.5 dark:bg-zinc-900/90">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
-              <Bell className="h-4 w-4" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">Notifications</span>
-              {unreadCount > 0 && (
-                <Badge
-                  className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
-                  variant="secondary"
-                >
-                  {unreadCount} new
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {unreadCount > 0 && (
-              <Button
-                className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
-                onClick={handleClearAll}
-                size="sm"
-                variant="ghost"
-              >
-                Clear all
-              </Button>
-            )}
-            {muteButton}
-          </div>
-        </div>
-
-        {notificationList}
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+      {callSession && <TeamsCallModal onClose={() => setCallSession(null)} session={callSession} />}
+    </>
   );
 }
 

@@ -2,9 +2,16 @@ import { ChevronDown, ChevronLeft, ChevronUp, Monitor, Phone, User, UserCircle, 
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 
-import type { Customer, CustomerStatus, OptomPatientDetailsProps, OptomRxValues } from '../../types';
+import type {
+  CallSessionPayload,
+  Customer,
+  CustomerStatus,
+  OptomPatientDetailsProps,
+  OptomRxValues,
+} from '../../types';
 
-import { endCallAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import { initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import { TeamsCallModal } from '../../components/shared/TeamsCallModal';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -28,8 +35,8 @@ import {
   rxFields,
   rxHeaders,
 } from '../../options/Option';
-import { useAppDispatch, useAppSelector } from '../../store';
-import { openTeamsCallWindow } from '../../Util/teamsCall';
+import { useAppDispatch } from '../../store';
+import { apiClient } from '../../Util/apiClient';
 
 interface RxScrollPickerProps {
   defaultValue?: string;
@@ -39,14 +46,23 @@ interface RxScrollPickerProps {
 }
 
 export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDetailsProps) {
-  const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
   const [isCallLoading, setIsCallLoading] = React.useState(false);
-  const currentUserName = user?.name || '';
+  const [callSession, setCallSession] = React.useState<CallSessionPayload | null>(null);
 
-  const isTakenByMe = !!selectedCustomer?.callActive && selectedCustomer?.callTakenBy === currentUserName;
+  React.useEffect(() => {
+    const handleCallSessionEnded = () => {
+      setCallSession(null);
+    };
+
+    window.addEventListener('titan:call_session_ended', handleCallSessionEnded);
+
+    return () => {
+      window.removeEventListener('titan:call_session_ended', handleCallSessionEnded);
+    };
+  }, []);
 
   const [form, setForm] = React.useState({
     activeProfile: false,
@@ -213,21 +229,25 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
     setIsCallLoading(true);
 
     try {
-      const result = await dispatch(initiateCallAction(selectedCustomer.id));
+      await dispatch(initiateCallAction(selectedCustomer.id));
 
-      const teamsUser = result.customer?.storeContactEmail || '';
+      try {
+        const res = await apiClient.post<CallSessionPayload>('/calls/start', {
+          customerId: selectedCustomer.id,
+        });
+        window.dispatchEvent(new CustomEvent('titan:start_optom_call', { detail: res.data }));
+      } catch (acsErr) {
+        const err = acsErr as { message?: string; response?: { data?: { error?: string } } };
+        const errorMessage =
+          err.response?.data?.error || err.message || 'Failed to start in-browser video call session.';
 
-      if (!teamsUser) {
+        console.error('ACS Call Session Error:', acsErr);
         toast({
-          description: 'No store contact is on file for this customer yet.',
-          title: 'Missing Contact',
+          description: errorMessage,
+          title: 'In-Browser Video Call Failed',
           type: 'error',
         });
-
-        return;
       }
-
-      openTeamsCallWindow(teamsUser);
     } catch (e) {
       const err = e as Error;
 
@@ -249,48 +269,33 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
     }
   };
 
-  const handleEndCall = async () => {
-    if (!selectedCustomer) {
-      return;
-    }
-
-    setIsCallLoading(true);
-
-    try {
-      await dispatch(endCallAction(selectedCustomer.id));
-    } catch (e) {
-      const err = e as Error;
-      toast({
-        description: err.message || 'Failed to connect to the server to end call.',
-        title: 'System Error',
-        type: 'error',
-      });
-    } finally {
-      setIsCallLoading(false);
-    }
-  };
-
   const handleUpdateStatusOnly = async (newStatus?: CustomerStatus) => {
     if (!selectedCustomer) {
       return;
     }
 
-    const updatedCustomer = buildUpdatedCustomer();
+    const currentCustomer = buildUpdatedCustomer();
 
-    if (!updatedCustomer) {
+    if (!currentCustomer) {
       return;
     }
 
-    if (newStatus) {
-      updatedCustomer.status = newStatus;
-    }
+    const updatedCustomer: Customer = {
+      ...currentCustomer,
+      status: newStatus ?? form.status,
+    };
 
-    if (newStatus === 'Completed') {
+    if (updatedCustomer.status === 'Completed' || updatedCustomer.status === 'Closed') {
       updatedCustomer.callActive = false;
     }
 
     try {
       await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
+      toast({
+        description: `Customer status updated to ${updatedCustomer.status}.`,
+        title: 'Status Updated',
+        type: 'success',
+      });
     } catch (e) {
       const err = e as Error;
       toast({
@@ -675,35 +680,20 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
 
           <div className="flex flex-col items-stretch justify-between gap-3 border-t border-border pt-4 sm:gap-4 md:flex-row md:items-center">
             <div className="grid w-full grid-cols-2 items-center gap-2.5 sm:flex sm:flex-row sm:gap-3 md:w-auto">
-              {isTakenByMe ? (
-                <Button
-                  className="active:scale-98 flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] border border-gray-300 bg-gray-100 px-3 text-xs font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-200 sm:px-4 md:w-auto"
-                  disabled={isCallLoading}
-                  onClick={handleEndCall}
-                  title="End Call Session"
-                  type="button"
-                >
-                  {isCallLoading ? (
-                    <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-gray-600 border-t-transparent" />
-                  ) : null}
-                  <span>Call Initiated</span>
-                </Button>
-              ) : (
-                <Button
-                  className="active:scale-98 flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] bg-[#4f46e5] px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#4338ca] sm:px-4 md:w-auto"
-                  disabled={isCallLoading}
-                  onClick={handleInitiateCall}
-                  title="Initiate Microsoft Teams Call"
-                  type="button"
-                >
-                  {isCallLoading ? (
-                    <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <Video className="shrink-0" size={15} />
-                  )}
-                  <span>Initiate Call</span>
-                </Button>
-              )}
+              <Button
+                className="active:scale-98 flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] bg-[#4f46e5] px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#4338ca] sm:px-4 md:w-auto"
+                disabled={isCallLoading}
+                onClick={handleInitiateCall}
+                title="Initiate Microsoft Teams Call"
+                type="button"
+              >
+                {isCallLoading ? (
+                  <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                ) : (
+                  <Video className="shrink-0" size={15} />
+                )}
+                <span>Initiate Call</span>
+              </Button>
               <Button
                 className="active:scale-98 flex h-10 w-full min-w-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] bg-[#4f46e5] px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#4338ca] sm:px-4 md:w-auto"
                 onClick={handleOpenTeamViewer}
@@ -725,7 +715,6 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
                   onChange={(e) => handleStatusChange(e.target.value)}
                   options={[
                     { label: 'Created', value: 'Created' },
-                    { label: 'Initiated', value: 'Initiated' },
                     { label: 'Accepted', value: 'Accepted' },
                   ]}
                   value={form.status}
@@ -742,6 +731,7 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
           </div>
         </form>
       </Card>
+      {callSession && <TeamsCallModal onClose={() => setCallSession(null)} session={callSession} />}
     </main>
   );
 }

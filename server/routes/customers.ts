@@ -114,7 +114,7 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
   return (await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id])) ?? null;
 }
 
-function toApiCustomer(row: CustomerRow) {
+export function toApiCustomer(row: CustomerRow) {
   return {
     ...row,
     activeProfile: row.activeProfile === 1,
@@ -454,7 +454,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.storeName = req.user.storeName ?? undefined;
     }
 
-    if (req.user && req.user.role === 'optom') {
+    if (req.user?.role === 'optom') {
       c.name = existing.name;
       c.age = existing.age;
       c.gender = existing.gender;
@@ -464,13 +464,6 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.preferredLanguage = existing.preferredLanguage;
       c.preferredLanguage2 = existing.preferredLanguage2;
       c.storeFeedback = existing.storeFeedback;
-
-      // Only the store can close out a visit (POST /:id/complete, which also
-      // issues the patient feedback QR token) - block Optoms from setting
-      // this status through the generic update route.
-      if (c.status === 'Completed') {
-        c.status = existing.status;
-      }
     }
 
     if (c.rxData === undefined) {
@@ -1023,7 +1016,7 @@ setInterval(async () => {
   }
 }, 5000);
 
-const OPTOM_RESPONSE_TIMEOUT_MS = 10000;
+const OPTOM_RESPONSE_TIMEOUT_MS = 60000;
 
 // If the Optom currently offered a call doesn't respond in time, automatically
 // rotate the offer to the next available Optom (or release it back to the

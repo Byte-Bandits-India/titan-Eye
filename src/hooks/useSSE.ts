@@ -140,6 +140,16 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+        } else if (type === 'CALL_SESSION_READY' || type === 'CALL_SESSION_ENDED') {
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+          window.dispatchEvent(
+            new CustomEvent(
+              type === 'CALL_SESSION_READY' ? 'titan:call_session_ready' : 'titan:call_session_ended',
+              {
+                detail: data,
+              }
+            )
+          );
         }
       } catch (err) {
         console.error('Error handling SSE message:', err);

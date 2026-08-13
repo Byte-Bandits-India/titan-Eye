@@ -27,7 +27,7 @@ export function AppLayout({
       />
       {children}
       <Footer />
-      <NotificationPopover onSelectCustomer={onSelectCustomer} variant="drawer" />
+      <NotificationPopover onSelectCustomer={onSelectCustomer} showTrigger={false} variant="drawer" />
     </div>
   );
 }

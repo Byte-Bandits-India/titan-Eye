@@ -4,14 +4,7 @@ import type { Customer } from '../../../types';
 
 import { PaginationBar } from '../../../components/shared/PaginationBar';
 import { Badge } from '../../../components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../../components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 
 interface FeedbackDirectoryBodyProps {
   currentPage: number;
@@ -44,11 +37,21 @@ export function FeedbackDirectoryBody({
           <TableHeader>
             <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/50 dark:hover:bg-slate-900/50">
               {visibleColumns.includes('id') && <TableHead className="w-28 font-bold">Patient ID</TableHead>}
-              {visibleColumns.includes('name') && <TableHead className="w-44 font-bold">Patient Name</TableHead>}
-              {visibleColumns.includes('storeName') && <TableHead className="w-36 font-bold">Store Name</TableHead>}
-              {visibleColumns.includes('storeContactEmail') && <TableHead className="w-90 font-bold">Store Email</TableHead>}
-              {visibleColumns.includes('patientFeedback') && <TableHead className="font-bold">Patient Feedback</TableHead>}
-              {visibleColumns.includes('lastUpdated') && <TableHead className="w-32 text-right font-bold">Date</TableHead>}
+              {visibleColumns.includes('name') && (
+                <TableHead className="w-44 font-bold">Patient Name</TableHead>
+              )}
+              {visibleColumns.includes('storeName') && (
+                <TableHead className="w-36 font-bold">Store Name</TableHead>
+              )}
+              {visibleColumns.includes('storeContactEmail') && (
+                <TableHead className="w-90 font-bold">Store Email</TableHead>
+              )}
+              {visibleColumns.includes('patientFeedback') && (
+                <TableHead className="font-bold">Patient Feedback</TableHead>
+              )}
+              {visibleColumns.includes('lastUpdated') && (
+                <TableHead className="w-32 text-right font-bold">Date</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
@@ -64,7 +67,10 @@ export function FeedbackDirectoryBody({
               </TableRow>
             ) : (
               paginatedCustomers.map((cust) => (
-                <TableRow key={cust.id} className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40">
+                <TableRow
+                  key={cust.id}
+                  className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
+                >
                   {visibleColumns.includes('id') && (
                     <TableCell className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-400">
                       {cust.id}
@@ -82,14 +88,17 @@ export function FeedbackDirectoryBody({
 
                   {visibleColumns.includes('storeName') && (
                     <TableCell>
-                      <Badge variant="outline" className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                      <Badge
+                        variant="outline"
+                        className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      >
                         {cust.storeName}
                       </Badge>
                     </TableCell>
                   )}
 
                   {visibleColumns.includes('storeContactEmail') && (
-                    <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-mono">
+                    <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                       {cust.storeContactEmail || '—'}
                     </TableCell>
                   )}

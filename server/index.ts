@@ -17,6 +17,7 @@ import feedbackRouter from './routes/feedback.js';
 import ssoAuthRouter from './routes/ssoAuth.js';
 import systemRouter from './routes/system.js';
 import usersRouter from './routes/users.js';
+import { callsRouter } from './routes/calls.js';
 import webhooksRouter from './routes/webhooks.js';
 import { alertCritical, logger, logSecurityEvent, resolveLogDir } from './utils/logger.js';
 import { addSseClient, removeSseClient } from './utils/sse.js';
@@ -122,14 +123,31 @@ app.use(
           'https://trvc.titan.in',
           'https://titan.thebytebandits.com',
           'https://titan-dev.thebytebandits.com',
+          'https://*.communication.azure.com',
+          'wss://*.communication.azure.com',
+          'https://*.skype.com',
+          'https://*.flightproxy.skype.com',
+          'wss://*.skype.com',
+          'wss://*.flightproxy.skype.com',
+          'https://*.communication.microsoft.com',
+          'wss://*.communication.microsoft.com',
+          'https://*.trouter.communication.microsoft.com',
+          'wss://*.trouter.communication.microsoft.com',
+          'https://*.teams.microsoft.com',
+          'wss://*.teams.microsoft.com',
+          'https://*.ecs.office.com',
+          'https://*.config.office.net',
+          'https://*.turn.azure.com',
+          'wss://*.turn.azure.com',
         ],
         defaultSrc: ["'self'"],
         fontSrc: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
+        mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
         workerSrc: ["'self'", 'blob:'],
@@ -144,7 +162,7 @@ app.use(
 );
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), payment=()');
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   next();
 });
@@ -187,9 +205,6 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Runs ahead of the `cors` package's own check purely so the rejection can be
-// logged with request context — the package's origin callback only receives
-// the origin string, not `req`, so it can't attach a requestId itself.
 app.use((req: Request, res: Response, next: NextFunction) => {
   const origin = req.headers.origin;
 
@@ -279,6 +294,7 @@ app.use('/api/webhooks', apiLimiter, webhooksRouter);
 // no account of any kind. Access is scoped by the random per-customer token
 // itself, not a session.
 app.use('/api/feedback', apiLimiter, feedbackRouter);
+app.use('/api/calls', apiLimiter, authenticateToken, callsRouter);
 app.use('/api', apiLimiter, authenticateToken, systemRouter);
 app.use('/api/users', apiLimiter, authenticateToken, usersRouter);
 
