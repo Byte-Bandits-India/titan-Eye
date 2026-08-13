@@ -46,6 +46,25 @@ export const DEFAULT_AUDIT_LOG_COLUMNS = [
   'performedBy',
 ];
 
+export const FEEDBACK_TABLE_COLUMNS: ColumnOption[] = [
+  { id: 'id', label: 'Patient ID' },
+  { id: 'name', isMandatory: true, label: 'Patient Name' },
+  { id: 'storeName', label: 'Store Name' },
+  { id: 'storeContactEmail', label: 'Store Email' },
+  { id: 'callTakenBy', label: 'Store Staff / User' },
+  { id: 'patientFeedback', isMandatory: true, label: 'Patient Feedback' },
+  { id: 'lastUpdated', label: 'Date' },
+];
+export const DEFAULT_FEEDBACK_COLUMNS = [
+  'id',
+  'name',
+  'storeName',
+  'storeContactEmail',
+  'callTakenBy',
+  'patientFeedback',
+  'lastUpdated',
+];
+
 export const ROLE_OPTIONS = [
   { label: 'Store', value: 'store' },
   { label: 'Optom', value: 'optom' },

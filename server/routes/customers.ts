@@ -136,7 +136,7 @@ async function verifyCustomerAccess(
             preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback,
             status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData,
             callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optomCallStartTime,
-            offeredToOptomEmail, declinedByOptomEmails
+            offeredToOptomEmail, declinedByOptomEmails, patientFeedback
      FROM customers WHERE id = ?`,
     [customerId]
   );

@@ -5,6 +5,7 @@ import {
   LogOut,
   Mail,
   Maximize2,
+  MessageSquare,
   Minimize2,
   Search,
   UserPlus,
@@ -222,6 +223,20 @@ export function Header({
             </button>
             <button
               className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+                activeTab === 'feedback'
+                  ? 'bg-slate-100 font-bold text-[#1a2b6e]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              onClick={() => setActiveTab('feedback')}
+            >
+              <MessageSquare
+                className={activeTab === 'feedback' ? 'text-[#1a2b6e]' : 'text-slate-400'}
+                size={16}
+              />
+              <span className="whitespace-nowrap">Feedback</span>
+            </button>
+            <button
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
                 activeTab === 'auditLogs'
                   ? 'bg-slate-100 font-bold text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -309,6 +324,23 @@ export function Header({
               <span className="truncate whitespace-nowrap font-bold">
                 <span className="inline sm:hidden">Users</span>
                 <span className="hidden sm:inline">Users Record</span>
+              </span>
+            </button>
+            <button
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+                activeTab === 'feedback'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-bold text-[#1a2b6e]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              onClick={() => setActiveTab('feedback')}
+            >
+              <MessageSquare
+                className={`shrink-0 ${activeTab === 'feedback' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
+                size={15}
+              />
+              <span className="truncate whitespace-nowrap font-bold">
+                <span className="inline sm:hidden">Feedback</span>
+                <span className="hidden sm:inline">Customer Feedback</span>
               </span>
             </button>
             <button

@@ -1,4 +1,4 @@
-import { Download, FileText, Search, Stethoscope, UserPlus, Users2 } from 'lucide-react';
+import { Download, FileText, MessageSquare, Search, Stethoscope, UserPlus, Users2 } from 'lucide-react';
 
 import type {
   AuditLog,
@@ -19,13 +19,39 @@ import { Input } from '../../../components/ui/input';
 import { exportAllCustomersReport } from '../../../utils/excelExport';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
 import { OptomUsersBody } from '../../store/components/OptomUsersBody';
-import { AUDIT_LOG_TABLE_COLUMNS, CUSTOMER_TABLE_COLUMNS, USER_TABLE_COLUMNS } from './adminUtils';
+import { AUDIT_LOG_TABLE_COLUMNS, CUSTOMER_TABLE_COLUMNS, FEEDBACK_TABLE_COLUMNS, USER_TABLE_COLUMNS } from './adminUtils';
 import { AuditLogsBody } from './AuditLogsBody';
 import { CustomerDirectoryBody } from './CustomerDirectoryBody';
+import { FeedbackDirectoryBody } from './FeedbackDirectoryBody';
 import { UserDirectoryBody } from './UserDirectoryBody';
 
 export type AdminCardProps =
-  AuditLogsVariant | CustomerRecordsVariant | MetricsVariant | OptomUsersVariant | UserManagementVariant;
+  | AuditLogsVariant
+  | CustomerRecordsVariant
+  | FeedbackRecordsVariant
+  | MetricsVariant
+  | OptomUsersVariant
+  | UserManagementVariant;
+
+type FeedbackRecordsVariant = {
+  currentPage: number;
+  dateRange: DateFilterRange;
+  filteredCustomers: Customer[];
+  onDateRangeChange: (v: DateFilterRange) => void;
+  onNextPage: () => void;
+  onPageSizeChange: (size: number) => void;
+  onPrevPage: () => void;
+  onResetColumns: () => void;
+  onSearchChange: (v: string) => void;
+  onToggleColumn: (id: string) => void;
+  pageSize: number;
+  paginatedCustomers: Customer[];
+  searchTerm: string;
+  totalItems: number;
+  totalPages: number;
+  variant: 'feedback';
+  visibleColumns: string[];
+};
 
 type AuditLogsVariant = {
   currentPage: number;
@@ -258,6 +284,62 @@ export function AdminCard(props: AdminCardProps) {
           pageSize={pageSize}
           paginatedCustomers={paginatedCustomers}
           tabCounts={tabCounts}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          visibleColumns={visibleColumns}
+        />
+      </CardFrame>
+    );
+  }
+
+  if (props.variant === 'feedback') {
+    const {
+      currentPage,
+      dateRange,
+      onDateRangeChange,
+      onNextPage,
+      onPageSizeChange,
+      onPrevPage,
+      onResetColumns,
+      onSearchChange,
+      onToggleColumn,
+      pageSize,
+      paginatedCustomers,
+      searchTerm,
+      totalItems,
+      totalPages,
+      visibleColumns,
+    } = props;
+
+    const headerControls = (
+      <>
+        <Input
+          className="h-9 w-72 border-border bg-card text-xs sm:w-80"
+          icon={Search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search patient feedback..."
+          value={searchTerm}
+        />
+        <DateFilter onChange={onDateRangeChange} value={dateRange} />
+        <ColumnVisibilityDropdown
+          columns={FEEDBACK_TABLE_COLUMNS}
+          onResetColumns={onResetColumns}
+          onToggleColumn={onToggleColumn}
+          visibleColumns={visibleColumns}
+        />
+      </>
+    );
+
+    return (
+      <CardFrame className="!mt-4">
+        <CardHeader icon={MessageSquare} right={headerControls} title="Patient Feedback Directory" />
+        <FeedbackDirectoryBody
+          currentPage={currentPage}
+          onNextPage={onNextPage}
+          onPageSizeChange={onPageSizeChange}
+          onPrevPage={onPrevPage}
+          pageSize={pageSize}
+          paginatedCustomers={paginatedCustomers}
           totalItems={totalItems}
           totalPages={totalPages}
           visibleColumns={visibleColumns}

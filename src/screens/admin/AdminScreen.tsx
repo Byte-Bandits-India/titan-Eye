@@ -35,6 +35,7 @@ import { AdminCard } from './components/AdminCard';
 import {
   DEFAULT_AUDIT_LOG_COLUMNS,
   DEFAULT_CUSTOMER_COLUMNS,
+  DEFAULT_FEEDBACK_COLUMNS,
   DEFAULT_USER_COLUMNS,
   getRoleBasedUserId,
 } from './components/adminUtils';
@@ -63,10 +64,12 @@ export function AdminScreen() {
 
   const [userPageSize, setUserPageSize] = React.useState<number>(10);
   const [customerPageSize, setCustomerPageSize] = React.useState<number>(10);
+  const [feedbackPageSize, setFeedbackPageSize] = React.useState<number>(10);
   const [auditLogPageSize, setAuditLogPageSize] = React.useState<number>(10);
 
   const [visibleUserCols, setVisibleUserCols] = React.useState<string[]>(DEFAULT_USER_COLUMNS);
   const [visibleCustomerCols, setVisibleCustomerCols] = React.useState<string[]>(DEFAULT_CUSTOMER_COLUMNS);
+  const [visibleFeedbackCols, setVisibleFeedbackCols] = React.useState<string[]>(DEFAULT_FEEDBACK_COLUMNS);
   const [visibleAuditCols, setVisibleAuditCols] = React.useState<string[]>(DEFAULT_AUDIT_LOG_COLUMNS);
 
   const handleToggleUserCol = (id: string) => {
@@ -75,6 +78,10 @@ export function AdminScreen() {
 
   const handleToggleCustomerCol = (id: string) => {
     setVisibleCustomerCols((prev) => (prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]));
+  };
+
+  const handleToggleFeedbackCol = (id: string) => {
+    setVisibleFeedbackCols((prev) => (prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]));
   };
 
   const handleToggleAuditCol = (id: string) => {
@@ -193,6 +200,41 @@ export function AdminScreen() {
     totalItems: customerTotalItems,
     totalPages: customerTotalPages,
   } = usePagination(filteredCustomers, customerPageSize);
+
+  const filteredFeedbackCustomers = React.useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+
+    return dateFilteredCustomers.filter((c) => {
+      const hasPatientFeedback = Boolean(c.patientFeedback && c.patientFeedback.trim());
+
+      if (!hasPatientFeedback) {
+        return false;
+      }
+
+      if (!term) {
+        return true;
+      }
+
+      return (
+        c.name.toLowerCase().includes(term) ||
+        c.id.toLowerCase().includes(term) ||
+        (c.storeName && c.storeName.toLowerCase().includes(term)) ||
+        (c.storeContactEmail && c.storeContactEmail.toLowerCase().includes(term)) ||
+        (c.callTakenBy && c.callTakenBy.toLowerCase().includes(term)) ||
+        (c.patientFeedback && c.patientFeedback.toLowerCase().includes(term))
+      );
+    });
+  }, [dateFilteredCustomers, searchTerm]);
+
+  const {
+    currentPage: feedbackCurrentPage,
+    nextPage: feedbackNextPage,
+    paginatedItems: paginatedFeedbackCustomers,
+    prevPage: feedbackPrevPage,
+    resetPage: feedbackResetPage,
+    totalItems: feedbackTotalItems,
+    totalPages: feedbackTotalPages,
+  } = usePagination(filteredFeedbackCustomers, feedbackPageSize);
 
   const fetchAuditLogs = React.useCallback(async () => {
     setIsLoadingLogs(true);
@@ -436,14 +478,18 @@ export function AdminScreen() {
                 ? 'Customer Directory'
                 : activeTab === 'users'
                   ? 'User Directory'
-                  : 'System Audit Logs'}
+                  : activeTab === 'feedback'
+                    ? 'Customer & Store Feedback'
+                    : 'System Audit Logs'}
             </h1>
             <p className="text-xs text-muted-foreground sm:text-sm">
               {activeTab === 'customers'
                 ? 'Search and view registered customer transactions'
                 : activeTab === 'users'
                   ? 'Search, filter, and manage system access'
-                  : 'Track all activity across Store, Optom, and Admin roles'}
+                  : activeTab === 'feedback'
+                    ? 'View store action notes, optometrist assessments, and direct patient feedback'
+                    : 'Track all activity across Store, Optom, and Admin roles'}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -521,6 +567,29 @@ export function AdminScreen() {
             totalPages={customerTotalPages}
             variant="customer-records"
             visibleColumns={visibleCustomerCols}
+          />
+        ) : activeTab === 'feedback' ? (
+          <AdminCard
+            currentPage={feedbackCurrentPage}
+            dateRange={dateRange}
+            filteredCustomers={filteredFeedbackCustomers}
+            onDateRangeChange={setDateRange}
+            onNextPage={feedbackNextPage}
+            onPageSizeChange={(size) => {
+              setFeedbackPageSize(size);
+              feedbackResetPage();
+            }}
+            onPrevPage={feedbackPrevPage}
+            onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
+            onSearchChange={setSearchTerm}
+            onToggleColumn={handleToggleFeedbackCol}
+            pageSize={feedbackPageSize}
+            paginatedCustomers={paginatedFeedbackCustomers}
+            searchTerm={searchTerm}
+            totalItems={feedbackTotalItems}
+            totalPages={feedbackTotalPages}
+            variant="feedback"
+            visibleColumns={visibleFeedbackCols}
           />
         ) : (
           <AdminCard

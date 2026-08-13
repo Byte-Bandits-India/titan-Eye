@@ -2,7 +2,8 @@ import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
 // ─── Admin Tab ────────────────────────────────────────────────────────────────
-export type AdminTab = 'auditLogs' | 'customers' | 'users';
+export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users';
+export type FeedbackFilterTab = 'all' | 'optom' | 'patient' | 'store';
 
 export type AppLayoutProps = {
   activeTab?: AdminTab;
