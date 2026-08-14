@@ -4,6 +4,8 @@ import * as React from 'react';
 
 import { cn } from '../../lib/utils';
 
+import { ScrollArea } from './scroll-area';
+
 const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
 const SheetClose = DialogPrimitive.Close;
@@ -64,9 +66,15 @@ const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElemen
   <div className={cn('shrink-0 border-b border-border px-6 py-4', className)} {...props} />
 );
 
-const SheetBody = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('flex-1 overflow-y-auto', className)} {...props} />
-);
+const SheetBody = React.forwardRef<
+  React.ElementRef<typeof ScrollArea>,
+  React.ComponentPropsWithoutRef<typeof ScrollArea>
+>(({ className, children, ...props }, ref) => (
+  <ScrollArea className={cn('min-h-0 flex-1', className)} ref={ref} {...props}>
+    {children}
+  </ScrollArea>
+));
+SheetBody.displayName = 'SheetBody';
 
 const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div

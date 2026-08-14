@@ -6,7 +6,7 @@ const MAX_GENERIC_LENGTH = 200;
 
 const VALID_GENDERS = ['Male', 'Female', 'Other'];
 const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
-const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed'];
+const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed', 'Drop'];
 
 interface FieldResult {
   error?: string;

@@ -1,55 +1,19 @@
-import type { CollisionModalData, Customer, User } from '../../../types';
+import type { Customer, User } from '../../../types';
 
 import { Button } from '../../../components/ui/button';
 
 type OptomActionsCellProps = {
-  activeCallTakenByMe: Customer | null;
+  activeCallTakenByMe?: Customer | null;
   onSelectCustomer: (id: string) => void;
-  onSetCollision: (data: CollisionModalData) => void;
   onSetEditing: (v: boolean) => void;
   req: Customer;
-  user: null | User;
+  user?: null | User;
 };
 
-export function OptomActionsCell({
-  activeCallTakenByMe,
-  onSelectCustomer,
-  onSetCollision,
-  onSetEditing,
-  req,
-  user,
-}: OptomActionsCellProps) {
-  const isTakenByAnotherDoctor = (() => {
-    if (!req.callActive || !req.callTakenBy) {
-      return false;
-    }
-
-    if (!user) {
-      return true;
-    }
-
-    const takenByLower = req.callTakenBy.toLowerCase();
-
-    return takenByLower !== user.name.toLowerCase() && takenByLower !== user.email.toLowerCase();
-  })();
-
+export function OptomActionsCell({ onSelectCustomer, onSetEditing, req }: OptomActionsCellProps) {
   const handleAction = () => {
-    if (isTakenByAnotherDoctor) {
-      onSetCollision({
-        id: req.id,
-        name: req.name,
-        takenBy: req.callTakenBy || 'another agent',
-      });
-    } else if (activeCallTakenByMe && activeCallTakenByMe.id !== req.id && user) {
-      onSetCollision({
-        id: req.id,
-        name: req.name,
-        takenBy: `you (${user.name} - active call #${activeCallTakenByMe.id} in progress)`,
-      });
-    } else {
-      onSelectCustomer(req.id);
-      onSetEditing(true);
-    }
+    onSelectCustomer(req.id);
+    onSetEditing(true);
   };
 
   return (

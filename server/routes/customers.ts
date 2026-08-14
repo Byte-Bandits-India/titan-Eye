@@ -738,6 +738,103 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
   }
 });
 
+router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (req.user!.role !== 'optom') {
+      return res.status(403).json({ error: 'Only Optom users can drop a call.' });
+    }
+
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    const timestamp = new Date().toLocaleString('en-US', {
+      day: 'numeric',
+      hour: 'numeric',
+      hour12: true,
+      minute: '2-digit',
+      month: 'short',
+      second: '2-digit',
+      year: 'numeric',
+    });
+
+    const declinedList = (customer.declinedByOptomEmails || '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    // Add current optom to declined list
+    const currentEmail = req.user!.email;
+    if (!declinedList.some((e) => e.toLowerCase() === currentEmail.toLowerCase())) {
+      declinedList.push(currentEmail);
+    }
+    if (
+      customer.offeredToOptomEmail &&
+      !declinedList.some((e) => e.toLowerCase() === customer.offeredToOptomEmail?.toLowerCase())
+    ) {
+      declinedList.push(customer.offeredToOptomEmail);
+    }
+
+    const nextOptom = await findNextAvailableOptom(declinedList);
+
+    if (nextOptom) {
+      await run(
+        `
+        UPDATE customers SET
+          status = 'Initiated',
+          callActive = 0,
+          callTakenBy = NULL,
+          offeredToOptomEmail = ?,
+          declinedByOptomEmails = ?,
+          lastUpdatedOn = ?
+        WHERE id = ?
+      `,
+        [nextOptom.email, declinedList.join(','), timestamp, id]
+      );
+    } else {
+      await run(
+        `
+        UPDATE customers SET
+          status = 'Created',
+          callActive = 0,
+          callTakenBy = NULL,
+          offeredToOptomEmail = NULL,
+          declinedByOptomEmails = NULL,
+          lastUpdatedOn = ?
+        WHERE id = ?
+      `,
+        [timestamp, id]
+      );
+
+      broadcastEvent('OPTOM_NO_RESPONSE', {
+        customerId: id,
+        customerName: customer.name,
+        storeName: customer.storeName,
+      });
+    }
+
+    const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+
+    if (!updatedRow) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    const updatedCustomer = toApiCustomer(updatedRow);
+
+    broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+    return res.json({ customer: updatedCustomer, ok: true });
+  } catch (err) {
+    const error = err as Error;
+    logger.error('Drop call error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/:id/cancel-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -760,7 +857,7 @@ router.post('/:id/cancel-call', async (req: AuthenticatedRequest, res: Response)
     await run(
       `
       UPDATE customers SET
-        status = 'Created',
+        status = 'Closed',
         callActive = 0,
         callTakenBy = NULL,
         offeredToOptomEmail = NULL,

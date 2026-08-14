@@ -125,7 +125,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
   };
 
   return (
-    <form className="flex h-full flex-col" noValidate onSubmit={handleSubmit}>
+    <form className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleSubmit}>
       <SheetBody className="px-6 py-5">
         <div className="space-y-4">
           {/* Full Name */}

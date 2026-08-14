@@ -128,6 +128,24 @@ export const rejectCallAction = (id: string) => async (dispatch: AppDispatch) =>
   }
 };
 
+export const dropCallAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/drop-call`
+    );
+
+    if (response.data.customer) {
+      dispatch(customerUpdated(response.data.customer));
+    }
+
+    return response.data;
+  } catch (e) {
+    const err = e as Error;
+    const msg = handleApiError(err, dispatch, 'Failed to drop call.');
+    throw new Error(msg);
+  }
+};
+
 export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.post<{ customer: Customer; ok: boolean }>(

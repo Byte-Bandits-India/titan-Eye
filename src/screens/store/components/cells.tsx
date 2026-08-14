@@ -42,8 +42,14 @@ export function renderWaitingDuration(cust: Customer, now: number) {
     return <span className="text-muted-foreground">—</span>;
   }
 
-  const endMs = cust.optomCallStartTime ? parseTimestamp(cust.optomCallStartTime) || now : now;
-  const elapsedMs = Math.min(endMs - startMs, MAX_WAITING_MS);
+  const isFinished = cust.status === 'Closed' || cust.status === 'Completed';
+  const endMs = cust.optomCallStartTime
+    ? parseTimestamp(cust.optomCallStartTime) || now
+    : isFinished
+      ? parseTimestamp(cust.lastUpdatedOn) || now
+      : now;
+
+  const elapsedMs = Math.max(0, Math.min(endMs - startMs, MAX_WAITING_MS));
 
   return <span className="font-mono text-xs text-foreground">{formatDurationLong(elapsedMs)}</span>;
 }
@@ -52,14 +58,14 @@ export function WaitingCell({ cust }: { cust: Customer }) {
   const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
-    if (cust.optomCallStartTime) {
+    if (cust.optomCallStartTime || cust.status === 'Closed' || cust.status === 'Completed') {
       return;
     }
 
     const timer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => clearInterval(timer);
-  }, [cust.optomCallStartTime]);
+  }, [cust.optomCallStartTime, cust.status]);
 
   return renderWaitingDuration(cust, now);
 }

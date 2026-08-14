@@ -140,7 +140,7 @@ export type CustomerState = {
   loading: boolean;
 };
 
-export type CustomerStatus = 'Accepted' | 'Closed' | 'Completed' | 'Created' | 'Initiated';
+export type CustomerStatus = 'Accepted' | 'Closed' | 'Completed' | 'Created' | 'Drop' | 'Initiated';
 
 // ─── Admin Screen ─────────────────────────────────────────────────────────────
 export type CustomerStatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';

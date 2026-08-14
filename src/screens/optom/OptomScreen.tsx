@@ -2,26 +2,19 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Bell } from 'lucide-react';
 import * as React from 'react';
 
-import type {
-  CollisionModalData,
-  ColumnOption,
-  Customer,
-  OptomUserRow,
-  SSEEventDetail,
-  StatusTab,
-} from '../../types';
+import type { ColumnOption, Customer, OptomUserRow, SSEEventDetail, StatusTab } from '../../types';
 
 import { fetchCustomersAction, updateCustomerAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
-import { CollisionModal } from '../../components/shared/CollisionModal';
 import { Button } from '../../components/ui/button';
 import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from '../store/components/cells';
+import { parseTimestamp } from '../store/components/formatters';
 import { OptomActionsCell } from './components/OptomActionsCell';
 import { OptomCard } from './components/OptomCard';
 import { OptomPatientDetails } from './OptomPatientDetails';
@@ -46,14 +39,13 @@ export function OptomScreen() {
 
   // ── Local UI State ──────────────────────────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0484');
-  const [statusTab, setStatusTab] = React.useState<StatusTab>('all');
+  const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [dateRange, setDateRange] = React.useState<DateFilterRange>('all');
   const [isEditing, setIsEditing] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTOM_PAGE_SIZE);
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
 
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
-  const [collisionModalData, setCollisionModalData] = React.useState<CollisionModalData | null>(null);
 
   React.useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 950px)');
@@ -177,15 +169,18 @@ export function OptomScreen() {
   }, [customers, user]);
 
   const dateFilteredCustomers = React.useMemo(
-    () => filterCustomersByDate(customers, dateRange),
+    () =>
+      filterCustomersByDate(
+        customers.filter((c) => c.status !== 'Closed'),
+        dateRange
+      ),
     [customers, dateRange]
   );
 
   const tabCounts = React.useMemo(
     () => ({
       all: dateFilteredCustomers.length,
-      completed: dateFilteredCustomers.filter((c) => c.status === 'Completed' || c.status === 'Closed')
-        .length,
+      completed: dateFilteredCustomers.filter((c) => c.status === 'Completed').length,
       inProgress: dateFilteredCustomers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted')
         .length,
       pending: dateFilteredCustomers.filter((c) => c.status === 'Created').length,
@@ -193,25 +188,34 @@ export function OptomScreen() {
     [dateFilteredCustomers]
   );
 
-  const filteredRequests = React.useMemo(
-    () =>
-      dateFilteredCustomers.filter((c) => {
-        if (statusTab === 'Pending' && c.status !== 'Created') {
-          return false;
-        }
+  const filteredRequests = React.useMemo(() => {
+    const list = dateFilteredCustomers.filter((c) => {
+      if (statusTab === 'Pending' && c.status !== 'Created') {
+        return false;
+      }
 
-        if (statusTab === 'InProgress' && !(c.status === 'Initiated' || c.status === 'Accepted')) {
-          return false;
-        }
+      if (statusTab === 'InProgress' && !(c.status === 'Initiated' || c.status === 'Accepted')) {
+        return false;
+      }
 
-        if (statusTab === 'Completed' && !(c.status === 'Completed' || c.status === 'Closed')) {
-          return false;
-        }
+      if (statusTab === 'Completed' && c.status !== 'Completed') {
+        return false;
+      }
 
-        return true;
-      }),
-    [dateFilteredCustomers, statusTab]
-  );
+      return true;
+    });
+
+    if (statusTab === 'Pending') {
+      return [...list].sort((a, b) => {
+        const timeA = parseTimestamp(a.createdOn || a.callStartTime || a.lastUpdatedOn);
+        const timeB = parseTimestamp(b.createdOn || b.callStartTime || b.lastUpdatedOn);
+
+        return timeA - timeB;
+      });
+    }
+
+    return list;
+  }, [dateFilteredCustomers, statusTab]);
 
   const optomUsersWithStatus = React.useMemo<OptomUserRow[]>(
     () =>
@@ -429,7 +433,6 @@ export function OptomScreen() {
           <OptomActionsCell
             activeCallTakenByMe={activeCallTakenByMe}
             onSelectCustomer={setSelectedCustomerId}
-            onSetCollision={setCollisionModalData}
             onSetEditing={setIsEditing}
             req={row.original}
             user={user}
@@ -537,18 +540,6 @@ export function OptomScreen() {
             visibleColumns={visibleColumnIds}
           />
         </main>
-      )}
-
-      {collisionModalData && (
-        <CollisionModal
-          onCancel={() => setCollisionModalData(null)}
-          onViewData={() => {
-            setSelectedCustomerId(collisionModalData.id);
-            setIsEditing(true);
-            setCollisionModalData(null);
-          }}
-          takenBy={collisionModalData.takenBy}
-        />
       )}
     </AppLayout>
   );

@@ -12,15 +12,9 @@ import { useAppDispatch, useAppSelector } from '../store';
 export function useSSE(): void {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-  const customers = useAppSelector((state) => state.customers.customers);
   const user = useAppSelector((state) => state.auth.user);
   const { addLogNotification } = useNotificationLog();
-  const customersRef = React.useRef(customers);
   const userRef = React.useRef(user);
-
-  React.useEffect(() => {
-    customersRef.current = customers;
-  }, [customers]);
 
   React.useEffect(() => {
     userRef.current = user;
@@ -42,64 +36,13 @@ export function useSSE(): void {
     eventSource.onmessage = (event: MessageEvent) => {
       try {
         const { data, type } = JSON.parse(event.data as string) as SSEEventDetail;
-        const currentCustomers = customersRef.current;
 
         if (type === 'CUSTOMER_CREATED') {
           dispatch(customerCreated(data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
-
-          // Patient registration is a store/admin administrative event -
-          // Optoms only care once a call is actually offered to them.
-          if (userRef.current?.role !== 'optom' && !currentCustomers.some((c) => c.id === data.id)) {
-            addLogNotification({
-              description: `Successfully added ${data.name} with ID ${data.id}.`,
-              title: 'Patient Registered',
-              type: 'patient_registered',
-            });
-          }
         } else if (type === 'CUSTOMER_UPDATED') {
-          const oldCust = currentCustomers.find((c) => c.id === data.id);
-          const currentUser = userRef.current;
-          const isOwnStoreRequest =
-            currentUser?.role === 'store' &&
-            !!currentUser.storeName &&
-            !!data.storeName &&
-            currentUser.storeName.toLowerCase() === data.storeName.toLowerCase();
-          // Optoms get a dedicated, actionable incoming-call alert (with sound and
-          // Attend/View/Ignore) from the notifications list in NotificationPopover -
-          // the generic log line would just be redundant noise on top of that.
-          const skipCallInitiatedLog = isOwnStoreRequest || currentUser?.role === 'optom';
-
-          if (data.callActive && (!oldCust || !oldCust.callActive)) {
-            if (!skipCallInitiatedLog) {
-              addLogNotification({
-                description: `Call initiated by ${data.storeName} for ${data.name}.`,
-                title: 'Call Initiated',
-                type: 'call_initiated',
-              });
-            }
-          } else if (data.status === 'Closed' && oldCust?.status !== 'Closed') {
-            addLogNotification({
-              description: `Consultation request for ${data.name} has been closed automatically.`,
-              title: 'Call Closed',
-              type: 'call_closed',
-            });
-          } else if (data.status === 'Completed' && (!oldCust || oldCust.status !== 'Completed')) {
-            addLogNotification({
-              description: `Clinical assessment submitted for ${data.name} (ID: ${data.id}).`,
-              title: 'Assessment Complete',
-              type: 'assessment_complete',
-            });
-          } else if (data.status === 'Accepted' && oldCust?.status === 'Initiated' && !data.callActive) {
-            addLogNotification({
-              description: 'Patient assessment status updated to Accepted.',
-              title: 'Assessment Accepted',
-              type: 'assessment_accepted',
-            });
-          }
-
           dispatch(customerUpdated(data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());

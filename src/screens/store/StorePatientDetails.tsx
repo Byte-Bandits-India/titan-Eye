@@ -367,7 +367,7 @@ export function StorePatientDetails({
   );
 
   return (
-    <form className="flex h-full flex-col" noValidate onSubmit={handleFormSubmit}>
+    <form className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleFormSubmit}>
       <SheetBody className="px-6 py-5">{sheetFieldsMarkup}</SheetBody>
       <SheetFooter className="sticky bottom-0 bg-card">
         <Button

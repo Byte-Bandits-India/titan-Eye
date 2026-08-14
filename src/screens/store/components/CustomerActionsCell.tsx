@@ -1,7 +1,8 @@
 import { CheckCircle2, FileText, MoreHorizontal, UserPen, Video, XCircle } from 'lucide-react';
 
-import type { CollisionData, Customer, User } from '../../../types';
+import type { Customer, StatusTab, User } from '../../../types';
 
+import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 
@@ -13,9 +14,9 @@ type CustomerActionsCellProps = {
   onCompleteCall: (id: string, name: string) => void;
   onInitiateCall: (id: string) => void;
   onSelectCustomer: (id: string) => void;
-  onSetCollision: (data: CollisionData) => void;
   onSetEditing: (v: boolean) => void;
   onSetEditingRx: (v: boolean) => void;
+  statusTab?: StatusTab;
   user: null | User;
 };
 
@@ -27,11 +28,77 @@ export function CustomerActionsCell({
   onCompleteCall,
   onInitiateCall,
   onSelectCustomer,
-  onSetCollision,
   onSetEditing,
   onSetEditingRx,
-  user,
+  statusTab,
 }: CustomerActionsCellProps) {
+  // ── Status badge for "All" tab ──────────────────────────────────────────
+  const statusBadge = (() => {
+    if (cust.status === 'Created') {
+      return (
+        <Badge
+          className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+          variant="Created"
+        >
+          Queued
+        </Badge>
+      );
+    }
+
+    if (cust.status === 'Initiated' || cust.status === 'Accepted') {
+      return (
+        <Badge
+          className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          variant="Initiated"
+        >
+          Testing
+        </Badge>
+      );
+    }
+
+    if (cust.status === 'Completed') {
+      return (
+        <Badge
+          className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+          variant="Completed"
+        >
+          Completed
+        </Badge>
+      );
+    }
+
+    if (cust.status === 'Closed') {
+      return (
+        <Badge
+          className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+          variant="Closed"
+        >
+          Cancelled
+        </Badge>
+      );
+    }
+
+    if (cust.status === 'Drop') {
+      return (
+        <Badge
+          className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+          variant="Drop"
+        >
+          Dropped
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge
+        className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+        variant="default"
+      >
+        {cust.status}
+      </Badge>
+    );
+  })();
+
   // ── Primary call-action button ──────────────────────────────────────────
   const primaryBtn = (() => {
     if (cust.status === 'Accepted') {
@@ -101,7 +168,7 @@ export function CustomerActionsCell({
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-      {primaryBtn}
+      {statusTab === 'all' ? statusBadge : primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
       <Popover>
@@ -125,18 +192,9 @@ export function CustomerActionsCell({
           <button
             className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted"
             onClick={() => {
-              if (cust.callActive && cust.storeName !== user?.name) {
-                onSetCollision({
-                  id: cust.id,
-                  name: cust.name,
-                  takenBy: cust.callTakenBy || 'another agent',
-                  targetView: 'info',
-                });
-              } else {
-                onSelectCustomer(cust.id);
-                onSetEditing(true);
-                onSetEditingRx(false);
-              }
+              onSelectCustomer(cust.id);
+              onSetEditing(true);
+              onSetEditingRx(false);
             }}
             type="button"
           >
@@ -148,18 +206,9 @@ export function CustomerActionsCell({
           <button
             className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted"
             onClick={() => {
-              if (cust.callActive && cust.storeName !== user?.name) {
-                onSetCollision({
-                  id: cust.id,
-                  name: cust.name,
-                  takenBy: cust.callTakenBy || 'another agent',
-                  targetView: 'rx',
-                });
-              } else {
-                onSelectCustomer(cust.id);
-                onSetEditingRx(true);
-                onSetEditing(false);
-              }
+              onSelectCustomer(cust.id);
+              onSetEditingRx(true);
+              onSetEditing(false);
             }}
             type="button"
           >

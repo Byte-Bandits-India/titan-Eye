@@ -2,14 +2,7 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Bell, Plus } from 'lucide-react';
 import * as React from 'react';
 
-import type {
-  CollisionData,
-  ColumnOption,
-  Customer,
-  OptomUserRow,
-  SSEEventDetail,
-  StatusTab,
-} from '../../types';
+import type { ColumnOption, Customer, OptomUserRow, SSEEventDetail, StatusTab } from '../../types';
 
 import {
   cancelCallAction,
@@ -21,7 +14,6 @@ import {
 import { fetchUsersAction } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
-import { CollisionModal } from '../../components/shared/CollisionModal';
 import { CompleteCallModal } from '../../components/shared/CompleteCallModal';
 import { Button } from '../../components/ui/button';
 import { useNotificationLog } from '../../components/ui/notificationLog';
@@ -33,6 +25,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from './components/cells';
 import { CustomerActionsCell } from './components/CustomerActionsCell';
+import { parseTimestamp } from './components/formatters';
 import { StoreCard } from './components/StoreCard';
 import { StorePatientDetails } from './StorePatientDetails';
 import { StoreRxDetails } from './StoreRxDetails';
@@ -42,7 +35,7 @@ export function StoreScreen() {
   const customers = useAppSelector((state) => state.customers.customers);
   const users = useAppSelector((state) => state.users.users);
   const dispatch = useAppDispatch();
-  const [statusTab, setStatusTab] = React.useState<StatusTab>('all');
+  const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState('');
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
@@ -53,7 +46,6 @@ export function StoreScreen() {
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [loadingCallId, setLoadingCallId] = React.useState<null | string>(null);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
-  const [collisionModalData, setCollisionModalData] = React.useState<CollisionData | null>(null);
   const [completeCallModalData, setCompleteCallModalData] = React.useState<null | {
     customerName: string;
     feedbackUrl: string;
@@ -163,24 +155,29 @@ export function StoreScreen() {
   const tabCounts = React.useMemo(
     () => ({
       all: customers.length,
-      completed: customers.filter((c) => c.status === 'Completed' || c.status === 'Closed').length,
-      inProgress: customers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted').length,
-      pending: customers.filter((c) => c.status === 'Created').length,
+      completed: customers.filter((c) => c.status === 'Completed').length,
+      inProgress: customers.filter((c) => c.status === 'Accepted').length,
+      pending: customers.filter(
+        (c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop'
+      ).length,
     }),
     [customers]
   );
 
   const filteredCustomers = React.useMemo(() => {
     const byStatus = customers.filter((c) => {
-      if (statusTab === 'Pending' && c.status !== 'Created') {
+      if (
+        statusTab === 'Pending' &&
+        !(c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop')
+      ) {
         return false;
       }
 
-      if (statusTab === 'InProgress' && !(c.status === 'Initiated' || c.status === 'Accepted')) {
+      if (statusTab === 'InProgress' && c.status !== 'Accepted') {
         return false;
       }
 
-      if (statusTab === 'Completed' && !(c.status === 'Completed' || c.status === 'Closed')) {
+      if (statusTab === 'Completed' && c.status !== 'Completed') {
         return false;
       }
 
@@ -190,16 +187,27 @@ export function StoreScreen() {
     const byDate = filterCustomersByDate(byStatus, customerDateRange);
     const search = customerSearchTerm.trim().toLowerCase();
 
-    if (!search) {
-      return byDate;
+    let list = byDate;
+
+    if (search) {
+      list = byDate.filter(
+        (c) =>
+          c.id.toLowerCase().includes(search) ||
+          c.name.toLowerCase().includes(search) ||
+          c.mobile.toLowerCase().includes(search)
+      );
     }
 
-    return byDate.filter(
-      (c) =>
-        c.id.toLowerCase().includes(search) ||
-        c.name.toLowerCase().includes(search) ||
-        c.mobile.toLowerCase().includes(search)
-    );
+    if (statusTab === 'Pending') {
+      return [...list].sort((a, b) => {
+        const timeA = parseTimestamp(a.createdOn || a.callStartTime || a.lastUpdatedOn);
+        const timeB = parseTimestamp(b.createdOn || b.callStartTime || b.lastUpdatedOn);
+
+        return timeA - timeB;
+      });
+    }
+
+    return list;
   }, [customers, statusTab, customerDateRange, customerSearchTerm]);
 
   const optomUsersWithStatus = React.useMemo<OptomUserRow[]>(
@@ -514,9 +522,9 @@ export function StoreScreen() {
             onCompleteCall={handleCompleteCall}
             onInitiateCall={handleInitiateCall}
             onSelectCustomer={handleSelectCustomer}
-            onSetCollision={setCollisionModalData}
             onSetEditing={setIsEditing}
             onSetEditingRx={setIsEditingRx}
+            statusTab={statusTab}
             user={user}
           />
         ),
@@ -532,7 +540,7 @@ export function StoreScreen() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadingCallId, completingCallId, user]
+    [loadingCallId, completingCallId, user, statusTab]
   );
 
   const customersTable = useTable({
@@ -622,26 +630,6 @@ export function StoreScreen() {
             visibleColumns={visibleColumnIds}
           />
         </main>
-      )}
-
-      {collisionModalData && (
-        <CollisionModal
-          onCancel={() => setCollisionModalData(null)}
-          onViewData={() => {
-            handleSelectCustomer(collisionModalData.id);
-
-            if (collisionModalData.targetView === 'rx') {
-              setIsEditingRx(true);
-              setIsEditing(false);
-            } else {
-              setIsEditing(true);
-              setIsEditingRx(false);
-            }
-
-            setCollisionModalData(null);
-          }}
-          takenBy={collisionModalData.takenBy}
-        />
       )}
 
       {completeCallModalData && (

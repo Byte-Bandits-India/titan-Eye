@@ -255,9 +255,12 @@ export function NotificationPopover({
             return false;
           }
 
-          return !dismissedIds.has(c.id);
+          const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
+
+          return !dismissedIds.has(itemKey);
         })
         .map((c) => {
+          const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
           const startMs = parseTimestamp(c.callStartTime || c.lastUpdatedOn);
           const waitSecs = startMs > 0 ? Math.floor((now - startMs) / 1000) : 0;
           const waitMins = Math.floor(waitSecs / 60);
@@ -265,7 +268,7 @@ export function NotificationPopover({
 
           return {
             customer: c,
-            id: c.id,
+            id: itemKey,
             subtitle: isUrgent
               ? `URGENT ALERT (Minute ${waitMins}/59): Patient waiting for ${waitMins} mins! Pick up call immediately • Store: ${c.storeName || 'Store'}`
               : `Requesting access permission • Store: ${c.storeName || 'Store'}`,
@@ -286,40 +289,37 @@ export function NotificationPopover({
             return false;
           }
 
-          if (dismissedIds.has(c.id)) {
+          const isCallActive = !!c.callActive && isTakenByOptomUser(c.callTakenBy);
+
+          if (!isCallActive) {
             return false;
           }
 
-          const isAccepted = c.status === 'Accepted' || (c.callActive && isTakenByOptomUser(c.callTakenBy));
-          const isCompleted = c.status === 'Completed';
+          const itemKey = `${c.id}_${c.optomCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
 
-          return isAccepted || isCompleted;
+          return !dismissedIds.has(itemKey);
         })
         .map((c) => {
-          const isAccepted = c.status === 'Accepted' || (c.callActive && isTakenByOptomUser(c.callTakenBy));
+          const itemKey = `${c.id}_${c.optomCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
           const startMs = parseTimestamp(c.callStartTime);
           const optomCallStartTime = c.optomCallStartTime;
           const optomMs = parseTimestamp(optomCallStartTime || c.lastUpdatedOn);
           const waitSecs = startMs > 0 && optomMs >= startMs ? Math.floor((optomMs - startMs) / 1000) : 0;
           const isPost59Min = waitSecs >= 3540;
 
-          let subtitleText = `Consultation completed by ${c.callTakenBy || 'Optom Doctor'}`;
+          let subtitleText = `Call initiated by ${c.callTakenBy || 'Optom Doctor'}`;
 
-          if (isAccepted) {
-            if (isPost59Min) {
-              subtitleText = `Optom Doctor Calling: ${c.callTakenBy || 'Optom Doctor'} is calling for ${c.name} after 59 mins. Please attend!`;
-            } else {
-              subtitleText = `Call accepted by ${c.callTakenBy || 'Optom Doctor'}`;
-            }
+          if (isPost59Min) {
+            subtitleText = `Optom Doctor Calling: ${c.callTakenBy || 'Optom Doctor'} is calling for ${c.name} after 59 mins. Please attend!`;
           }
 
           return {
             customer: c,
-            id: c.id,
+            id: itemKey,
             subtitle: subtitleText,
             timestamp: c.lastUpdatedOn || now,
-            title: isPost59Min && isAccepted ? `📞 ATTEND CALL: ${c.name}` : c.name,
-            type: isAccepted ? 'call_accepted' : 'call_completed',
+            title: isPost59Min ? `📞 ATTEND CALL: ${c.name}` : c.name,
+            type: 'call_accepted' as const,
           };
         });
     }
@@ -413,7 +413,13 @@ export function NotificationPopover({
   }, [user, notifications.length, isMuted, stopAudio, getAudioElement]);
 
   const handleDecline = (customerId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(customerId));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      notifications.filter((n) => n.customer.id === customerId).forEach((n) => next.add(n.id));
+      next.add(customerId);
+
+      return next;
+    });
     stopAudio();
     dispatch(rejectCallAction(customerId)).catch((e) => {
       console.warn('rejectCallAction error:', e);
@@ -421,11 +427,23 @@ export function NotificationPopover({
   };
 
   const handleDismiss = (customerId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(customerId));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      notifications.filter((n) => n.customer.id === customerId).forEach((n) => next.add(n.id));
+      next.add(customerId);
+
+      return next;
+    });
   };
 
   const handleAccept = (customerId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(customerId));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      notifications.filter((n) => n.customer.id === customerId).forEach((n) => next.add(n.id));
+      next.add(customerId);
+
+      return next;
+    });
     stopAudio();
     setOpen(false);
 
@@ -435,7 +453,13 @@ export function NotificationPopover({
   };
 
   const handleAttendCall = (customerId: string) => {
-    setDismissedIds((prev) => new Set(prev).add(customerId));
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      notifications.filter((n) => n.customer.id === customerId).forEach((n) => next.add(n.id));
+      next.add(customerId);
+
+      return next;
+    });
     stopAudio();
     setOpen(false);
 
@@ -459,7 +483,10 @@ export function NotificationPopover({
   const handleClearAll = () => {
     setDismissedIds((prev) => {
       const next = new Set(prev);
-      notifications.forEach((n) => next.add(n.customer.id));
+      notifications.forEach((n) => {
+        next.add(n.id);
+        next.add(n.customer.id);
+      });
 
       return next;
     });

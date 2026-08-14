@@ -10,7 +10,7 @@ import type {
   OptomRxValues,
 } from '../../types';
 
-import { initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import { dropCallAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
 import { TeamsCallModal } from '../../components/shared/TeamsCallModal';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
@@ -274,6 +274,15 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
       return;
     }
 
+    const targetStatus = newStatus ?? form.status;
+
+    if (
+      !targetStatus ||
+      !['Created', 'Initiated', 'Accepted', 'Completed', 'Closed', 'Drop'].includes(targetStatus)
+    ) {
+      return;
+    }
+
     const currentCustomer = buildUpdatedCustomer();
 
     if (!currentCustomer) {
@@ -282,17 +291,24 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
 
     const updatedCustomer: Customer = {
       ...currentCustomer,
-      status: newStatus ?? form.status,
+      status: targetStatus,
     };
 
-    if (updatedCustomer.status === 'Completed' || updatedCustomer.status === 'Closed') {
+    if (
+      updatedCustomer.status === 'Completed' ||
+      updatedCustomer.status === 'Closed' ||
+      updatedCustomer.status === 'Created' ||
+      updatedCustomer.status === 'Drop'
+    ) {
       updatedCustomer.callActive = false;
+      updatedCustomer.callTakenBy = null;
     }
 
     try {
       await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
+      const displayStatus = updatedCustomer.status === 'Created' ? 'Queued' : updatedCustomer.status;
       toast({
-        description: `Customer status updated to ${updatedCustomer.status}.`,
+        description: `Customer status updated to ${displayStatus}.`,
         title: 'Status Updated',
         type: 'success',
       });
@@ -306,7 +322,38 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
     }
   };
 
-  const handleStatusChange = (val: string) => {
+  const handleStatusChange = async (val: string) => {
+    if (!val) {
+      return;
+    }
+
+    if (val === 'Drop') {
+      if (selectedCustomer) {
+        try {
+          await dispatch(dropCallAction(selectedCustomer.id));
+          toast({
+            description: 'Call dropped and routed to the next available Optom doctor.',
+            title: 'Call Dropped',
+            type: 'info',
+          });
+          onBack();
+        } catch (e) {
+          const err = e as Error;
+          toast({
+            description: `Failed to drop call: ${err.message || 'Database error'}`,
+            title: 'Error Dropping Call',
+            type: 'error',
+          });
+        }
+      }
+
+      return;
+    }
+
+    if (!['Created', 'Initiated', 'Accepted', 'Completed', 'Closed'].includes(val)) {
+      return;
+    }
+
     const newStatus = val as CustomerStatus;
     setField('status')(newStatus);
     handleUpdateStatusOnly(newStatus);
@@ -368,7 +415,7 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
         </div>
         <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
           <Button
-            className="active:scale-98 flex h-9 cursor-pointer items-center gap-1.5 rounded-[50px] border-gray-200 bg-white px-4 text-xs font-bold text-gray-600 shadow-sm transition-all hover:bg-slate-50 sm:h-10"
+            className="active:scale-98 flex h-10 cursor-pointer items-center gap-1.5 rounded-[50px] border-gray-200 bg-white px-4 text-xs font-bold text-gray-600 shadow-sm transition-all hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
             onClick={onBack}
             type="button"
             variant="outline"
@@ -376,11 +423,31 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
             <ChevronLeft size={16} />
             Back
           </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              className="h-10 w-32 rounded-[50px] border-border bg-card text-xs font-semibold text-foreground shadow-sm"
+              onChange={(e) => handleStatusChange(e.target.value)}
+              options={[
+                { label: 'Status', value: '' },
+                { label: 'Drop', value: 'Drop' },
+                { label: 'Accepted', value: 'Accepted' },
+              ]}
+              value={form.status === 'Accepted' ? 'Accepted' : ''}
+            />
+          </div>
+          <Button
+            className="active:scale-98 flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] px-6 text-xs font-bold text-white shadow-sm transition-all"
+            form="optom-details-form"
+            type="submit"
+            variant="gradient"
+          >
+            Save
+          </Button>
         </div>
       </div>
 
       <Card className="rounded-2xl border border-gray-200 bg-white p-4 shadow-lg dark:border-border dark:bg-card sm:p-6 md:p-8">
-        <form className="space-y-6 sm:space-y-8" onSubmit={handleUpdateDetails}>
+        <form className="space-y-6 sm:space-y-8" id="optom-details-form" onSubmit={handleUpdateDetails}>
           <div className="space-y-4">
             <div className="flex flex-col items-start justify-between gap-1 sm:flex-row sm:items-center sm:gap-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-gray-800 dark:text-foreground sm:text-sm">
@@ -487,7 +554,7 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
                       className="py-2.5 text-center text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-zinc-100"
                       colSpan={9}
                     >
-                      Store Login
+                      Objective prescription
                     </TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
@@ -553,18 +620,18 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
 
           <div className="space-y-4">
             <div className="shadow-xs overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-              <Table className="w-full min-w-[650px] border-collapse text-center text-xs">
+              <Table className="w-full min-w-[650px] table-fixed border-collapse text-center text-xs">
                 <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
                   <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
                     <TableHead
                       className="bg-slate-100 py-2.5 text-center text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:bg-zinc-800 dark:text-zinc-100"
                       colSpan={8}
                     >
-                      Optom Login
+                      Subjective/Final
                     </TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/50 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800/50">
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-bold text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
+                    <TableHead className="w-[70px] border-r border-slate-400 py-1 text-center text-sm font-bold text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
                     <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-bold text-blue-600 dark:border-zinc-700 dark:text-blue-400">
                       *
                     </TableHead>
@@ -582,7 +649,7 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
                     <TableHead className="py-1 text-center text-sm font-bold text-blue-600 dark:text-blue-400"></TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
-                    <TableHead className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-black uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
+                    <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-black uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
                       R X
                     </TableHead>
                     {optomHeaders.map((h) => (
@@ -601,7 +668,7 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
                       className={idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
                       key={eye}
                     >
-                      <TableCell className="animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-black text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                      <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-black text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                         {eye === 're' ? 'R E' : 'L E'}
                       </TableCell>
                       {optomFields.map((field, fIdx) => {
@@ -704,30 +771,6 @@ export function OptomPatientDetails({ onBack, selectedCustomer }: OptomPatientDe
                 <span>TeamViewer</span>
               </Button>
             </div>
-
-            <div className="flex w-full flex-col items-stretch justify-end gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:w-auto">
-              <div className="flex w-full items-center gap-2 sm:w-auto">
-                <label className="whitespace-nowrap text-xs font-bold text-gray-600 dark:text-muted-foreground">
-                  Status:
-                </label>
-                <Select
-                  className="h-10 flex-1 rounded-[50px]"
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  options={[
-                    { label: 'Created', value: 'Created' },
-                    { label: 'Accepted', value: 'Accepted' },
-                  ]}
-                  value={form.status}
-                />
-              </div>
-              <Button
-                className="active:scale-98 flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[50px] px-5 text-xs font-bold text-white shadow-sm transition-all sm:w-auto md:w-auto"
-                type="submit"
-                variant="gradient"
-              >
-                Update Customer Details
-              </Button>
-            </div>
           </div>
         </form>
       </Card>
@@ -810,7 +853,7 @@ function RxScrollPicker({ defaultValue = '0.00', onChange, options, value }: RxS
                 <span>Minus ( − )</span>
               </div>
               <ScrollArea className="h-56 w-full">
-                <div className="flex h-56 flex-col overflow-auto" ref={listRef}>
+                <div className="flex flex-col" ref={listRef}>
                   {options.map((opt) => (
                     <button
                       className={cn(

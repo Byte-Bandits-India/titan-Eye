@@ -252,7 +252,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                       className="border-b border-slate-400 py-2.5 text-center text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
                       colSpan={9}
                     >
-                      Store Login
+                      Objective prescription
                     </TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/50 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800/50">
@@ -364,18 +364,18 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
 
           <div className="space-y-4">
             <div className="shadow-xs overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-              <Table className="w-full min-w-[550px] border-collapse text-center text-xs">
+              <Table className="w-full min-w-[550px] table-fixed border-collapse text-center text-xs">
                 <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
                   <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
                     <TableHead
                       className="border-b border-slate-400 py-2.5 text-center text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
                       colSpan={8}
                     >
-                      Optom Login
+                      Subjective/Final
                     </TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
-                    <TableHead className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-black uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
+                    <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-black uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
                       R X
                     </TableHead>
                     {optomHeaders.map((h) => (
@@ -394,7 +394,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                       className={idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
                       key={eye}
                     >
-                      <TableCell className="animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-black text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                      <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-black text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                         {eye === 're' ? 'R E' : 'L E'}
                       </TableCell>
                       {optomFields.map((field, fIdx) => (
