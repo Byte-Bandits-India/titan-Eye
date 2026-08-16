@@ -6,7 +6,7 @@ import { PaginationBar } from '../../../components/shared/PaginationBar';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import { cn } from '../../../lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { exportSingleCustomerReport } from '../../../utils/excelExport';
 import { renderCallDuration, renderTimeStarted } from './cells';
 
@@ -42,120 +42,93 @@ export function CustomerDirectoryBody({
   return (
     <>
       {/* Status Filter Tabs */}
-      <div className="bg-muted/40 flex items-center gap-1.5 overflow-x-auto border-b border-border px-4 py-2 [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button
-          className={cn(
-            'flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all',
-            customerStatusTab === 'all'
-              ? 'border border-border bg-card text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          onClick={() => onStatusTabChange('all')}
-          type="button"
-        >
-          <span>All</span>
-          <span className="py-0.2 rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
-            {tabCounts.all}
-          </span>
-        </button>
-        <button
-          className={cn(
-            'flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all',
-            customerStatusTab === 'Pending'
-              ? 'border border-slate-300 bg-slate-100 text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          onClick={() => onStatusTabChange('Pending')}
-          type="button"
-        >
-          <span>Pending</span>
-          <span className="py-0.2 rounded-full bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
-            {tabCounts.pending}
-          </span>
-        </button>
-        <button
-          className={cn(
-            'flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all',
-            customerStatusTab === 'InProgress'
-              ? 'border border-indigo-200 bg-indigo-50 text-indigo-700 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          onClick={() => onStatusTabChange('InProgress')}
-          type="button"
-        >
-          <span>In Progress</span>
-          <span className="py-0.2 rounded-full bg-indigo-100 px-1.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300">
-            {tabCounts.inProgress}
-          </span>
-        </button>
-        <button
-          className={cn(
-            'flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all',
-            customerStatusTab === 'Completed'
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-          onClick={() => onStatusTabChange('Completed')}
-          type="button"
-        >
-          <span>Completed</span>
-          <span className="py-0.2 rounded-full bg-emerald-100 px-1.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
-            {tabCounts.completed}
-          </span>
-        </button>
-      </div>
+      <Tabs
+        className="px-4 pb-3 pt-3"
+        onValueChange={(v) => onStatusTabChange(v as CustomerStatusTab)}
+        value={customerStatusTab}
+      >
+        <TabsList variant="line">
+          <TabsTrigger
+            className="flex-none gap-2 text-muted-foreground underline-offset-4 data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:underline"
+            value="Pending"
+          >
+            Queue
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {tabCounts.pending}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            className="flex-none gap-2 text-muted-foreground underline-offset-4 data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:underline"
+            value="InProgress"
+          >
+            Testing
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {tabCounts.inProgress}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            className="flex-none gap-2 text-muted-foreground underline-offset-4 data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:underline"
+            value="all"
+          >
+            All
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {tabCounts.all}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-      <div className="w-full flex-1 overflow-x-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="w-full min-h-0 flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
               {visibleColumns.includes('id') && (
-                <TableHead className="w-[80px] whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="w-[80px] whitespace-nowrap text-sm font-medium text-muted-foreground">
                   ID
                 </TableHead>
               )}
               {visibleColumns.includes('name') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-                  Patient Name
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Name
                 </TableHead>
               )}
               {visibleColumns.includes('storeName') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-                  Store Name
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Store Code
                 </TableHead>
               )}
               {visibleColumns.includes('timeStarted') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Time Started
                 </TableHead>
               )}
               {visibleColumns.includes('callDuration') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Call Duration
                 </TableHead>
               )}
               {visibleColumns.includes('ageGender') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Age / Gender
                 </TableHead>
               )}
               {visibleColumns.includes('mobile') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Mobile
                 </TableHead>
               )}
               {visibleColumns.includes('status') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Status
                 </TableHead>
               )}
               {visibleColumns.includes('lastUpdated') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Last Updated
                 </TableHead>
               )}
               {visibleColumns.includes('report') && (
-                <TableHead className="whitespace-nowrap text-center text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-center text-sm font-medium text-muted-foreground">
                   Report
                 </TableHead>
               )}
@@ -172,12 +145,12 @@ export function CustomerDirectoryBody({
               paginatedCustomers.map((cust) => (
                 <TableRow key={cust.id}>
                   {visibleColumns.includes('id') && (
-                    <TableCell className="whitespace-nowrap py-3 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    <TableCell className="whitespace-nowrap py-3 text-xs font-normal text-blue-600 dark:text-blue-400">
                       {cust.id}
                     </TableCell>
                   )}
                   {visibleColumns.includes('name') && (
-                    <TableCell className="whitespace-nowrap py-3 text-xs font-semibold text-foreground">
+                    <TableCell className="whitespace-nowrap py-3 text-xs font-normal text-foreground">
                       {cust.name}
                     </TableCell>
                   )}
@@ -219,7 +192,7 @@ export function CustomerDirectoryBody({
                   {visibleColumns.includes('report') && (
                     <TableCell className="whitespace-nowrap py-3 text-center">
                       <Button
-                        className="h-7 cursor-pointer gap-1 rounded-[50px] border-blue-200 bg-blue-50 px-2.5 text-[11px] font-bold text-blue-700 transition-all hover:bg-blue-100 active:scale-95 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                        className="h-7 cursor-pointer gap-1 rounded-[50px] border-blue-200 bg-blue-50 px-2.5 text-[11px] font-medium text-blue-700 transition-all hover:bg-blue-100 active:scale-95 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
                         onClick={() => exportSingleCustomerReport(cust)}
                         size="sm"
                         title={`Download ${cust.name} Excel Report`}

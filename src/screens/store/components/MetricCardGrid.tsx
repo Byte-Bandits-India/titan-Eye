@@ -13,7 +13,7 @@ export function MetricCardGrid({ tabCounts }: MetricCardGridProps) {
     {
       icon: Clock,
       iconGradient: 'from-[#EF427F] to-[#892649]',
-      label: 'Customer Queue',
+      label: 'Created',
       value: tabCounts.pending,
     },
     {
@@ -31,7 +31,7 @@ export function MetricCardGrid({ tabCounts }: MetricCardGridProps) {
     {
       icon: Users2,
       iconGradient: 'from-green-500 to-green-800',
-      label: 'Total customers',
+      label: 'Total',
       value: tabCounts.all,
     },
   ] as const;

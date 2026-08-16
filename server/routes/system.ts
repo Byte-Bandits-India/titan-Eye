@@ -44,8 +44,8 @@ function requireLoopback(req: AuthenticatedRequest, res: Response, next: NextFun
 }
 
 router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user || req.user.role !== 'optom') {
-    return res.status(403).json({ error: 'Only optom accounts can launch remote tools' });
+  if (!req.user || req.user.role !== 'optometrist') {
+    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
   }
 
   getScreenSize((sw, sh) => {
@@ -76,8 +76,8 @@ router.post('/open-teams', requireLoopback, async (req: AuthenticatedRequest, re
 });
 
 router.post('/open-teamviewer', requireLoopback, async (req: AuthenticatedRequest, res: Response) => {
-  if (!req.user || req.user.role !== 'optom') {
-    return res.status(403).json({ error: 'Only optom accounts can launch remote tools' });
+  if (!req.user || req.user.role !== 'optometrist') {
+    return res.status(403).json({ error: 'Only optometrist accounts can launch remote tools' });
   }
 
   getScreenSize((sw, sh) => {
@@ -250,7 +250,7 @@ router.get('/me/photo', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Fetch another registered app user's photo (e.g. an optom's avatar shown to
+// Fetch another registered app user's photo (e.g. an optometrist's avatar shown to
 // store staff). Scoped to emails that already exist in our own users table —
 // never accepts an arbitrary Entra ID, so it can't be used to probe the tenant.
 router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Response) => {

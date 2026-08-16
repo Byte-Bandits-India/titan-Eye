@@ -12,9 +12,9 @@ export interface ApiCustomer {
   lastUpdatedOn: null | string;
   mobile: string;
   name: string;
-  optomCallStartTime: null | string;
-  optomFeedback: string;
-  optomRxData: CustomerOptomRxData | undefined;
+  optometristCallStartTime: null | string;
+  optometristFeedback: string;
+  optometristRxData: CustomerOptometristRxData | undefined;
   patientFeedback: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
@@ -47,9 +47,9 @@ export interface CustomerInput {
   lastUpdatedOn?: string;
   mobile?: string;
   name?: string;
-  optomCallStartTime?: null | string;
-  optomFeedback?: string;
-  optomRxData?: CustomerOptomRxData | null;
+  optometristCallStartTime?: null | string;
+  optometristFeedback?: string;
+  optometristRxData?: CustomerOptometristRxData | null;
   preferredLanguage?: string;
   preferredLanguage2?: string;
   rxData?: CustomerRxData | null;
@@ -58,9 +58,9 @@ export interface CustomerInput {
   storeName?: string;
 }
 
-export interface CustomerOptomRxData {
-  le: OptomRxValues;
-  re: OptomRxValues;
+export interface CustomerOptometristRxData {
+  le: OptometristRxValues;
+  re: OptometristRxValues;
 }
 
 export interface CustomerRxData {
@@ -76,9 +76,12 @@ export interface ErrorResponse {
 }
 
 export interface ManagedUserResponse {
+  city: null | string;
   email: string;
   isLoggedIn?: boolean;
+  languages: null | string[];
   lastLogin: null | string;
+  location: null | string;
   mobile: null | string;
   name: string;
   role: string;
@@ -86,7 +89,7 @@ export interface ManagedUserResponse {
   storeName: null | string;
 }
 
-export interface OptomRxValues {
+export interface OptometristRxValues {
   add: string;
   axis: string;
   base: string;
@@ -118,9 +121,9 @@ export interface SanitizedCustomer {
   lastUpdatedOn: string;
   mobile: string;
   name: string;
-  optomCallStartTime?: null | string;
-  optomFeedback: string;
-  optomRxData: CustomerOptomRxData | null;
+  optometristCallStartTime?: null | string;
+  optometristFeedback: string;
+  optometristRxData: CustomerOptometristRxData | null;
   preferredLanguage: string;
   preferredLanguage2: string;
   rxData: CustomerRxData | null;

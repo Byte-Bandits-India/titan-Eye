@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { RefObject } from 'react';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useCountUp } from 'react-countup';
 
 import { cn } from '../../lib/utils';
@@ -10,10 +10,19 @@ export type MetricCardConfig = {
   icon: LucideIcon;
   iconGradient: string;
   label: string;
+  unitPlural?: string;
+  unitSingular?: string;
   value: number;
 };
 
-export function MetricCard({ icon: Icon, iconGradient, label, value }: MetricCardConfig) {
+export function MetricCard({
+  icon: Icon,
+  iconGradient,
+  label,
+  unitPlural = 'Customers',
+  unitSingular = 'Customer',
+  value,
+}: MetricCardConfig) {
   return (
     <div className="overflow-hidden rounded-md border border-[#c2c2c2] bg-card shadow-sm">
       <div className="flex items-center gap-2.5 border-b border-[#e5e5e5] bg-[#F7F7F7] px-4 py-2.5">
@@ -25,13 +34,13 @@ export function MetricCard({ icon: Icon, iconGradient, label, value }: MetricCar
         >
           <Icon size={13} />
         </div>
-        <span className="truncate text-sm font-bold text-black">{label}</span>
+        <span className="truncate text-sm font-medium text-black">{label}</span>
       </div>
 
       <div className="flex items-baseline gap-2 px-8 py-5">
-        <MetricCountUp className="text-[42px] font-bold leading-none text-foreground" value={value} />
+        <MetricCountUp className="text-[42px] font-medium leading-none text-foreground" value={value} />
         <span className="text-sm font-normal text-muted-foreground">
-          {value === 1 ? 'Customer' : 'Customers'}
+          {value === 1 ? unitSingular : unitPlural}
         </span>
       </div>
     </div>
@@ -40,7 +49,11 @@ export function MetricCard({ icon: Icon, iconGradient, label, value }: MetricCar
 
 function MetricCountUp({ className, value }: { className?: string; value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  useCountUp({ duration: 1, end: value, ref: ref as RefObject<HTMLElement> });
+  const { update } = useCountUp({ duration: 1, end: value, ref: ref as RefObject<HTMLElement> });
+
+  useEffect(() => {
+    update(value);
+  }, [update, value]);
 
   return <span className={className} ref={ref} />;
 }

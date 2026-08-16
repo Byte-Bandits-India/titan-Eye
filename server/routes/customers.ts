@@ -12,14 +12,14 @@ import { validateCustomerData } from '../utils/validation.js';
 
 const router = Router();
 
-async function findNextAvailableOptom(
+async function findNextAvailableOptometrist(
   excludeEmails: string[]
 ): Promise<null | { email: string; name: string }> {
   // activeTokenSig is only cleared on explicit logout, not on token expiry, so also
   // require lastLogin to be within the token's lifetime to exclude stale sessions.
   const sessionCutoff = new Date(Date.now() - SESSION_IDLE_MS).toISOString();
-  const optomUsers = await all<{ email: string; name: string }>(
-    `SELECT email, name FROM users WHERE role = 'optom' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastLogin >= ? ORDER BY name ASC`,
+  const optometristUsers = await all<{ email: string; name: string }>(
+    `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastLogin >= ? ORDER BY name ASC`,
     [sessionCutoff]
   );
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
@@ -28,21 +28,42 @@ async function findNextAvailableOptom(
   );
   const busyLower = new Set(busyRows.map((r) => (r.callTakenBy || '').toLowerCase()));
 
-  for (const optom of optomUsers) {
-    if (excludeLower.includes(optom.email.toLowerCase())) {
-      continue;
-    }
-
-    if (busyLower.has(optom.email.toLowerCase()) || busyLower.has(optom.name.toLowerCase())) {
-      continue;
-    }
-
-    return optom;
+  // Route to whoever has completed the fewest calls so far, so load balances
+  // across optometrists instead of always favoring the alphabetically-first one.
+  const callCountRows = await all<{ callCount: number; callTakenBy: null | string }>(
+    `SELECT callTakenBy, COUNT(*) as callCount FROM customers WHERE status = 'Completed' AND callTakenBy IS NOT NULL GROUP BY callTakenBy`
+  );
+  const callCountByName = new Map<string, number>();
+  for (const row of callCountRows) {
+    callCountByName.set((row.callTakenBy || '').toLowerCase(), row.callCount);
   }
 
-  logger.info('findNextAvailableOptom found nobody', {
+  const sortedOptometrists = [...optometristUsers].sort((a, b) => {
+    const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
+    const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
+
+    if (aCount !== bCount) {
+      return aCount - bCount;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+
+  for (const optometrist of sortedOptometrists) {
+    if (excludeLower.includes(optometrist.email.toLowerCase())) {
+      continue;
+    }
+
+    if (busyLower.has(optometrist.email.toLowerCase()) || busyLower.has(optometrist.name.toLowerCase())) {
+      continue;
+    }
+
+    return optometrist;
+  }
+
+  logger.info('findNextAvailableOptometrist found nobody', {
     busyNames: Array.from(busyLower),
-    candidateEmails: optomUsers.map((o) => o.email),
+    candidateEmails: optometristUsers.map((o) => o.email),
     excludeEmails: excludeLower,
   });
 
@@ -50,10 +71,10 @@ async function findNextAvailableOptom(
 }
 
 /**
- * Advances a pending offer to the next available Optom (excluding everyone
+ * Advances a pending offer to the next available Optometrist (excluding everyone
  * already offered/declined so far), or releases the customer back to the
  * general queue when nobody is left to try. Shared by the manual "Ignore"
- * route and the automatic per-Optom response timeout below, so both paths
+ * route and the automatic per-Optometrist response timeout below, so both paths
  * exhaust the same rotation instead of drifting apart.
  */
 async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise<CustomerRow | null> {
@@ -67,27 +88,27 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
     year: 'numeric',
   });
 
-  const declinedList = (customer.declinedByOptomEmails || '')
+  const declinedList = (customer.declinedByOptometristEmails || '')
     .split(',')
     .map((e) => e.trim())
     .filter(Boolean);
 
-  if (customer.offeredToOptomEmail && !declinedList.includes(customer.offeredToOptomEmail)) {
-    declinedList.push(customer.offeredToOptomEmail);
+  if (customer.offeredToOptometristEmail && !declinedList.includes(customer.offeredToOptometristEmail)) {
+    declinedList.push(customer.offeredToOptometristEmail);
   }
 
-  const nextOptom = await findNextAvailableOptom(declinedList);
+  const nextOptometrist = await findNextAvailableOptometrist(declinedList);
 
-  if (nextOptom) {
+  if (nextOptometrist) {
     await run(
       `
       UPDATE customers SET
-        offeredToOptomEmail = ?,
-        declinedByOptomEmails = ?,
+        offeredToOptometristEmail = ?,
+        declinedByOptometristEmails = ?,
         lastUpdatedOn = ?
       WHERE id = ?
     `,
-      [nextOptom.email, declinedList.join(','), timestamp, id]
+      [nextOptometrist.email, declinedList.join(','), timestamp, id]
     );
   } else {
     await run(
@@ -96,15 +117,15 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
         status = 'Created',
         callActive = 0,
         callTakenBy = NULL,
-        offeredToOptomEmail = NULL,
-        declinedByOptomEmails = NULL,
+        offeredToOptometristEmail = NULL,
+        declinedByOptometristEmails = NULL,
         lastUpdatedOn = ?
       WHERE id = ?
     `,
       [timestamp, id]
     );
 
-    broadcastEvent('OPTOM_NO_RESPONSE', {
+    broadcastEvent('OPTOMETRIST_NO_RESPONSE', {
       customerId: id,
       customerName: customer.name,
       storeName: customer.storeName,
@@ -119,11 +140,61 @@ export function toApiCustomer(row: CustomerRow) {
     ...row,
     activeProfile: row.activeProfile === 1,
     callActive: row.callActive === 1,
-    optomCallStartTime: row.optomCallStartTime || null,
-    optomFeedback: row.optomFeedback || '',
-    optomRxData: row.optomRxData ? JSON.parse(row.optomRxData) : undefined,
+    isPriority: row.isPriority === 1,
+    optometristCallStartTime: row.optometristCallStartTime || null,
+    optometristFeedback: row.optometristFeedback || '',
+    optometristRxData: row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined,
     rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
   };
+}
+
+function parseTimestampValue(val: null | string | undefined): number {
+  if (!val) {
+    return 0;
+  }
+
+  const num = parseInt(val, 10);
+
+  if (!isNaN(num) && String(num).length >= 10) {
+    return num;
+  }
+
+  const dateMs = new Date(val).getTime();
+
+  return isNaN(dateMs) ? 0 : dateMs;
+}
+
+/**
+ * Ranks every customer, system-wide, that has actually had an Optometrist request
+ * raised for it — either still 'Initiated', or fallen back to the open 'Created'
+ * queue after every Optometrist declined. A brand-new 'Created' customer that the
+ * store hasn't requested yet (no callStartTime) has no queue position at all.
+ * Customers dropped mid-testing (isPriority) rank first, ordered by drop time;
+ * everyone else follows in the order they were originally requested.
+ */
+async function computeQueuePositions(): Promise<Map<string, number>> {
+  const rows = await all<Pick<CustomerRow, 'callStartTime' | 'createdOn' | 'id' | 'isPriority' | 'lastUpdatedOn'>>(
+    `SELECT id, createdOn, callStartTime, lastUpdatedOn, isPriority FROM customers
+     WHERE status = 'Initiated' OR (status = 'Created' AND callStartTime IS NOT NULL AND callStartTime != '')`
+  );
+
+  const priorityRows = rows
+    .filter((r) => r.isPriority === 1)
+    .sort((a, b) => parseTimestampValue(a.lastUpdatedOn) - parseTimestampValue(b.lastUpdatedOn));
+
+  const normalRows = rows
+    .filter((r) => r.isPriority !== 1)
+    .sort(
+      (a, b) =>
+        parseTimestampValue(a.callStartTime || a.createdOn || a.lastUpdatedOn) -
+        parseTimestampValue(b.callStartTime || b.createdOn || b.lastUpdatedOn)
+    );
+
+  const positions = new Map<string, number>();
+
+  [...priorityRows, ...normalRows].forEach((r, idx) => positions.set(r.id, idx + 1));
+
+  return positions;
 }
 
 async function verifyCustomerAccess(
@@ -133,10 +204,10 @@ async function verifyCustomerAccess(
 ): Promise<CustomerRow | null> {
   const customer = await get<CustomerRow>(
     `SELECT id, name, age, gender, mobile, customerType, storeName,
-            preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback,
-            status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData,
-            callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optomCallStartTime,
-            offeredToOptomEmail, declinedByOptomEmails, patientFeedback
+            preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
+            status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
+            callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime,
+            offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority
      FROM customers WHERE id = ?`,
     [customerId]
   );
@@ -179,27 +250,27 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
       timestamp: string;
     }>('SELECT * FROM admin_logs ORDER BY id ASC');
 
-    const optomUsersList = await all<{ email: string; name: string }>(
+    const optometristUsersList = await all<{ email: string; name: string }>(
       'SELECT email, name FROM users WHERE role = ?',
-      ['optom']
+      ['optometrist']
     );
     const adminUsersList = await all<{ email: string; name: string }>(
       'SELECT email, name FROM users WHERE role = ?',
       ['admin']
     );
 
-    const isOptomActor = (takenBy?: null | string) => {
+    const isOptometristActor = (takenBy?: null | string) => {
       if (!takenBy) {
         return false;
       }
 
       const lower = takenBy.toLowerCase();
 
-      if (lower.startsWith('dr.') || lower.includes('optom')) {
+      if (lower.startsWith('dr.') || lower.includes('optometrist')) {
         return true;
       }
 
-      return optomUsersList.some((u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower);
+      return optometristUsersList.some((u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower);
     };
 
     const isAdminActor = (takenBy?: null | string) => {
@@ -216,20 +287,20 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
       return adminUsersList.some((u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower);
     };
 
-    let optomIdx = 0;
+    let optometristIdx = 0;
     let storeIdx = 0;
     let adminIdx = 0;
 
     const formattedCustomerLogs = customerLogs.map((l) => {
-      const isOptom =
-        isOptomActor(l.callTakenBy) ||
-        Boolean(l.optomCallStartTime) ||
+      const isOptometrist =
+        isOptometristActor(l.callTakenBy) ||
+        Boolean(l.optometristCallStartTime) ||
         l.status === 'Accepted' ||
         l.status === 'Completed';
 
-      const isAdmin = !isOptom && isAdminActor(l.callTakenBy);
+      const isAdmin = !isOptometrist && isAdminActor(l.callTakenBy);
 
-      let role: 'admin' | 'optom' | 'store' = 'store';
+      let role: 'admin' | 'optometrist' | 'store' = 'store';
       let prefix = 'STR';
       let numStr = '';
 
@@ -238,11 +309,11 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
         role = 'admin';
         prefix = 'ADM';
         numStr = String(adminIdx).padStart(3, '0');
-      } else if (isOptom) {
-        optomIdx += 1;
-        role = 'optom';
+      } else if (isOptometrist) {
+        optometristIdx += 1;
+        role = 'optometrist';
         prefix = 'OPT';
-        numStr = String(optomIdx).padStart(3, '0');
+        numStr = String(optometristIdx).padStart(3, '0');
       } else {
         storeIdx += 1;
         role = 'store';
@@ -253,12 +324,12 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
       return {
         callDuration: l.callDuration,
         callStartTime: l.callStartTime,
-        callTakenBy: l.callTakenBy || (isOptom ? 'Optom Doctor' : 'Store Staff'),
+        callTakenBy: l.callTakenBy || (isOptometrist ? 'Optometrist Doctor' : 'Store Staff'),
         customerId: l.customerId,
         customerName: l.customerName || 'N/A',
         id: `${prefix}-${numStr}`,
         lastUpdatedOn: l.lastUpdatedOn,
-        optomCallStartTime: l.optomCallStartTime,
+        optometristCallStartTime: l.optometristCallStartTime,
         role,
         status: l.status,
         storeName: l.storeName || 'Store / Clinic',
@@ -314,7 +385,11 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
     query += ' ORDER BY lastUpdatedOn DESC';
     const rows = await all<CustomerRow>(query, params);
-    const customers = rows.map(toApiCustomer);
+    const queuePositions = await computeQueuePositions();
+    const customers = rows.map((row) => ({
+      ...toApiCustomer(row),
+      queuePosition: queuePositions.get(row.id) ?? null,
+    }));
 
     logSecurityEvent('CUSTOMER_LIST_VIEWED', {
       requestId: req.requestId,
@@ -368,15 +443,15 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       finalId = `#${String(nextNum).padStart(4, '0')}`;
     }
 
-    const optomFeedbackVal = sanitized.optomFeedback ?? '';
-    const optomRxVal = sanitized.optomRxData ?? null;
+    const optometristFeedbackVal = sanitized.optometristFeedback ?? '';
+    const optometristRxVal = sanitized.optometristRxData ?? null;
 
     await run(
       `
       INSERT INTO customers (
         id, name, age, gender, mobile, customerType, storeName,
-        preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback,
-        status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData,
+        preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
+        status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
         callStartTime, callActive, callTakenBy, callDuration
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
@@ -391,13 +466,13 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
         sanitized.preferredLanguage!,
         sanitized.preferredLanguage2 ?? '',
         sanitized.storeFeedback ?? '',
-        optomFeedbackVal,
+        optometristFeedbackVal,
         sanitized.status!,
         sanitized.activeProfile ? 1 : 0,
         new Date().toISOString(),
         sanitized.lastUpdatedOn ?? '',
         sanitized.rxData ? JSON.stringify(sanitized.rxData) : null,
-        optomRxVal ? JSON.stringify(optomRxVal) : null,
+        optometristRxVal ? JSON.stringify(optometristRxVal) : null,
         sanitized.callStartTime ?? null,
         sanitized.callActive ? 1 : 0,
         sanitized.callTakenBy ?? null,
@@ -430,9 +505,9 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     const existing = await get<CustomerRow>(
       `SELECT id, name, age, gender, mobile, customerType, storeName,
-              preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback,
-              status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData,
-              callStartTime, callActive, callTakenBy, callDuration, optomCallStartTime
+              preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
+              status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
+              callStartTime, callActive, callTakenBy, callDuration, optometristCallStartTime
        FROM customers WHERE id = ?`,
       [id]
     );
@@ -441,20 +516,20 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(404).json({ error: 'Customer not found' });
     }
 
-    const existingOptomRx = existing.optomRxData;
-    const existingOptomFeedback = existing.optomFeedback || '';
+    const existingOptometristRx = existing.optometristRxData;
+    const existingOptometristFeedback = existing.optometristFeedback || '';
 
     if (req.user && req.user.role === 'store') {
       if (existing.storeName !== req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
 
-      c.optomRxData = existingOptomRx ? JSON.parse(existingOptomRx) : null;
-      c.optomFeedback = existingOptomFeedback;
+      c.optometristRxData = existingOptometristRx ? JSON.parse(existingOptometristRx) : null;
+      c.optometristFeedback = existingOptometristFeedback;
       c.storeName = req.user.storeName ?? undefined;
     }
 
-    if (req.user?.role === 'optom') {
+    if (req.user?.role === 'optometrist') {
       c.name = existing.name;
       c.age = existing.age;
       c.gender = existing.gender;
@@ -470,12 +545,12 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.rxData = existing.rxData ? JSON.parse(existing.rxData) : null;
     }
 
-    if (c.optomRxData === undefined) {
-      c.optomRxData = existingOptomRx ? JSON.parse(existingOptomRx) : null;
+    if (c.optometristRxData === undefined) {
+      c.optometristRxData = existingOptometristRx ? JSON.parse(existingOptometristRx) : null;
     }
 
-    if (c.optomFeedback === undefined) {
-      c.optomFeedback = existingOptomFeedback;
+    if (c.optometristFeedback === undefined) {
+      c.optometristFeedback = existingOptometristFeedback;
     }
 
     if (c.storeFeedback === undefined) {
@@ -494,8 +569,8 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.callTakenBy = existing.callTakenBy;
     }
 
-    if (c.optomCallStartTime === undefined) {
-      c.optomCallStartTime = existing.optomCallStartTime;
+    if (c.optometristCallStartTime === undefined) {
+      c.optometristCallStartTime = existing.optometristCallStartTime;
     }
 
     const validation = validateCustomerData(c, true);
@@ -506,17 +581,17 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     const sanitized = validation.sanitized;
 
-    const optomFeedbackVal = sanitized.optomFeedback ?? '';
-    const optomRxVal = sanitized.optomRxData ?? null;
-    const optomCallStartVal = c.optomCallStartTime ?? null;
+    const optometristFeedbackVal = sanitized.optometristFeedback ?? '';
+    const optometristRxVal = sanitized.optometristRxData ?? null;
+    const optometristCallStartVal = c.optometristCallStartTime ?? null;
 
     await run(
       `
       UPDATE customers SET
         name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
-        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optomFeedback = ?,
-        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optomRxData = ?,
-        callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?, optomCallStartTime = ?
+        preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optometristFeedback = ?,
+        status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optometristRxData = ?,
+        callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?, optometristCallStartTime = ?
       WHERE id = ?
     `,
       [
@@ -529,17 +604,17 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
         sanitized.preferredLanguage!,
         sanitized.preferredLanguage2 ?? '',
         sanitized.storeFeedback ?? '',
-        optomFeedbackVal,
+        optometristFeedbackVal,
         sanitized.status!,
         sanitized.activeProfile ? 1 : 0,
         sanitized.lastUpdatedOn ?? '',
         sanitized.rxData ? JSON.stringify(sanitized.rxData) : null,
-        optomRxVal ? JSON.stringify(optomRxVal) : null,
+        optometristRxVal ? JSON.stringify(optometristRxVal) : null,
         sanitized.callStartTime ?? null,
         sanitized.callActive ? 1 : 0,
         sanitized.callTakenBy ?? null,
         sanitized.callDuration ?? 0,
-        optomCallStartVal,
+        optometristCallStartVal,
         id,
       ]
     );
@@ -580,7 +655,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       if (otherActiveCustomer) {
         return res.status(409).json({
           error:
-            'Your store already has a pending Optom request for another customer. Please wait for it to be resolved before requesting another.',
+            'Your store already has a pending Optometrist request for another customer. Please wait for it to be resolved before requesting another.',
         });
       }
     }
@@ -601,12 +676,12 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
         }
       }
 
-      const isOptomRequester = requesterRole === 'optom';
+      const isOptometristRequester = requesterRole === 'optometrist';
 
       // The store cannot manually retry while a request is still in rotation -
-      // the background timeout below cycles through Optoms automatically and
+      // the background timeout below cycles through Optometrists automatically and
       // only releases the customer back to 'Created' once everyone has been tried.
-      if (!(isStoreHolder && isOptomRequester)) {
+      if (!(isStoreHolder && isOptometristRequester)) {
         return res
           .status(409)
           .json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
@@ -634,16 +709,16 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       );
       storeContactEmail = callerAccount?.microsoftUpn || callerAccount?.email || req.user!.email;
 
-      const targetOptom = await findNextAvailableOptom([]);
+      const targetOptometrist = await findNextAvailableOptometrist([]);
 
-      if (!targetOptom) {
-        broadcastEvent('NO_OPTOM_AVAILABLE', {
+      if (!targetOptometrist) {
+        broadcastEvent('NO_OPTOMETRIST_AVAILABLE', {
           customerId: id,
           customerName: customer.name,
           storeName: customer.storeName,
         });
 
-        return res.status(409).json({ error: 'No Optom doctors are currently available to take this call.' });
+        return res.status(409).json({ error: 'No Optometrist doctors are currently available to take this call.' });
       }
 
       await run(
@@ -651,28 +726,28 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
         UPDATE customers SET
           callActive = 1,
           callStartTime = ?,
-          optomCallStartTime = NULL,
+          optometristCallStartTime = NULL,
           callDuration = 0,
           callTakenBy = ?,
           storeContactEmail = ?,
           status = 'Initiated',
-          offeredToOptomEmail = ?,
-          declinedByOptomEmails = NULL,
+          offeredToOptometristEmail = ?,
+          declinedByOptometristEmails = NULL,
           lastUpdatedOn = ?
         WHERE id = ?
       `,
-        [nowMs, callerName, storeContactEmail, targetOptom.email, timestamp, id]
+        [nowMs, callerName, storeContactEmail, targetOptometrist.email, timestamp, id]
       );
     } else {
       await run(
         `
         UPDATE customers SET
           callActive = 1,
-          optomCallStartTime = ?,
+          optometristCallStartTime = ?,
           callTakenBy = ?,
           status = 'Accepted',
-          offeredToOptomEmail = NULL,
-          declinedByOptomEmails = NULL,
+          offeredToOptometristEmail = NULL,
+          declinedByOptometristEmails = NULL,
           lastUpdatedOn = ?
         WHERE id = ?
       `,
@@ -701,8 +776,8 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
 
 router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (req.user!.role !== 'optom') {
-      return res.status(403).json({ error: 'Only Optom users can reject a call offer.' });
+    if (req.user!.role !== 'optometrist') {
+      return res.status(403).json({ error: 'Only Optometrist users can reject a call offer.' });
     }
 
     const id = String(req.params.id);
@@ -714,7 +789,7 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
 
     if (
       customer.status !== 'Initiated' ||
-      (customer.offeredToOptomEmail || '').toLowerCase() !== req.user!.email.toLowerCase()
+      (customer.offeredToOptometristEmail || '').toLowerCase() !== req.user!.email.toLowerCase()
     ) {
       return res.status(409).json({ error: 'This call is not currently offered to you.' });
     }
@@ -740,8 +815,8 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
 
 router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (req.user!.role !== 'optom') {
-      return res.status(403).json({ error: 'Only Optom users can drop a call.' });
+    if (req.user!.role !== 'optometrist') {
+      return res.status(403).json({ error: 'Only Optometrist users can drop a call.' });
     }
 
     const id = String(req.params.id);
@@ -749,6 +824,14 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
 
     if (!customer) {
       return;
+    }
+
+    const takenByLower = (customer.callTakenBy || '').toLowerCase();
+    const isCurrentHolder =
+      takenByLower === req.user!.name.toLowerCase() || takenByLower === req.user!.email.toLowerCase();
+
+    if (customer.status !== 'Accepted' || !isCurrentHolder) {
+      return res.status(409).json({ error: 'This call is not currently active with you.' });
     }
 
     const timestamp = new Date().toLocaleString('en-US', {
@@ -761,38 +844,40 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
       year: 'numeric',
     });
 
-    const declinedList = (customer.declinedByOptomEmails || '')
+    const declinedList = (customer.declinedByOptometristEmails || '')
       .split(',')
       .map((e) => e.trim())
       .filter(Boolean);
 
-    // Add current optom to declined list
+    // Add current optometrist to declined list
     const currentEmail = req.user!.email;
     if (!declinedList.some((e) => e.toLowerCase() === currentEmail.toLowerCase())) {
       declinedList.push(currentEmail);
     }
     if (
-      customer.offeredToOptomEmail &&
-      !declinedList.some((e) => e.toLowerCase() === customer.offeredToOptomEmail?.toLowerCase())
+      customer.offeredToOptometristEmail &&
+      !declinedList.some((e) => e.toLowerCase() === customer.offeredToOptometristEmail?.toLowerCase())
     ) {
-      declinedList.push(customer.offeredToOptomEmail);
+      declinedList.push(customer.offeredToOptometristEmail);
     }
 
-    const nextOptom = await findNextAvailableOptom(declinedList);
+    const nextOptometrist = await findNextAvailableOptometrist(declinedList);
 
-    if (nextOptom) {
+    if (nextOptometrist) {
       await run(
         `
         UPDATE customers SET
           status = 'Initiated',
           callActive = 0,
           callTakenBy = NULL,
-          offeredToOptomEmail = ?,
-          declinedByOptomEmails = ?,
-          lastUpdatedOn = ?
+          optometristCallStartTime = NULL,
+          offeredToOptometristEmail = ?,
+          declinedByOptometristEmails = ?,
+          lastUpdatedOn = ?,
+          isPriority = 1
         WHERE id = ?
       `,
-        [nextOptom.email, declinedList.join(','), timestamp, id]
+        [nextOptometrist.email, declinedList.join(','), timestamp, id]
       );
     } else {
       await run(
@@ -801,15 +886,17 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
           status = 'Created',
           callActive = 0,
           callTakenBy = NULL,
-          offeredToOptomEmail = NULL,
-          declinedByOptomEmails = NULL,
-          lastUpdatedOn = ?
+          optometristCallStartTime = NULL,
+          offeredToOptometristEmail = NULL,
+          declinedByOptometristEmails = NULL,
+          lastUpdatedOn = ?,
+          isPriority = 1
         WHERE id = ?
       `,
         [timestamp, id]
       );
 
-      broadcastEvent('OPTOM_NO_RESPONSE', {
+      broadcastEvent('OPTOMETRIST_NO_RESPONSE', {
         customerId: id,
         customerName: customer.name,
         storeName: customer.storeName,
@@ -860,8 +947,8 @@ router.post('/:id/cancel-call', async (req: AuthenticatedRequest, res: Response)
         status = 'Closed',
         callActive = 0,
         callTakenBy = NULL,
-        offeredToOptomEmail = NULL,
-        declinedByOptomEmails = NULL,
+        offeredToOptometristEmail = NULL,
+        declinedByOptometristEmails = NULL,
         lastUpdatedOn = ?
       WHERE id = ?
     `,
@@ -906,7 +993,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
     });
 
     let durationSec = customer.callDuration || 0;
-    const startMsSource = customer.optomCallStartTime || customer.callStartTime;
+    const startMsSource = customer.optometristCallStartTime || customer.callStartTime;
 
     if (startMsSource) {
       const startMs = parseInt(startMsSource, 10);
@@ -918,12 +1005,15 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 
     // Ending the call no longer marks the customer Completed - only the store
     // can do that (via POST /:id/complete), after they've confirmed the visit
-    // is actually done. Status is left as-is (still 'Accepted').
+    // is actually done. Status is left as-is (still 'Accepted'), and so is
+    // callTakenBy - hanging up doesn't release the optometrist's ownership of
+    // this consultation, otherwise a later Complete/Drop click 409s with
+    // "not currently active with you" since the assignment was cleared out
+    // from under a still-Accepted record.
     await run(
       `
       UPDATE customers SET
         callActive = 0,
-        callTakenBy = NULL,
         lastUpdatedOn = ?,
         callDuration = ?
       WHERE id = ?
@@ -1113,17 +1203,17 @@ setInterval(async () => {
   }
 }, 5000);
 
-const OPTOM_RESPONSE_TIMEOUT_MS = 60000;
+const OPTOMETRIST_RESPONSE_TIMEOUT_MS = 60000;
 
-// If the Optom currently offered a call doesn't respond in time, automatically
-// rotate the offer to the next available Optom (or release it back to the
+// If the Optometrist currently offered a call doesn't respond in time, automatically
+// rotate the offer to the next available Optometrist (or release it back to the
 // queue once everyone has been tried) instead of leaving the store stuck
-// waiting on a single unresponsive Optom.
+// waiting on a single unresponsive Optometrist.
 setInterval(async () => {
   try {
     const nowMs = Date.now();
     const pendingOffers = await all<CustomerRow>(
-      "SELECT * FROM customer_summary WHERE status = 'Initiated' AND callActive = 1 AND offeredToOptomEmail IS NOT NULL"
+      "SELECT * FROM customer_summary WHERE status = 'Initiated' AND callActive = 1 AND offeredToOptometristEmail IS NOT NULL"
     );
 
     for (const customer of pendingOffers) {
@@ -1141,30 +1231,30 @@ setInterval(async () => {
 
       const elapsedMs = nowMs - referenceMs;
 
-      if (isNaN(referenceMs) || elapsedMs < OPTOM_RESPONSE_TIMEOUT_MS) {
+      if (isNaN(referenceMs) || elapsedMs < OPTOMETRIST_RESPONSE_TIMEOUT_MS) {
         continue;
       }
 
-      logger.info('Optom response timeout - rotating offer', {
+      logger.info('Optometrist response timeout - rotating offer', {
         customerId: customer.id,
         elapsedMs,
-        offeredToOptomEmail: customer.offeredToOptomEmail,
+        offeredToOptometristEmail: customer.offeredToOptometristEmail,
         referenceTimeStr,
       });
 
       const updatedRow = await reassignOrReleaseCall(customer.id, customer);
 
       if (updatedRow) {
-        logger.info('Optom offer rotation result', {
+        logger.info('Optometrist offer rotation result', {
           customerId: customer.id,
-          newOfferedToOptomEmail: updatedRow.offeredToOptomEmail,
+          newOfferedToOptometristEmail: updatedRow.offeredToOptometristEmail,
           newStatus: updatedRow.status,
         });
         broadcastEvent('CUSTOMER_UPDATED', toApiCustomer(updatedRow));
       }
     }
   } catch (err) {
-    logger.error('Optom auto-rotation error', { errorMessage: (err as Error).message });
+    logger.error('Optometrist auto-rotation error', { errorMessage: (err as Error).message });
   }
 }, 3000);
 

@@ -21,10 +21,14 @@ const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
 ];
 
 interface UseIdleTimeoutOptions {
+  // Set to false for screens that are expected to sit unattended with no user
+  // interaction by design (e.g. the store kiosk call screen) so they aren't
+  // logged out simply for having no mouse/keyboard activity.
+  enabled?: boolean;
   onWarning?: (secondsLeft: number) => void;
 }
 
-export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
+export function useIdleTimeout({ enabled = true, onWarning }: UseIdleTimeoutOptions = {}) {
   const dispatch = useAppDispatch();
   const isAuth = useAppSelector((s) => s.auth.isAuthenticated);
   const timerRef = useRef<null | ReturnType<typeof setTimeout>>(null);
@@ -41,7 +45,7 @@ export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
   }, []);
 
   const resetTimer = useCallback(() => {
-    if (!isAuth) {
+    if (!isAuth || !enabled) {
       return;
     }
 
@@ -58,10 +62,10 @@ export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
     timerRef.current = setTimeout(() => {
       dispatch(logoutAction());
     }, IDLE_TIMEOUT_MS);
-  }, [isAuth, clearTimers, dispatch, onWarning]);
+  }, [isAuth, enabled, clearTimers, dispatch, onWarning]);
 
   useEffect(() => {
-    if (!isAuth) {
+    if (!isAuth || !enabled) {
       clearTimers();
 
       return;
@@ -75,5 +79,5 @@ export function useIdleTimeout({ onWarning }: UseIdleTimeoutOptions = {}) {
       clearTimers();
       ACTIVITY_EVENTS.forEach((evt) => window.removeEventListener(evt, resetTimer));
     };
-  }, [isAuth, resetTimer, clearTimers]);
+  }, [isAuth, enabled, resetTimer, clearTimers]);
 }

@@ -15,7 +15,7 @@ export function AppLayout({
   setActiveTab,
 }: AppLayoutProps) {
   return (
-    <div className="flex min-h-screen flex-1 flex-col bg-[#F2F3F3]">
+    <div className="font-pro flex min-h-screen flex-1 flex-col bg-[#F2F3F3]">
       <Header
         activeTab={activeTab}
         consoleLabel={consoleLabel}

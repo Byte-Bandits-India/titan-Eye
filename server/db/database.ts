@@ -12,7 +12,7 @@ export interface CustomerLogRow {
   customerId: string;
   id: number;
   lastUpdatedOn: null | string;
-  optomCallStartTime: null | string;
+  optometristCallStartTime: null | string;
   status: string;
 }
 
@@ -25,16 +25,17 @@ export interface CustomerRow {
   callTakenBy: null | string;
   createdOn: null | string;
   customerType: string;
-  declinedByOptomEmails: null | string;
+  declinedByOptometristEmails: null | string;
   gender: string;
   id: string;
+  isPriority: number;
   lastUpdatedOn: null | string;
   mobile: string;
   name: string;
-  offeredToOptomEmail: null | string;
-  optomCallStartTime: null | string;
-  optomFeedback: string;
-  optomRxData: null | string;
+  offeredToOptometristEmail: null | string;
+  optometristCallStartTime: null | string;
+  optometristFeedback: string;
+  optometristRxData: null | string;
   patientFeedback: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
@@ -58,9 +59,12 @@ export type SqlParam = bigint | Buffer | null | number | string;
 export interface UserRow {
   activeTokenSig: null | string;
   azureObjectId: null | string;
+  city: null | string;
   email: string;
   failedLoginAttempts: number;
+  languages: null | string;
   lastLogin: null | string;
+  location: null | string;
   lockedUntil: null | string;
   microsoftUpn: null | string;
   mobile: null | string;
@@ -117,9 +121,28 @@ export async function initializeDatabase(): Promise<void> {
       password TEXT NOT NULL DEFAULT '',
       failedLoginAttempts INTEGER DEFAULT 0,
       lockedUntil TEXT,
-      activeTokenSig TEXT
+      activeTokenSig TEXT,
+      location TEXT,
+      city TEXT,
+      languages TEXT
     )
   `);
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN location TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN city TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN languages TEXT`);
+  } catch {}
+
+  // The optom role was renamed to optometrist; migrate any existing rows
+  // before the VALID_ROLES cleanup below, which would otherwise delete them.
+  await run(`UPDATE users SET role = 'optometrist' WHERE role = 'optom'`);
 
   await run(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -133,13 +156,13 @@ export async function initializeDatabase(): Promise<void> {
       preferredLanguage TEXT NOT NULL,
       preferredLanguage2 TEXT NOT NULL,
       storeFeedback TEXT NOT NULL,
-      optomFeedback TEXT NOT NULL,
+      optometristFeedback TEXT NOT NULL,
       status TEXT NOT NULL,
       activeProfile INTEGER NOT NULL DEFAULT 0,
       createdOn TEXT,
       lastUpdatedOn TEXT,
       rxData TEXT,
-      optomRxData TEXT,
+      optometristRxData TEXT,
       callStartTime TEXT,
       callActive INTEGER DEFAULT 0,
       callTakenBy TEXT,
@@ -148,12 +171,35 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
+  // Columns were renamed from optom* to optometrist*; rename existing
+  // columns in place before the ADD COLUMN migrations below (which are
+  // now no-ops on a DB that already has the new names).
   try {
-    await run(`ALTER TABLE customers ADD COLUMN optomFeedback TEXT`);
+    await run(`ALTER TABLE customers RENAME COLUMN optomFeedback TO optometristFeedback`);
   } catch {}
 
   try {
-    await run(`ALTER TABLE customers ADD COLUMN optomRxData TEXT`);
+    await run(`ALTER TABLE customers RENAME COLUMN optomRxData TO optometristRxData`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers RENAME COLUMN optomCallStartTime TO optometristCallStartTime`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers RENAME COLUMN offeredToOptomEmail TO offeredToOptometristEmail`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers RENAME COLUMN declinedByOptomEmails TO declinedByOptometristEmails`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optometristFeedback TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN optometristRxData TEXT`);
   } catch {}
 
   try {
@@ -177,15 +223,15 @@ export async function initializeDatabase(): Promise<void> {
   } catch {}
 
   try {
-    await run(`ALTER TABLE customers ADD COLUMN optomCallStartTime TEXT`);
+    await run(`ALTER TABLE customers ADD COLUMN optometristCallStartTime TEXT`);
   } catch {}
 
   try {
-    await run(`ALTER TABLE customers ADD COLUMN offeredToOptomEmail TEXT`);
+    await run(`ALTER TABLE customers ADD COLUMN offeredToOptometristEmail TEXT`);
   } catch {}
 
   try {
-    await run(`ALTER TABLE customers ADD COLUMN declinedByOptomEmails TEXT`);
+    await run(`ALTER TABLE customers ADD COLUMN declinedByOptometristEmails TEXT`);
   } catch {}
 
   try {
@@ -194,6 +240,10 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     await run(`ALTER TABLE customers ADD COLUMN patientFeedback TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN isPriority INTEGER DEFAULT 0`);
   } catch {}
 
   // Legacy rows predate the createdOn column; lastUpdatedOn is the closest
@@ -217,7 +267,11 @@ export async function initializeDatabase(): Promise<void> {
   } catch {}
 
   try {
-    await run(`ALTER TABLE customer_logs ADD COLUMN optomCallStartTime TEXT`);
+    await run(`ALTER TABLE customer_logs RENAME COLUMN optomCallStartTime TO optometristCallStartTime`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customer_logs ADD COLUMN optometristCallStartTime TEXT`);
   } catch {}
 
   await run(`
@@ -229,7 +283,7 @@ export async function initializeDatabase(): Promise<void> {
       callDuration INTEGER,
       callTakenBy TEXT,
       callStartTime TEXT,
-      optomCallStartTime TEXT
+      optometristCallStartTime TEXT
     )
   `);
 
@@ -241,9 +295,9 @@ export async function initializeDatabase(): Promise<void> {
     AFTER INSERT ON customers
     BEGIN
       INSERT INTO customer_logs (
-        customerId, lastUpdatedOn, status, callDuration, callTakenBy, callStartTime, optomCallStartTime
+        customerId, lastUpdatedOn, status, callDuration, callTakenBy, callStartTime, optometristCallStartTime
       ) VALUES (
-        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy, NEW.callStartTime, NEW.optomCallStartTime
+        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy, NEW.callStartTime, NEW.optometristCallStartTime
       );
     END;
   `);
@@ -253,9 +307,9 @@ export async function initializeDatabase(): Promise<void> {
     AFTER UPDATE ON customers
     BEGIN
       INSERT INTO customer_logs (
-        customerId, lastUpdatedOn, status, callDuration, callTakenBy, callStartTime, optomCallStartTime
+        customerId, lastUpdatedOn, status, callDuration, callTakenBy, callStartTime, optometristCallStartTime
       ) VALUES (
-        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy, NEW.callStartTime, NEW.optomCallStartTime
+        NEW.id, NEW.lastUpdatedOn, NEW.status, NEW.callDuration, NEW.callTakenBy, NEW.callStartTime, NEW.optometristCallStartTime
       );
     END;
   `);
@@ -287,11 +341,11 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optomFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optomRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optomCallStartTime, offeredToOptomEmail, declinedByOptomEmails, patientFeedback
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority
     FROM customers
   `);
 
-  const VALID_ROLES = ['store', 'optom', 'admin'];
+  const VALID_ROLES = ['store', 'optometrist', 'admin'];
   await run(`DELETE FROM users WHERE role NOT IN (${VALID_ROLES.map(() => '?').join(',')})`, VALID_ROLES);
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'pass@123';
@@ -314,7 +368,7 @@ export async function initializeDatabase(): Promise<void> {
     }
   }
 
-  logger.info('Seeded default admin and optom accounts.');
+  logger.info('Seeded default admin and optometrist accounts.');
 }
 
 export function query<T>(sql: string, params: SqlParam[] = []): T[] {

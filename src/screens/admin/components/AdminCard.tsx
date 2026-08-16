@@ -1,4 +1,4 @@
-import { Download, FileText, MessageSquare, Search, Stethoscope, UserPlus, Users2 } from 'lucide-react';
+import { Download, FileText, MessageSquare, Search, Stethoscope, Store, Users2 } from 'lucide-react';
 
 import type {
   AuditLog,
@@ -6,7 +6,7 @@ import type {
   CustomerStatusTab,
   DateFilterRange,
   ManagedUser,
-  OptomUserRow,
+  OptometristUserRow,
   TabCounts,
   User,
 } from '../../../types';
@@ -16,9 +16,10 @@ import { ColumnVisibilityDropdown } from '../../../components/shared/ColumnVisib
 import { DateFilter } from '../../../components/shared/DateFilter';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { cn } from '../../../lib/utils';
 import { exportAllCustomersReport } from '../../../utils/excelExport';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
-import { OptomUsersBody } from '../../store/components/OptomUsersBody';
+import { OptometristUsersBody } from '../../store/components/OptometristUsersBody';
 import {
   AUDIT_LOG_TABLE_COLUMNS,
   CUSTOMER_TABLE_COLUMNS,
@@ -26,6 +27,7 @@ import {
   USER_TABLE_COLUMNS,
 } from './adminUtils';
 import { AuditLogsBody } from './AuditLogsBody';
+import { AvailableStoresBody } from './AvailableStoresBody';
 import { CustomerDirectoryBody } from './CustomerDirectoryBody';
 import { FeedbackDirectoryBody } from './FeedbackDirectoryBody';
 import { UserDirectoryBody } from './UserDirectoryBody';
@@ -35,7 +37,8 @@ export type AdminCardProps =
   | CustomerRecordsVariant
   | FeedbackRecordsVariant
   | MetricsVariant
-  | OptomUsersVariant
+  | OptometristUsersVariant
+  | StoreUsersVariant
   | UserManagementVariant;
 
 type FeedbackRecordsVariant = {
@@ -106,16 +109,21 @@ type MetricsVariant = {
   variant: 'metrics';
 };
 
-type OptomUsersVariant = {
-  data: OptomUserRow[];
-  variant: 'optom-users';
+type OptometristUsersVariant = {
+  data: OptometristUserRow[];
+  variant: 'optometrist-users';
+};
+
+type StoreUsersVariant = {
+  className?: string;
+  data: OptometristUserRow[];
+  variant: 'store-users';
 };
 
 type UserManagementVariant = {
   currentPage: number;
   currentUser: ManagedUser | null | User;
   dateRange: DateFilterRange;
-  onAddNewClick: () => void;
   onDateRangeChange: (v: DateFilterRange) => void;
   onDelete: (u: ManagedUser) => void;
   onEdit: (u: ManagedUser) => void;
@@ -136,16 +144,48 @@ type UserManagementVariant = {
   visibleColumns: string[];
 };
 
+function ActiveCountBadge({ count }: { count: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+      {count} Active
+    </span>
+  );
+}
+
 export function AdminCard(props: AdminCardProps) {
   if (props.variant === 'metrics') {
     return <MetricCardGrid tabCounts={props.tabCounts} />;
   }
 
-  if (props.variant === 'optom-users') {
+  if (props.variant === 'optometrist-users') {
+    const activeCount = props.data.filter((d) => d.avail.statusLabel !== 'Offline').length;
+
     return (
-      <CardFrame className="flex h-full flex-col justify-between">
-        <CardHeader icon={Stethoscope} title="Optom Users" />
-        <OptomUsersBody data={props.data} />
+      <CardFrame className="flex h-[300px] flex-col justify-between">
+        <CardHeader
+          icon={Stethoscope}
+          iconGradient="from-teal-500 to-teal-800"
+          right={<ActiveCountBadge count={activeCount} />}
+          title="Available Optometrists"
+        />
+        <OptometristUsersBody data={props.data} />
+      </CardFrame>
+    );
+  }
+
+  if (props.variant === 'store-users') {
+    const activeCount = props.data.filter((d) => d.avail.statusLabel !== 'Offline').length;
+
+    return (
+      <CardFrame className={cn('flex h-[300px] flex-col justify-between', props.className)}>
+        <CardHeader
+          icon={Store}
+          iconGradient="from-blue-500 to-blue-800"
+          right={<ActiveCountBadge count={activeCount} />}
+          title="Available Stores"
+        />
+        <AvailableStoresBody data={props.data} />
       </CardFrame>
     );
   }
@@ -155,7 +195,6 @@ export function AdminCard(props: AdminCardProps) {
       currentPage,
       currentUser,
       dateRange,
-      onAddNewClick,
       onDateRangeChange,
       onDelete,
       onEdit,
@@ -191,20 +230,17 @@ export function AdminCard(props: AdminCardProps) {
           onToggleColumn={onToggleColumn}
           visibleColumns={visibleColumns}
         />
-        <Button
-          className="active:scale-98 h-9 shrink-0 cursor-pointer gap-1.5 rounded-[50px] px-4 text-xs font-bold shadow-sm transition-all"
-          onClick={onAddNewClick}
-          variant="gradient"
-        >
-          <UserPlus size={14} />
-          <span>Add User</span>
-        </Button>
       </>
     );
 
     return (
-      <CardFrame className="!mt-4">
-        <CardHeader icon={Users2} right={headerControls} title="User Directory" />
+      <CardFrame className="!mt-4 flex h-[600px] flex-col">
+        <CardHeader
+          icon={Users2}
+          iconGradient="from-violet-500 to-violet-800"
+          right={headerControls}
+          title="User Directory"
+        />
         <UserDirectoryBody
           currentPage={currentPage}
           currentUser={currentUser}
@@ -265,7 +301,7 @@ export function AdminCard(props: AdminCardProps) {
           visibleColumns={visibleColumns}
         />
         <Button
-          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-bold shadow-sm transition-all"
+          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-medium shadow-sm transition-all"
           onClick={() => exportAllCustomersReport(filteredCustomers)}
           title="Download full Excel report for all patients"
           variant="gradient"
@@ -277,8 +313,13 @@ export function AdminCard(props: AdminCardProps) {
     );
 
     return (
-      <CardFrame className="!mt-4">
-        <CardHeader icon={Users2} right={headerControls} title="Customer Directory" />
+      <CardFrame className="!mt-4 flex h-[600px] flex-col">
+        <CardHeader
+          icon={Users2}
+          iconGradient="from-[#EF427F] to-[#892649]"
+          right={headerControls}
+          title="Customer Directory"
+        />
         <CustomerDirectoryBody
           currentPage={currentPage}
           customerStatusTab={customerStatusTab}
@@ -336,8 +377,13 @@ export function AdminCard(props: AdminCardProps) {
     );
 
     return (
-      <CardFrame className="!mt-4">
-        <CardHeader icon={MessageSquare} right={headerControls} title="Patient Feedback Directory" />
+      <CardFrame className="!mt-4 flex h-[600px] flex-col">
+        <CardHeader
+          icon={MessageSquare}
+          iconGradient="from-amber-500 to-amber-800"
+          right={headerControls}
+          title="Patient Feedback Directory"
+        />
         <FeedbackDirectoryBody
           currentPage={currentPage}
           onNextPage={onNextPage}
@@ -392,8 +438,13 @@ export function AdminCard(props: AdminCardProps) {
   );
 
   return (
-    <CardFrame className="!mt-4">
-      <CardHeader icon={FileText} right={headerControls} title="System Audit Logs" />
+    <CardFrame className="!mt-4 flex h-[600px] flex-col">
+      <CardHeader
+        icon={FileText}
+        iconGradient="from-gray-600 to-gray-900"
+        right={headerControls}
+        title="System Audit Logs"
+      />
       <AuditLogsBody
         currentPage={currentPage}
         isLoadingLogs={isLoadingLogs}

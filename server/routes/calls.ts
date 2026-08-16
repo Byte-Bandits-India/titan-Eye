@@ -23,13 +23,13 @@ export interface CallSessionPayload {
   displayName: string;
   groupId?: string;
   meetingUrl?: string;
-  role: 'optom' | 'store';
+  role: 'optometrist' | 'store';
 }
 
 const activeSessions = new Map<
   string,
   {
-    optomSession: CallSessionPayload;
+    optometristSession: CallSessionPayload;
     storeSession: CallSessionPayload;
   }
 >();
@@ -50,7 +50,7 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    const optomName = req.user?.name || 'Optometrist';
+    const optometristName = req.user?.name || 'Optometrist';
 
     const existingSession = activeSessions.get(customerId);
 
@@ -59,18 +59,18 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
 
       logger.info('[Calls] Reusing existing ACS call session', {
         customerId,
-        groupId: existingSession.optomSession.groupId,
-        meetingUrl: existingSession.optomSession.meetingUrl,
-        optomName,
+        groupId: existingSession.optometristSession.groupId,
+        meetingUrl: existingSession.optometristSession.meetingUrl,
+        optometristName,
       });
 
-      return res.json(existingSession.optomSession);
+      return res.json(existingSession.optometristSession);
     }
 
     let meetingUrl: string | undefined;
     let groupId: string | undefined;
 
-    // Use ACS Group Call for direct in-browser Optom <-> Store consultations.
+    // Use ACS Group Call for direct in-browser Optometrist <-> Store consultations.
     // If USE_TEAMS_MEETING is explicitly set to 'true' in env and Graph is configured,
     // create a Teams Online Meeting link instead.
     const useTeamsMeeting = process.env.USE_TEAMS_MEETING === 'true';
@@ -79,7 +79,7 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
     if (useTeamsMeeting && isGraphConfigured() && organizerUpn) {
       try {
         const meeting = await createTeamsOnlineMeeting(
-          `Optom Consultation - Customer ${customerId}`,
+          `Optometrist Consultation - Customer ${customerId}`,
           organizerUpn
         );
         meetingUrl = meeting.joinWebUrl;
@@ -95,19 +95,19 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       groupId = crypto.randomUUID();
     }
 
-    // 3. Issue ACS Tokens for both Optom and Store
-    const optomTokenResult = await createAcsUserAndToken();
+    // 3. Issue ACS Tokens for both Optometrist and Store
+    const optometristTokenResult = await createAcsUserAndToken();
     const storeTokenResult = await createAcsUserAndToken();
     const acsEndpoint = getAcsEndpoint();
 
-    const optomSession: CallSessionPayload = {
+    const optometristSession: CallSessionPayload = {
       acsEndpoint,
-      acsToken: optomTokenResult.acsToken,
-      acsUserId: optomTokenResult.acsUserId,
+      acsToken: optometristTokenResult.acsToken,
+      acsUserId: optometristTokenResult.acsUserId,
       customerId,
-      displayName: optomName,
+      displayName: optometristName,
       ...(groupId ? { groupId } : { meetingUrl }),
-      role: 'optom',
+      role: 'optometrist',
     };
 
     const storeSession: CallSessionPayload = {
@@ -120,7 +120,7 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       role: 'store',
     };
 
-    activeSessions.set(customerId, { optomSession, storeSession });
+    activeSessions.set(customerId, { optometristSession, storeSession });
 
     // 4. Update DB status to Accepted and disarm pending offer timer
     const timestamp = new Date().toLocaleString('en-US', {
@@ -138,12 +138,12 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       UPDATE customers SET
         callActive = 1,
         status = 'Accepted',
-        offeredToOptomEmail = NULL,
+        offeredToOptometristEmail = NULL,
         callTakenBy = COALESCE(callTakenBy, ?),
         lastUpdatedOn = ?
       WHERE id = ?
     `,
-      [optomName, timestamp, customerId]
+      [optometristName, timestamp, customerId]
     );
 
     const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [customerId]);
@@ -159,10 +159,10 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       customerId,
       groupId,
       meetingUrl,
-      optomName,
+      optometristName,
     });
 
-    return res.json(optomSession);
+    return res.json(optometristSession);
   } catch (err) {
     const error = err as Error;
     logger.error('[Calls] Failed to start call session', { error: error.message });
@@ -179,8 +179,8 @@ router.get('/session/:customerId', (req: AuthenticatedRequest, res: Response) =>
     return res.status(404).json({ error: 'No active call session found for this customer' });
   }
 
-  const userRole = req.user?.role === 'optom' ? 'optom' : 'store';
-  const payload = userRole === 'optom' ? session.optomSession : session.storeSession;
+  const userRole = req.user?.role === 'optometrist' ? 'optometrist' : 'store';
+  const payload = userRole === 'optometrist' ? session.optometristSession : session.storeSession;
 
   return res.json(payload);
 });

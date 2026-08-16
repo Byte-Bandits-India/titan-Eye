@@ -7,7 +7,7 @@ import type {
   ColumnOption,
   Customer,
   DateFilterRange,
-  OptomUserRow,
+  OptometristUserRow,
   StatusTab,
   TabCounts,
 } from '../../../types';
@@ -16,20 +16,20 @@ import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
 import { ColumnVisibilityDropdown } from '../../../components/shared/ColumnVisibilityDropdown';
 import { DateFilter } from '../../../components/shared/DateFilter';
 import { Input } from '../../../components/ui/input';
+import { OptometristUsersInfiniteBody } from '../../optometrist/components/OptometristUsersInfiniteBody';
 import { MetricCardGrid } from './MetricCardGrid';
-import { OptomUsersBody } from './OptomUsersBody';
 import { RecentCustomersBody } from './RecentCustomersBody';
 
-export type StoreCardProps = MetricsVariant | OptomUsersVariant | RecentCustomersVariant;
+export type StoreCardProps = MetricsVariant | OptometristUsersVariant | RecentCustomersVariant;
 
 type MetricsVariant = {
   tabCounts: TabCounts;
   variant: 'metrics';
 };
 
-type OptomUsersVariant = {
-  data: OptomUserRow[];
-  variant: 'optom-users';
+type OptometristUsersVariant = {
+  data: OptometristUserRow[];
+  variant: 'optometrist-users';
 };
 
 type RecentCustomersVariant = {
@@ -61,11 +61,23 @@ export function StoreCard(props: StoreCardProps) {
     return <MetricCardGrid tabCounts={props.tabCounts} />;
   }
 
-  if (props.variant === 'optom-users') {
+  if (props.variant === 'optometrist-users') {
+    const activeCount = props.data.filter((d) => d.avail.statusLabel !== 'Offline').length;
+
     return (
-      <CardFrame>
-        <CardHeader icon={Stethoscope} title="Optom Users" />
-        <OptomUsersBody data={props.data} />
+      <CardFrame className="flex h-[300px] flex-col">
+        <CardHeader
+          icon={Stethoscope}
+          iconGradient="from-teal-500 to-teal-800"
+          right={
+            <span className="font-pro inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-normal text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {activeCount} Active
+            </span>
+          }
+          title="Available Optometrists"
+        />
+        <OptometristUsersInfiniteBody data={props.data} />
       </CardFrame>
     );
   }
@@ -116,7 +128,7 @@ export function StoreCard(props: StoreCardProps) {
 
   return (
     <CardFrame className="!mt-4">
-      <CardHeader icon={Users2} right={searchFilter} title="Recent Customers" />
+      <CardHeader icon={Users2} iconGradient="from-[#EF427F] to-[#892649]" right={searchFilter} title="Recent Customers" />
       <RecentCustomersBody
         columns={columns}
         currentPage={currentPage}

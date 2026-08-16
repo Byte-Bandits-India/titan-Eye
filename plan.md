@@ -153,7 +153,7 @@ export type TeamViewerSessionPayload = {
 
 ### Component 3: Optometrist Screen Integration
 
-#### `src/screens/optom/OptomPatientDetails.tsx`
+#### `src/screens/Optometrists/OptomPatientDetails.tsx`
 
 - Add `teamViewerSession` state.
 - Update `handleOpenTeamViewer` to pass `selectedCustomer.storeContactEmail || selectedCustomer.microsoftUpn` to `POST /calls/teamviewer/start`.

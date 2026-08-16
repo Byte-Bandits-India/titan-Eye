@@ -10,7 +10,6 @@ import {
   UserPlus,
   Volume2,
   VolumeX,
-  Video,
   X,
   XCircle,
 } from 'lucide-react';
@@ -37,8 +36,8 @@ const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: s
   call_closed: XCircle,
   call_ended: PhoneOff,
   call_initiated: PhoneIncoming,
-  no_optom_available: AlertTriangle,
-  optom_available: UserCheck,
+  no_optometrist_available: AlertTriangle,
+  optometrist_available: UserCheck,
   patient_registered: UserPlus,
 };
 
@@ -61,55 +60,28 @@ export function NotificationPopover({
   const [dismissedIds, setDismissedIds] = React.useState<Set<string>>(new Set());
   const [retryingLogId, setRetryingLogId] = React.useState<null | string>(null);
   const [callSession, setCallSession] = React.useState<CallSessionPayload | null>(null);
-  const [incomingCallSessions, setIncomingCallSessions] = React.useState<Record<string, CallSessionPayload>>(
-    {}
-  );
+  const handleCallModalClose = React.useCallback(() => setCallSession(null), []);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const wantsPlayingRef = React.useRef(false);
 
   React.useEffect(() => {
-    const handleStartOptomCall = (e: Event) => {
+    const handleStartOptometristCall = (e: Event) => {
       const detail = (e as CustomEvent<CallSessionPayload>).detail;
 
-      if (detail && detail.role === 'optom') {
+      if (detail && detail.role === 'optometrist') {
         setCallSession(detail);
       }
     };
 
-    const handleCallSessionReady = (e: Event) => {
-      const detail = (e as CustomEvent<CallSessionPayload>).detail;
-
-      if (detail && detail.role === 'store') {
-        setIncomingCallSessions((prev) => ({
-          ...prev,
-          [detail.customerId]: detail,
-        }));
-      }
-    };
-
-    const handleCallSessionEnded = (e: Event) => {
-      const detail = (e as CustomEvent<{ customerId?: string }>).detail;
+    const handleCallSessionEnded = () => {
       setCallSession(null);
-
-      if (detail?.customerId) {
-        setIncomingCallSessions((prev) => {
-          const next = { ...prev };
-          delete next[detail.customerId!];
-
-          return next;
-        });
-      } else {
-        setIncomingCallSessions({});
-      }
     };
 
-    window.addEventListener('titan:start_optom_call', handleStartOptomCall);
-    window.addEventListener('titan:call_session_ready', handleCallSessionReady);
+    window.addEventListener('titan:start_optometrist_call', handleStartOptometristCall);
     window.addEventListener('titan:call_session_ended', handleCallSessionEnded);
 
     return () => {
-      window.removeEventListener('titan:start_optom_call', handleStartOptomCall);
-      window.removeEventListener('titan:call_session_ready', handleCallSessionReady);
+      window.removeEventListener('titan:start_optometrist_call', handleStartOptometristCall);
       window.removeEventListener('titan:call_session_ended', handleCallSessionEnded);
     };
   }, []);
@@ -133,7 +105,7 @@ export function NotificationPopover({
   }, []);
 
   React.useEffect(() => {
-    if (user?.role !== 'optom') {
+    if (user?.role !== 'optometrist') {
       return;
     }
 
@@ -193,7 +165,7 @@ export function NotificationPopover({
     return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [dispatch]);
 
-  const isTakenByOptomUser = React.useCallback(
+  const isTakenByOptometristUser = React.useCallback(
     (callTakenBy?: null | string) => {
       if (!callTakenBy) {
         return false;
@@ -201,13 +173,13 @@ export function NotificationPopover({
 
       const takenByLower = callTakenBy.toLowerCase();
 
-      if (takenByLower.startsWith('dr.') || takenByLower.includes('optom')) {
+      if (takenByLower.startsWith('dr.') || takenByLower.includes('optometrist')) {
         return true;
       }
 
       return users.some(
         (u) =>
-          u.role === 'optom' &&
+          u.role === 'optometrist' &&
           (u.name.toLowerCase() === takenByLower || u.email.toLowerCase() === takenByLower)
       );
     },
@@ -228,8 +200,8 @@ export function NotificationPopover({
       return [];
     }
 
-    if (user.role === 'optom') {
-      const isOptomUserInCall = customers.some((c) => {
+    if (user.role === 'optometrist') {
+      const isOptometristUserInCall = customers.some((c) => {
         if (!(c.status === 'Initiated' || c.status === 'Accepted') || !c.callTakenBy) {
           return false;
         }
@@ -239,7 +211,7 @@ export function NotificationPopover({
         return takenByLower === user.name.toLowerCase() || takenByLower === user.email.toLowerCase();
       });
 
-      if (isOptomUserInCall) {
+      if (isOptometristUserInCall) {
         return [];
       }
 
@@ -249,7 +221,7 @@ export function NotificationPopover({
             return false;
           }
 
-          const offeredTo = (c.offeredToOptomEmail || '').toLowerCase();
+          const offeredTo = (c.offeredToOptometristEmail || '').toLowerCase();
 
           if (offeredTo !== user.email.toLowerCase()) {
             return false;
@@ -289,28 +261,28 @@ export function NotificationPopover({
             return false;
           }
 
-          const isCallActive = !!c.callActive && isTakenByOptomUser(c.callTakenBy);
+          const isCallActive = !!c.callActive && isTakenByOptometristUser(c.callTakenBy);
 
           if (!isCallActive) {
             return false;
           }
 
-          const itemKey = `${c.id}_${c.optomCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
+          const itemKey = `${c.id}_${c.optometristCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
 
           return !dismissedIds.has(itemKey);
         })
         .map((c) => {
-          const itemKey = `${c.id}_${c.optomCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
+          const itemKey = `${c.id}_${c.optometristCallStartTime || c.callStartTime || c.lastUpdatedOn || ''}`;
           const startMs = parseTimestamp(c.callStartTime);
-          const optomCallStartTime = c.optomCallStartTime;
-          const optomMs = parseTimestamp(optomCallStartTime || c.lastUpdatedOn);
-          const waitSecs = startMs > 0 && optomMs >= startMs ? Math.floor((optomMs - startMs) / 1000) : 0;
+          const optometristCallStartTime = c.optometristCallStartTime;
+          const optometristMs = parseTimestamp(optometristCallStartTime || c.lastUpdatedOn);
+          const waitSecs = startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
           const isPost59Min = waitSecs >= 3540;
 
-          let subtitleText = `Call initiated by ${c.callTakenBy || 'Optom Doctor'}`;
+          let subtitleText = `${c.callTakenBy || 'Optometrist Doctor'} accepted the call`;
 
           if (isPost59Min) {
-            subtitleText = `Optom Doctor Calling: ${c.callTakenBy || 'Optom Doctor'} is calling for ${c.name} after 59 mins. Please attend!`;
+            subtitleText = `${c.callTakenBy || 'Optometrist Doctor'} is still on a call with ${c.name} after 59 mins.`;
           }
 
           return {
@@ -318,7 +290,7 @@ export function NotificationPopover({
             id: itemKey,
             subtitle: subtitleText,
             timestamp: c.lastUpdatedOn || now,
-            title: isPost59Min ? `📞 ATTEND CALL: ${c.name}` : c.name,
+            title: isPost59Min ? `⏰ Long Call: ${c.name}` : c.name,
             type: 'call_accepted' as const,
           };
         });
@@ -326,19 +298,19 @@ export function NotificationPopover({
 
     if (user.role === 'admin') {
       return customers
-        .filter((c) => !dismissedIds.has(c.id))
+        .filter((c) => Boolean(c.patientFeedback && c.patientFeedback.trim()) && !dismissedIds.has(c.id))
         .map((c) => ({
           customer: c,
           id: c.id,
           subtitle: `${c.name} (${c.storeName || 'Store'})`,
           timestamp: c.lastUpdatedOn || now,
-          title: `Status: ${c.status}`,
+          title: 'New Patient Feedback',
           type: 'admin_status' as const,
         }));
     }
 
     return [];
-  }, [user, customers, dismissedIds, isTakenByOptomUser, now]);
+  }, [user, customers, dismissedIds, isTakenByOptometristUser, now]);
 
   const currentNotificationIds = React.useMemo(
     () => [...notifications.map((n) => n.id), ...logNotifications.map((n) => n.id)].join(','),
@@ -383,7 +355,7 @@ export function NotificationPopover({
   }, []);
 
   React.useEffect(() => {
-    if (!user || user.role !== 'optom' || notifications.length === 0 || isMuted) {
+    if (!user || user.role !== 'optometrist' || notifications.length === 0 || isMuted) {
       stopAudio();
 
       return;
@@ -452,34 +424,6 @@ export function NotificationPopover({
     }
   };
 
-  const handleAttendCall = (customerId: string) => {
-    setDismissedIds((prev) => {
-      const next = new Set(prev);
-      notifications.filter((n) => n.customer.id === customerId).forEach((n) => next.add(n.id));
-      next.add(customerId);
-
-      return next;
-    });
-    stopAudio();
-    setOpen(false);
-
-    const session = incomingCallSessions[customerId];
-
-    if (session) {
-      setCallSession(session);
-      setIncomingCallSessions((prev) => {
-        const next = { ...prev };
-        delete next[customerId];
-
-        return next;
-      });
-    }
-
-    if (onSelectCustomer) {
-      onSelectCustomer(customerId);
-    }
-  };
-
   const handleClearAll = () => {
     setDismissedIds((prev) => {
       const next = new Set(prev);
@@ -505,15 +449,15 @@ export function NotificationPopover({
       await dispatch(initiateCallAction(customerId));
       dismissLogNotification(logId);
       toast({
-        description: 'Your request has been sent to the available Optom doctor.',
-        title: 'Optom Requested',
+        description: 'Your request has been sent to the available Optometrist doctor.',
+        title: 'Optometrist Requested',
         type: 'success',
       });
     } catch (e) {
       const err = e as Error;
 
       toast({
-        description: err.message || 'Failed to request an Optom doctor.',
+        description: err.message || 'Failed to request an Optometrist doctor.',
         title: 'Retry Failed',
         type: 'error',
       });
@@ -524,7 +468,7 @@ export function NotificationPopover({
 
   const unreadCount = notifications.length + logNotifications.length;
 
-  const muteButton = user?.role === 'optom' && unreadCount > 0 && (
+  const muteButton = user?.role === 'optometrist' && unreadCount > 0 && (
     <Button
       className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       onClick={() => {
@@ -610,7 +554,7 @@ export function NotificationPopover({
         className={`h-5 w-5 ${unreadCount > 0 ? 'animate-bounce text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-zinc-400'}`}
       />
       {unreadCount > 0 && (
-        <span className="absolute right-1 top-1 flex h-4 w-4 animate-pulse items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white ring-2 ring-white dark:ring-zinc-900">
+        <span className="absolute right-1 top-1 flex h-4 w-4 animate-pulse items-center justify-center rounded-full bg-rose-600 text-[10px] font-medium text-white ring-2 ring-white dark:ring-zinc-900">
           {unreadCount}
         </span>
       )}
@@ -625,7 +569,7 @@ export function NotificationPopover({
             <CheckCheck className="h-6 w-6" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-bold text-foreground">No new notifications</p>
+            <p className="text-sm font-medium text-foreground">No new notifications</p>
             <p className="max-w-[220px] text-xs text-muted-foreground">
               You're all caught up! New updates and requests will appear here.
             </p>
@@ -655,13 +599,13 @@ export function NotificationPopover({
                     <Icon className="w-4.5 h-4.5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1 pr-24">
-                    <div className="text-xs font-bold leading-snug text-foreground">{item.title}</div>
+                    <div className="text-xs font-medium leading-snug text-foreground">{item.title}</div>
                     <div className="text-[11px] leading-relaxed text-muted-foreground">
                       {item.description}
                     </div>
-                    {item.logType === 'no_optom_available' && item.customerId && (
+                    {item.logType === 'no_optometrist_available' && item.customerId && (
                       <button
-                        className="shadow-xs mt-1.5 cursor-pointer rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="shadow-xs mt-1.5 cursor-pointer rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={retryingLogId === item.id}
                         onClick={() => handleRetryFromLog(item.customerId!, item.id)}
                         type="button"
@@ -704,17 +648,17 @@ export function NotificationPopover({
                 key={`cust-${item.id}`}
               >
                 <Avatar className="shadow-xs h-9 w-9 shrink-0 ring-2 ring-blue-100 dark:ring-zinc-700">
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-xs font-bold text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-xs font-medium text-white">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1 pr-24">
-                  <div className="truncate text-xs font-bold leading-snug text-foreground">{item.title}</div>
+                  <div className="truncate text-xs font-medium leading-snug text-foreground">{item.title}</div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</div>
                   {item.type === 'incoming_call' && (
                     <div className="flex items-center gap-2 pt-2">
                       <button
-                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
+                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white transition-all hover:bg-emerald-700 active:scale-95"
                         onClick={() => handleAccept(item.customer.id)}
                         type="button"
                       >
@@ -722,28 +666,8 @@ export function NotificationPopover({
                       </button>
 
                       <button
-                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                         onClick={() => handleDecline(item.customer.id)}
-                        type="button"
-                      >
-                        Ignore
-                      </button>
-                    </div>
-                  )}
-                  {item.type === 'call_accepted' && (
-                    <div className="flex items-center gap-2 pt-2">
-                      <button
-                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white transition-all hover:bg-emerald-700 active:scale-95"
-                        onClick={() => handleAttendCall(item.customer.id)}
-                        type="button"
-                      >
-                        <Video className="h-3.5 w-3.5" />
-                        <span>Attend Call</span>
-                      </button>
-
-                      <button
-                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                        onClick={() => handleDismiss(item.customer.id)}
                         type="button"
                       >
                         Ignore
@@ -787,10 +711,10 @@ export function NotificationPopover({
                   <Bell className="h-4 w-4" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <SheetTitle className="text-sm font-bold text-foreground">Notifications</SheetTitle>
+                  <SheetTitle className="text-sm font-medium text-foreground">Notifications</SheetTitle>
                   {unreadCount > 0 && (
                     <Badge
-                      className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                      className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:border-blue-800 dark:text-blue-400"
                       variant="secondary"
                     >
                       {unreadCount} new
@@ -801,7 +725,7 @@ export function NotificationPopover({
               <div className="mr-6 flex items-center gap-1.5">
                 {unreadCount > 0 && (
                   <Button
-                    className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                    className="h-7 px-2 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
                     onClick={handleClearAll}
                     size="sm"
                     variant="ghost"
@@ -815,7 +739,7 @@ export function NotificationPopover({
             {notificationList}
           </SheetContent>
         </Sheet>
-        {callSession && <TeamsCallModal onClose={() => setCallSession(null)} session={callSession} />}
+        {callSession && <TeamsCallModal onClose={handleCallModalClose} session={callSession} />}
       </>
     );
   }
@@ -835,10 +759,10 @@ export function NotificationPopover({
                 <Bell className="h-4 w-4" />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-foreground">Notifications</span>
+                <span className="text-sm font-medium text-foreground">Notifications</span>
                 {unreadCount > 0 && (
                   <Badge
-                    className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-extrabold text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                    className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:border-blue-800 dark:text-blue-400"
                     variant="secondary"
                   >
                     {unreadCount} new
@@ -850,7 +774,7 @@ export function NotificationPopover({
             <div className="flex items-center gap-1">
               {unreadCount > 0 && (
                 <Button
-                  className="h-7 px-2 text-[11px] font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                  className="h-7 px-2 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
                   onClick={handleClearAll}
                   size="sm"
                   variant="ghost"
@@ -865,7 +789,7 @@ export function NotificationPopover({
           {notificationList}
         </PopoverContent>
       </Popover>
-      {callSession && <TeamsCallModal onClose={() => setCallSession(null)} session={callSession} />}
+      {callSession && <TeamsCallModal onClose={handleCallModalClose} session={callSession} />}
     </>
   );
 }

@@ -1,13 +1,14 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
 
 import { AdminScreen } from '../screens/admin/AdminScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
-import { OptomScreen } from '../screens/optom/OptomScreen';
+import { OptometristScreen } from '../screens/optometrist/OptometristScreen';
 import { FeedbackScreen } from '../screens/public/FeedbackScreen';
+import { KioskScreen } from '../screens/store/KioskScreen';
 import { StoreScreen } from '../screens/store/StoreScreen';
 import { useAppSelector } from '../store';
 
@@ -30,14 +31,15 @@ export function getHomeRoute(role: UserRole): string {
     return '/admin';
   }
 
-  return '/optom';
+  return '/optometrist';
 }
 
 export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    return <Navigate replace to="/login" />;
+    return <Navigate replace state={{ from: location }} to="/login" />;
   }
 
   if (user.role !== allowedRole) {
@@ -49,9 +51,13 @@ export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
 
 export function PublicRoute({ children }: RouteProps) {
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const location = useLocation();
 
   if (isAuthenticated && user) {
-    return <Navigate replace to={getHomeRoute(user.role)} />;
+    const from = (location.state as { from?: { pathname: string; search: string } } | null)?.from;
+    const target = from ? `${from.pathname}${from.search}` : getHomeRoute(user.role);
+
+    return <Navigate replace to={target} />;
   }
 
   return children;
@@ -76,11 +82,19 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="optom">
-        <OptomScreen />
+      <ProtectedRoute allowedRole="store">
+        <KioskScreen />
       </ProtectedRoute>
     ),
-    path: '/optom',
+    path: '/store/kiosk',
+  },
+  {
+    element: (
+      <ProtectedRoute allowedRole="optometrist">
+        <OptometristScreen />
+      </ProtectedRoute>
+    ),
+    path: '/optometrist',
   },
   {
     element: (

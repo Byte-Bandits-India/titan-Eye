@@ -10,7 +10,7 @@ export function Footer() {
         <span>
           {APP_CONFIG.COMPANY_NAME}, {APP_CONFIG.COMPANY_ADDRESS}
         </span>
-        <span className="cursor-pointer font-bold text-blue-600 hover:underline">
+        <span className="cursor-pointer font-medium text-blue-600 hover:underline">
           {APP_CONFIG.COMPANY_URL}
         </span>
       </div>

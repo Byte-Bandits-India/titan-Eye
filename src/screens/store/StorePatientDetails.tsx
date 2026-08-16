@@ -26,42 +26,25 @@ export function StorePatientDetails({
 
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
-  const [form, setForm] = React.useState({
-    activeProfile: false,
-    age: '',
-    customerType: 'New',
-    gender: 'Male',
-    mobile: '',
-    name: '',
-    preferredLanguage: 'English',
-    preferredLanguage2: 'None',
-    status: 'Created' as CustomerStatus,
-    storeName: '',
-  });
+  const buildFormState = React.useCallback(
+    (customer: Customer | null, addingNew: boolean) => {
+      if (customer && !addingNew) {
+        return {
+          activeProfile: customer.activeProfile || false,
+          age: customer.age || '',
+          customerType: customer.customerType || 'New',
+          gender: customer.gender || 'Male',
+          mobile: customer.mobile || '',
+          name: customer.name || '',
+          preferredLanguage: customer.preferredLanguage || 'English',
+          preferredLanguage2: customer.preferredLanguage2 || 'None',
+          status: customer.status,
+          storeName: customer.storeName || user?.name || '',
+        };
+      }
 
-  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
-  const [prevIsAddingNew, setPrevIsAddingNew] = React.useState(isAddingNew);
-
-  if (selectedCustomer !== prevSelectedCustomer || isAddingNew !== prevIsAddingNew) {
-    setPrevSelectedCustomer(selectedCustomer);
-    setPrevIsAddingNew(isAddingNew);
-
-    if (selectedCustomer && !isAddingNew) {
-      setForm({
-        activeProfile: selectedCustomer.activeProfile || false,
-        age: selectedCustomer.age || '',
-        customerType: selectedCustomer.customerType || 'New',
-        gender: selectedCustomer.gender || 'Male',
-        mobile: selectedCustomer.mobile || '',
-        name: selectedCustomer.name || '',
-        preferredLanguage: selectedCustomer.preferredLanguage || 'English',
-        preferredLanguage2: selectedCustomer.preferredLanguage2 || 'None',
-        status: selectedCustomer.status,
-        storeName: selectedCustomer.storeName || user?.name || '',
-      });
-    } else if (isAddingNew) {
-      setForm({
-        activeProfile: true,
+      return {
+        activeProfile: addingNew,
         age: '',
         customerType: 'New',
         gender: 'Male',
@@ -69,10 +52,22 @@ export function StorePatientDetails({
         name: '',
         preferredLanguage: 'English',
         preferredLanguage2: 'None',
-        status: 'Created',
+        status: 'Created' as CustomerStatus,
         storeName: user?.name || '',
-      });
-    }
+      };
+    },
+    [user]
+  );
+
+  const [form, setForm] = React.useState(() => buildFormState(selectedCustomer, isAddingNew));
+
+  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
+  const [prevIsAddingNew, setPrevIsAddingNew] = React.useState(isAddingNew);
+
+  if (selectedCustomer !== prevSelectedCustomer || isAddingNew !== prevIsAddingNew) {
+    setPrevSelectedCustomer(selectedCustomer);
+    setPrevIsAddingNew(isAddingNew);
+    setForm(buildFormState(selectedCustomer, isAddingNew));
   }
 
   const setField = (key: string) => (val: boolean | string) => {
@@ -143,8 +138,6 @@ export function StorePatientDetails({
     return newErrors;
   };
 
-  const isFormValid = Object.keys(getValidationErrors()).length === 0;
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -184,7 +177,7 @@ export function StorePatientDetails({
         lastUpdatedOn: timestamp,
         mobile: form.mobile,
         name: form.name,
-        optomFeedback: '',
+        optometristFeedback: '',
         preferredLanguage: form.preferredLanguage,
         preferredLanguage2: form.preferredLanguage2,
         rxData: {
@@ -252,7 +245,7 @@ export function StorePatientDetails({
   const sheetFieldsMarkup = (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-muted-foreground">Customer Type *</label>
+        <label className="text-xs font-medium text-muted-foreground">Customer Type *</label>
         <Select
           onChange={(e) => setField('customerType')(e.target.value)}
           options={[
@@ -264,7 +257,7 @@ export function StorePatientDetails({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-muted-foreground">Name *</label>
+        <label className="text-xs font-medium text-muted-foreground">Name *</label>
         <Input
           className={cn(errors.name && 'border-red-500 focus-visible:ring-red-500')}
           icon={User}
@@ -277,12 +270,12 @@ export function StorePatientDetails({
           type="text"
           value={form.name}
         />
-        {errors.name && <p className="text-[10px] font-semibold text-red-500">{errors.name}</p>}
+        {errors.name && <p className="text-[10px] font-medium text-red-500">{errors.name}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Age *</label>
+          <label className="text-xs font-medium text-muted-foreground">Age *</label>
           <Input
             className={cn(errors.age && 'border-red-500 focus-visible:ring-red-500')}
             inputMode="numeric"
@@ -301,10 +294,10 @@ export function StorePatientDetails({
             type="text"
             value={form.age}
           />
-          {errors.age && <p className="text-[10px] font-semibold text-red-500">{errors.age}</p>}
+          {errors.age && <p className="text-[10px] font-medium text-red-500">{errors.age}</p>}
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Gender *</label>
+          <label className="text-xs font-medium text-muted-foreground">Gender *</label>
           <Select
             onChange={(e) => setField('gender')(e.target.value)}
             options={[
@@ -318,7 +311,7 @@ export function StorePatientDetails({
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-muted-foreground">Mobile Number *</label>
+        <label className="text-xs font-medium text-muted-foreground">Mobile Number *</label>
         <Input
           className={cn(errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
           icon={Phone}
@@ -328,12 +321,12 @@ export function StorePatientDetails({
           type="tel"
           value={form.mobile}
         />
-        {errors.mobile && <p className="text-[10px] font-semibold text-red-500">{errors.mobile}</p>}
+        {errors.mobile && <p className="text-[10px] font-medium text-red-500">{errors.mobile}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Preferred Language 1 *</label>
+          <label className="text-xs font-medium text-muted-foreground">Preferred Language 1 *</label>
           <Select
             className={cn(errors.preferredLanguage && 'border-red-500 focus:ring-red-500')}
             onChange={(e) => setField('preferredLanguage')(e.target.value)}
@@ -341,11 +334,11 @@ export function StorePatientDetails({
             value={form.preferredLanguage}
           />
           {errors.preferredLanguage && (
-            <p className="text-[10px] font-semibold text-red-500">{errors.preferredLanguage}</p>
+            <p className="text-[10px] font-medium text-red-500">{errors.preferredLanguage}</p>
           )}
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Preferred Language 2</label>
+          <label className="text-xs font-medium text-muted-foreground">Preferred Language 2</label>
           <Select
             className={cn(errors.preferredLanguage2 && 'border-red-500 focus:ring-red-500')}
             onChange={(e) => setField('preferredLanguage2')(e.target.value)}
@@ -359,7 +352,7 @@ export function StorePatientDetails({
             value={form.preferredLanguage2}
           />
           {errors.preferredLanguage2 && (
-            <p className="text-[10px] font-semibold text-red-500">{errors.preferredLanguage2}</p>
+            <p className="text-[10px] font-medium text-red-500">{errors.preferredLanguage2}</p>
           )}
         </div>
       </div>
@@ -371,8 +364,7 @@ export function StorePatientDetails({
       <SheetBody className="px-6 py-5">{sheetFieldsMarkup}</SheetBody>
       <SheetFooter className="sticky bottom-0 bg-card">
         <Button
-          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-bold shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!isFormValid}
+          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-medium shadow-md transition-all"
           type="submit"
           variant="gradient"
         >

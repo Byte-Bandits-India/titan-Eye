@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-display: swap;
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url('/fonts/inter/Inter-Variable.ttf');
+}
+
+@font-face {
+  font-display: swap;
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  src: url('/fonts/inter/Inter-Italic-Variable.ttf');
+}
+
 @layer base {
   :root {
     --background: #ffffff;
@@ -113,4 +129,46 @@ div:has(> table),
 table {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+}
+
+.font-pro {
+  font-family: 'Inter', sans-serif;
+  line-height: auto;
+  letter-spacing: 0px;
+  font-weight: normal;
+  color: #333333;
+}
+
+@keyframes kiosk-kenburns {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+.animate-kiosk-kenburns {
+  animation: kiosk-kenburns 20s ease-in-out infinite alternate;
+}
+
+@keyframes animated-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animated-gradient-bg {
+  background: linear-gradient(-45deg, #d1fae5, #a7f3d0, #bfdbfe, #93c5fd, #d1fae5);
+  background-size: 400% 400%;
+  animation: animated-gradient 15s ease infinite;
 }

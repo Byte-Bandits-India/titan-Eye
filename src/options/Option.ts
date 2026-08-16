@@ -1,15 +1,15 @@
-import type { OptomRxValues, RxValues } from '../types';
+import type { OptometristRxValues, RxValues } from '../types';
 
 export const rxFields: (keyof RxValues)[] = ['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'];
-export const optomFields: (keyof OptomRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
+export const optometristFields: (keyof OptometristRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
 
 export const rxHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'];
-export const optomHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
+export const optometristHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const PAGINATION = {
-  OPTOM_PAGE_SIZE: 6,
+  OPTOMETRIST_PAGE_SIZE: 6,
   STORE_PAGE_SIZE: 8,
 } as const;
 
@@ -126,7 +126,7 @@ export const LANGUAGES: string[] = [
   'Gujarati',
 ];
 
-export const emptyOptomRxValues: OptomRxValues = {
+export const emptyOptometristRxValues: OptometristRxValues = {
   add: '',
   axis: '',
   base: '',

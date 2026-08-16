@@ -17,9 +17,9 @@ function toApiCustomer(row: CustomerRow, callActiveOverride?: boolean): ApiCusto
     ...row,
     activeProfile: row.activeProfile === 1,
     callActive: callActiveOverride ?? row.callActive === 1,
-    optomCallStartTime: row.optomCallStartTime || null,
-    optomFeedback: row.optomFeedback || '',
-    optomRxData: row.optomRxData ? JSON.parse(row.optomRxData) : undefined,
+    optometristCallStartTime: row.optometristCallStartTime || null,
+    optometristFeedback: row.optometristFeedback || '',
+    optometristRxData: row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined,
     rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
   };
 }

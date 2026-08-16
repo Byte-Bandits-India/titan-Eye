@@ -85,7 +85,7 @@ export function FeedbackScreen() {
               value={feedback}
             />
             <Button
-              className="h-9 w-full rounded-xl text-xs font-bold"
+              className="h-9 w-full rounded-xl text-xs font-medium"
               disabled={isSubmitting}
               onClick={handleSubmit}
             >

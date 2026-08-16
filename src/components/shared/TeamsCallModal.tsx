@@ -8,18 +8,25 @@ import type { CallSessionPayload } from '../../types';
 import { apiClient } from '../../Util/apiClient';
 
 interface TeamsCallModalProps {
+  initialMode?: 'fullscreen' | 'normal';
   onClose: () => void;
   session: CallSessionPayload | null;
+  variant?: 'embedded' | 'floating';
 }
 
-export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
+function TeamsCallModalComponent({
+  initialMode = 'normal',
+  onClose,
+  session,
+  variant = 'floating',
+}: TeamsCallModalProps) {
   const acsToken = session?.acsToken;
   const groupId = session?.groupId;
   const meetingUrl = session?.meetingUrl;
   const acsUserId = session?.acsUserId;
   const displayName = session?.displayName;
 
-  const [mode, setMode] = React.useState<'fullscreen' | 'minimized' | 'normal'>('normal');
+  const [mode, setMode] = React.useState<'fullscreen' | 'minimized' | 'normal'>(initialMode);
   const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null);
   const isDraggingRef = React.useRef(false);
   const dragStartRef = React.useRef<{ mouseX: number; mouseY: number; posX: number; posY: number }>({
@@ -209,6 +216,43 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
     return null;
   }
 
+  // Embedded: fills its container (e.g. a panel inside a drawer) — no fixed
+  // positioning, drag, minimize, or fullscreen toggle since the host owns that.
+  if (variant === 'embedded') {
+    return (
+      <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
+            <h3 className="text-xs font-medium text-white sm:text-sm">
+              Live Video Consultation — Customer #{session.customerId}
+            </h3>
+          </div>
+
+          <button
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
+            onClick={() => handleEndCall('User clicked End Call button')}
+            type="button"
+          >
+            <PhoneOff size={14} />
+            <span>End Call</span>
+          </button>
+        </div>
+
+        <div className="relative flex-1 bg-black">
+          {adapter ? (
+            <CallComposite adapter={adapter} options={compositeOptions} />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
+              <p className="text-xs font-medium sm:text-sm">Initializing video consultation stream...</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Minimized Compact Floating Bar (MS Teams Call Widget Style)
   if (mode === 'minimized') {
     return (
@@ -237,7 +281,7 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
           <div className="flex items-center gap-2.5">
             <GripHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="flex h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />
-            <span className="whitespace-nowrap text-xs font-bold text-white sm:text-xs">
+            <span className="whitespace-nowrap text-xs font-medium text-white sm:text-xs">
               Call Active · #{session.customerId}
             </span>
           </div>
@@ -255,7 +299,7 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
 
             {/* End Call Button */}
             <button
-              className="flex cursor-pointer items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-bold text-white transition-all hover:bg-rose-700 active:scale-95"
+              className="flex cursor-pointer items-center gap-1 rounded-full bg-rose-600 px-2.5 py-1 text-[11px] font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
               onClick={() => handleEndCall('User clicked End Call in mini bar')}
               title="Terminate Call Session"
               type="button"
@@ -290,7 +334,7 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
           <div className="flex items-center gap-2.5">
             <span className="flex h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
             <div>
-              <h3 className="text-xs font-bold text-white sm:text-sm">
+              <h3 className="text-xs font-medium text-white sm:text-sm">
                 Live Video Consultation — Customer #{session.customerId}
               </h3>
               <p className="text-[11px] text-slate-400">
@@ -323,7 +367,7 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
 
             {/* End Call Button */}
             <button
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-bold text-white transition-all hover:bg-rose-700 active:scale-95"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
               onClick={() => handleEndCall('User clicked End Call button')}
               type="button"
             >
@@ -340,7 +384,7 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-              <p className="text-xs font-semibold sm:text-sm">Initializing video consultation stream...</p>
+              <p className="text-xs font-medium sm:text-sm">Initializing video consultation stream...</p>
             </div>
           )}
         </div>
@@ -348,3 +392,9 @@ export function TeamsCallModal({ onClose, session }: TeamsCallModalProps) {
     </div>
   );
 }
+
+// Wraps a live ACS video call (CallComposite) — memoized so hosts that also
+// hold fast-changing unrelated state (e.g. a form next to an embedded call)
+// don't force it to re-render on every keystroke. Callers must pass a
+// stable `onClose` (e.g. via useCallback) for this to be effective.
+export const TeamsCallModal = React.memo(TeamsCallModalComponent);

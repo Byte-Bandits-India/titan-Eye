@@ -2,22 +2,24 @@ import * as React from 'react';
 
 import type { CallTimerProps } from '../../types';
 
+const INITIAL_ELAPSED = '00:00:00';
+
 export function CallTimer({ active, maxDurationSeconds = 3540, onTimeout, startTime }: CallTimerProps) {
-  const [elapsed, setElapsed] = React.useState('00m:00s');
+  const [elapsed, setElapsed] = React.useState(INITIAL_ELAPSED);
   const hasTimedOut = React.useRef(false);
 
   React.useEffect(() => {
     if (active && startTime) {
       hasTimedOut.current = false;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setElapsed('00m:00s');
+      setElapsed(INITIAL_ELAPSED);
     }
   }, [startTime, active]);
 
   React.useEffect(() => {
     if (!active || !startTime) {
       if (!hasTimedOut.current) {
-        setElapsed('00m:00s');
+        setElapsed(INITIAL_ELAPSED);
       }
 
       return;
@@ -31,7 +33,7 @@ export function CallTimer({ active, maxDurationSeconds = 3540, onTimeout, startT
 
     if (isNaN(startMs)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setElapsed('00m:00s');
+      setElapsed(INITIAL_ELAPSED);
 
       return;
     }
@@ -40,7 +42,7 @@ export function CallTimer({ active, maxDurationSeconds = 3540, onTimeout, startT
       const diffMs = Date.now() - startMs;
 
       if (diffMs < 0) {
-        setElapsed('00m:00s');
+        setElapsed(INITIAL_ELAPSED);
 
         return;
       }
@@ -70,12 +72,13 @@ export function CallTimer({ active, maxDurationSeconds = 3540, onTimeout, startT
     };
   }, [startTime, active, maxDurationSeconds, onTimeout]);
 
-  return <span className="whitespace-nowrap font-mono font-bold text-gray-700">{elapsed}</span>;
+  return <span className="whitespace-nowrap text-sm font-normal text-gray-700">{elapsed}</span>;
 }
 
 function formatSeconds(secs: number): string {
-  const mins = Math.floor(secs / 60);
+  const hours = Math.floor(secs / 3600);
+  const mins = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
 
-  return `${String(mins).padStart(2, '0')}m:${String(s).padStart(2, '0')}s`;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }

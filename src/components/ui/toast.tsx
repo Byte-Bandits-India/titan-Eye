@@ -94,7 +94,7 @@ function Toaster({ dismiss, toasts }: { dismiss: (id: string) => void; toasts: T
             {t.type === 'info' && <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
           </div>
           <div className="flex-grow">
-            {t.title && <div className="mb-0.5 text-sm font-semibold">{t.title}</div>}
+            {t.title && <div className="mb-0.5 text-sm font-medium">{t.title}</div>}
             <div className="text-xs opacity-90">{t.description}</div>
           </div>
           <button

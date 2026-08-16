@@ -4,7 +4,7 @@ import type { Customer } from '../types';
 
 function buildCustomerRow(cust: Customer) {
   const rx = cust.rxData;
-  const opt = cust.optomRxData;
+  const opt = cust.optometristRxData;
 
   const autoRe = rx.autoRefRe || {};
   const autoLe = rx.autoRefLe || {};
@@ -23,7 +23,7 @@ function buildCustomerRow(cust: Customer) {
     cust.mobile || cust.customerType || '—',
     cust.callTakenBy || 'N/A',
     parseTimestampFormatted(cust.callStartTime),
-    parseTimestampFormatted(cust.optomCallStartTime),
+    parseTimestampFormatted(cust.optometristCallStartTime),
     formatWaitTime(cust),
     parseTimestampFormatted(cust.lastUpdatedOn),
     cust.callActive ? 'Active' : 'Inactive',
@@ -31,7 +31,7 @@ function buildCustomerRow(cust: Customer) {
     'N/A',
     cust.status || 'Created',
     cust.storeFeedback || '',
-    cust.optomFeedback || '',
+    cust.optometristFeedback || '',
 
     // Auto Ref - Right Eye (RE)
     autoRe.sph || '0.00',
@@ -91,9 +91,9 @@ function formatWaitTime(cust: Customer): string {
     return '00m:00s';
   }
 
-  const optomCallStartTime = cust.optomCallStartTime;
-  const endMs = optomCallStartTime
-    ? parseInt(optomCallStartTime, 10) || new Date(optomCallStartTime).getTime()
+  const optometristCallStartTime = cust.optometristCallStartTime;
+  const endMs = optometristCallStartTime
+    ? parseInt(optometristCallStartTime, 10) || new Date(optometristCallStartTime).getTime()
     : cust.lastUpdatedOn
       ? parseInt(cust.lastUpdatedOn, 10) || new Date(cust.lastUpdatedOn).getTime()
       : Date.now();
@@ -193,7 +193,7 @@ const COLUMN_HEADER_ROW = [
   'Age',
   'Gender',
   'Customer Type',
-  'Optom Name',
+  'Optometrist Name',
   'Ticket Raise Time',
   'Ticket Attended Time',
   'Time Taken',
@@ -203,7 +203,7 @@ const COLUMN_HEADER_ROW = [
   'Sales Order No',
   'Final Ticket Status',
   'Store comment',
-  'Optom comment',
+  'Optometrist comment',
   // Auto Ref
   'SPH-R',
   'CYL-R',

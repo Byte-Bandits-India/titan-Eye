@@ -154,17 +154,17 @@ export function validateCustomerData(
     sanitized.storeFeedback = storeFeedbackResult.sanitized;
   }
 
-  const optomFeedbackResult = validateOptionalString(
-    data.optomFeedback,
-    'Optom feedback',
+  const optometristFeedbackResult = validateOptionalString(
+    data.optometristFeedback,
+    'Optometrist feedback',
     MAX_FEEDBACK_LENGTH,
     false
   );
 
-  if (!optomFeedbackResult.valid) {
-    errors.push(optomFeedbackResult.error!);
+  if (!optometristFeedbackResult.valid) {
+    errors.push(optometristFeedbackResult.error!);
   } else {
-    sanitized.optomFeedback = optomFeedbackResult.sanitized;
+    sanitized.optometristFeedback = optometristFeedbackResult.sanitized;
   }
 
   const statusResult = validateEnum(data.status, 'Status', VALID_STATUSES);
@@ -180,7 +180,7 @@ export function validateCustomerData(
     typeof data.lastUpdatedOn === 'string' ? stripHtml(data.lastUpdatedOn).slice(0, MAX_GENERIC_LENGTH) : '';
 
   sanitized.rxData = data.rxData ?? null;
-  sanitized.optomRxData = data.optomRxData ?? null;
+  sanitized.optometristRxData = data.optometristRxData ?? null;
 
   sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
   sanitized.callActive = data.callActive === true || data.callActive === 1;

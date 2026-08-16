@@ -49,20 +49,25 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
       return res.status(401).json({ error: 'This account has been deactivated' });
     }
 
-    if (row.activeTokenSig !== null && row.activeTokenSig !== tokenSig) {
-      logSecurityEvent('SESSION_SUPERSEDED', { email: user.email, ip: req.ip, requestId: req.requestId });
+    // Store accounts may be logged in on multiple devices at once (e.g. a kiosk
+    // screen alongside the main register), so they're exempt from the
+    // single-active-session check that applies to optometrist/admin accounts.
+    if (user.role !== 'store') {
+      if (row.activeTokenSig !== null && row.activeTokenSig !== tokenSig) {
+        logSecurityEvent('SESSION_SUPERSEDED', { email: user.email, ip: req.ip, requestId: req.requestId });
 
-      return res.status(401).json({
-        error: 'SESSION_EXPIRED',
-        message: 'Your session has ended because you signed in from another location.',
-      });
-    }
+        return res.status(401).json({
+          error: 'SESSION_EXPIRED',
+          message: 'Your session has ended because you signed in from another location.',
+        });
+      }
 
-    if (row.activeTokenSig === null && tokenSig) {
-      db.prepare('UPDATE users SET activeTokenSig = ? WHERE LOWER(email) = LOWER(?)').run(
-        tokenSig,
-        user.email
-      );
+      if (row.activeTokenSig === null && tokenSig) {
+        db.prepare('UPDATE users SET activeTokenSig = ? WHERE LOWER(email) = LOWER(?)').run(
+          tokenSig,
+          user.email
+        );
+      }
     }
   } catch (e) {
     logger.error('[auth middleware] user session verification check failed', {

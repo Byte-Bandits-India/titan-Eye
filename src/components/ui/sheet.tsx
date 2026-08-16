@@ -29,7 +29,7 @@ SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   hideCloseButton?: boolean;
-  side?: 'left' | 'right';
+  side?: 'bottom' | 'left' | 'right';
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Content>, SheetContentProps>(
@@ -38,13 +38,14 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
       <SheetOverlay />
       <DialogPrimitive.Content
         className={cn(
-          'fixed inset-y-0 z-[9999] flex flex-col bg-card shadow-2xl outline-none',
-          'w-full sm:max-w-lg',
+          'fixed z-[9999] flex flex-col bg-card shadow-2xl outline-none',
           'data-[state=open]:duration-300 data-[state=open]:animate-in',
           'data-[state=closed]:duration-300 data-[state=closed]:animate-out',
-          side === 'right'
-            ? 'right-0 border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right'
-            : 'left-0 border-r border-border data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
+          side === 'bottom' && 'inset-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+          side === 'right' &&
+            'inset-y-0 right-0 w-full border-l border-border sm:max-w-lg data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
+          side === 'left' &&
+            'inset-y-0 left-0 w-full border-r border-border sm:max-w-lg data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
           className
         )}
         ref={ref}
@@ -88,7 +89,7 @@ const SheetTitle = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
-    className={cn('text-base font-bold text-foreground', className)}
+    className={cn('text-base font-medium text-foreground', className)}
     ref={ref}
     {...props}
   />

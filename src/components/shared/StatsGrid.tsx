@@ -77,10 +77,10 @@ export function StatsGrid({ customers }: StatsGridProps) {
               <Icon size={20} />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 {card.label}
               </span>
-              <span className="mt-1 text-2xl font-black leading-none text-foreground">{card.value}</span>
+              <span className="mt-1 text-2xl font-medium leading-none text-foreground">{card.value}</span>
             </div>
           </Card>
         );

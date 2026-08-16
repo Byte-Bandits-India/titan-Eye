@@ -45,47 +45,47 @@ export function UserDirectoryBody({
 }: UserDirectoryBodyProps) {
   return (
     <>
-      <div className="w-full flex-1 overflow-x-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="w-full min-h-0 flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
               {visibleColumns.includes('userId') && (
-                <TableHead className="w-[120px] whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="w-[120px] whitespace-nowrap text-sm font-medium text-muted-foreground">
                   User ID
                 </TableHead>
               )}
               {visibleColumns.includes('name') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   User Name
                 </TableHead>
               )}
               {visibleColumns.includes('email') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Email
                 </TableHead>
               )}
               {visibleColumns.includes('role') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-                  Role
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Type
                 </TableHead>
               )}
               {visibleColumns.includes('mobile') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Mobile
                 </TableHead>
               )}
               {visibleColumns.includes('lastLogin') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Last Login
                 </TableHead>
               )}
               {visibleColumns.includes('status') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Status
                 </TableHead>
               )}
               {visibleColumns.includes('actions') && (
-                <TableHead className="whitespace-nowrap pr-4 text-right text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap pr-4 text-right text-sm font-medium text-muted-foreground">
                   Actions
                 </TableHead>
               )}
@@ -102,13 +102,13 @@ export function UserDirectoryBody({
               paginatedUsers.map((u) => (
                 <TableRow key={u.email}>
                   {visibleColumns.includes('userId') && (
-                    <TableCell className="whitespace-nowrap font-mono text-xs font-bold">
+                    <TableCell className="whitespace-nowrap font-mono text-xs font-normal">
                       <span
                         className={cn(
-                          'rounded border px-2 py-0.5 font-mono text-[10px] font-extrabold',
+                          'rounded border px-2 py-0.5 font-mono text-[10px] font-normal',
                           u.role === 'admin'
                             ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300'
-                            : u.role === 'optom'
+                            : u.role === 'optometrist'
                               ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
                               : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                         )}
@@ -118,7 +118,7 @@ export function UserDirectoryBody({
                     </TableCell>
                   )}
                   {visibleColumns.includes('name') && (
-                    <TableCell className="whitespace-nowrap font-semibold text-foreground">
+                    <TableCell className="whitespace-nowrap font-normal text-foreground">
                       {u.name}
                     </TableCell>
                   )}

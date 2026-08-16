@@ -39,7 +39,7 @@ export function ColumnVisibilityDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           className={cn(
-            'border-border/80 shadow-xs flex h-10 shrink-0 cursor-pointer items-center justify-between gap-2.5 rounded-md border bg-card px-4 text-xs font-bold text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
+            'border-border/80 shadow-xs flex h-10 shrink-0 cursor-pointer items-center justify-between gap-2.5 rounded-md border bg-card px-4 text-xs font-medium text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
             className
           )}
           size="sm"
@@ -48,7 +48,7 @@ export function ColumnVisibilityDropdown({
         >
           <div className="flex items-center gap-2 overflow-hidden">
             <SlidersHorizontal className="shrink-0 stroke-[2.2] text-blue-600 dark:text-blue-400" size={16} />
-            <span className="truncate font-bold">Columns</span>
+            <span className="truncate font-medium">Columns</span>
           </div>
           <ChevronDown className="text-muted-foreground/70 ml-1 shrink-0" size={14} />
         </Button>
@@ -59,12 +59,12 @@ export function ColumnVisibilityDropdown({
         sideOffset={6}
       >
         <div className="flex items-center justify-between px-2.5 py-1.5">
-          <DropdownMenuLabel className="p-0 text-xs font-bold text-foreground">
+          <DropdownMenuLabel className="p-0 text-xs font-medium text-foreground">
             Optional Columns
           </DropdownMenuLabel>
           {onResetColumns && (
             <button
-              className="flex cursor-pointer items-center gap-1 text-[10px] font-bold text-blue-600 hover:underline dark:text-blue-400"
+              className="flex cursor-pointer items-center gap-1 text-[10px] font-medium text-blue-600 hover:underline dark:text-blue-400"
               onClick={(e) => {
                 e.stopPropagation();
                 onResetColumns();

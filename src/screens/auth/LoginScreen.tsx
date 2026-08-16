@@ -1,12 +1,10 @@
 import axios from 'axios';
-import { Eye, EyeOff, KeyRound, Loader2, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, User } from 'lucide-react';
 import * as React from 'react';
 
 import { loginAction } from '../../Actions/authActions';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardHeader } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/toast';
+import { cn } from '../../lib/utils';
 import { API_BASE_URL } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 
@@ -20,6 +18,7 @@ export function LoginScreen() {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [rememberMe, setRememberMe] = React.useState(false);
 
   const dispatch = useAppDispatch();
   const { loading: isLoading } = useAppSelector((state) => state.auth);
@@ -83,94 +82,130 @@ export function LoginScreen() {
     }
   };
 
+  const inputClasses = cn(
+    'h-12 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900',
+    'outline-none transition-colors placeholder:text-gray-400',
+    'focus:border-gray-400 focus:ring-1 focus:ring-gray-400'
+  );
+
   return (
-    <div className="bg-radial relative flex min-h-[80vh] flex-1 items-center justify-center overflow-hidden from-slate-50 via-slate-100 to-slate-200 p-6 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-900">
-      <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[45vw] w-[45vw] rounded-full bg-blue-100/60 blur-3xl dark:bg-blue-950/20" />
-      <div className="pointer-events-none absolute bottom-[-10%] right-[-10%] h-[45vw] w-[45vw] rounded-full bg-indigo-100/60 blur-3xl dark:bg-indigo-950/20" />
+    <div className="animated-gradient-bg flex min-h-screen w-full items-center justify-center p-6">
+      <div className="flex w-full max-w-4xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xl">
+        {/* Left poster image */}
+        <div className="hidden flex-1 lg:block">
+          <img alt="What is Myopia?" className="h-full w-full object-cover" src="/images/login.png" />
+        </div>
 
-      <Card className="relative z-10 w-full max-w-md rounded-2xl border-white/50 bg-white/80 shadow-2xl backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-900/80">
-        <CardHeader className="space-y-2 pb-4 text-center">
-          <div className="mb-2 flex select-none items-center justify-center gap-1.5">
-            <img alt="TITAN EYE+ Logo" height={150} src="/logo.png" width={150} />
+        {/* Right sign-in panel */}
+        <div className="flex w-full flex-1 flex-col justify-center px-8 py-10 sm:px-12 sm:py-14">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <p className="mb-2 text-sm text-gray-500">Welcome to</p>
+            <img alt="TITAN EYE+" className="h-auto w-40" src="/images/logo-black.png" />
+            <p className="mt-2 text-xs font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
+            <div className="mt-3 h-0.5 w-10 rounded-full bg-teal-600" />
           </div>
-        </CardHeader>
 
-        <CardContent className="pt-4">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-muted-foreground">Workspace Email</label>
-              <Input
-                autoComplete="email"
-                icon={Mail}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="store@gmail.com or optom@gmail.com"
-                required
-                type="email"
-                value={email}
-              />
+              <label className="text-sm font-medium text-gray-700" htmlFor="login-email">
+                User ID
+              </label>
+              <div className="relative">
+                <User
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
+                  autoComplete="email"
+                  className={inputClasses}
+                  id="login-email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter User ID"
+                  required
+                  type="email"
+                  value={email}
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-muted-foreground">Security Password</label>
+              <label className="text-sm font-medium text-gray-700" htmlFor="login-password">
+                Password
+              </label>
               <div className="relative">
-                <Input
+                <Lock
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                />
+                <input
                   autoComplete="current-password"
-                  className="pr-10"
-                  icon={KeyRound}
+                  className={cn(inputClasses, 'pr-11')}
+                  id="login-password"
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter Password"
                   required
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                 />
                 <button
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-700"
                   onClick={() => setShowPassword(!showPassword)}
                   type="button"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            <Button
-              className="mt-2 h-11 w-full rounded-xl bg-teal-500 text-sm font-semibold text-white hover:bg-teal-800 dark:bg-teal-600 dark:hover:bg-teal-700"
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex cursor-pointer items-center gap-2 text-gray-500">
+                <input
+                  checked={rememberMe}
+                  className="h-4 w-4 rounded border-gray-300 accent-teal-600"
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  type="checkbox"
+                />
+                Remember me
+              </label>
+            </div>
+
+            <button
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-base font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isLoading}
               type="submit"
             >
               {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
+                <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Verifying Identity...
-                </div>
+                  Signing In...
+                </span>
               ) : (
-                'Access Portal'
+                'Login'
               )}
-            </Button>
+            </button>
           </form>
 
-          <div className="my-4 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] font-semibold uppercase text-muted-foreground">or</span>
-            <div className="h-px flex-1 bg-border" />
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs font-medium uppercase text-gray-400">or continue with</span>
+            <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          <Button
-            className="h-11 w-full gap-2 rounded-xl text-sm font-semibold"
+          <button
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             onClick={handleMicrosoftSignIn}
             type="button"
-            variant="outline"
           >
-            <svg aria-hidden="true" height="16" viewBox="0 0 21 21" width="16">
+            <svg aria-hidden="true" height="18" viewBox="0 0 21 21" width="18">
               <rect fill="#f25022" height="9" width="9" x="1" y="1" />
               <rect fill="#7fba00" height="9" width="9" x="11" y="1" />
               <rect fill="#00a4ef" height="9" width="9" x="1" y="11" />
               <rect fill="#ffb900" height="9" width="9" x="11" y="11" />
             </svg>
-            Sign in with Microsoft
-          </Button>
-        </CardContent>
-      </Card>
+            Continue with Microsoft
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

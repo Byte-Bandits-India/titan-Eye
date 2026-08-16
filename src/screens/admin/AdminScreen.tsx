@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react';
+import { Bell, Stethoscope, Store, UserPlus } from 'lucide-react';
 import * as React from 'react';
 
 import type {
@@ -6,7 +6,7 @@ import type {
   AuditLog,
   CustomerStatusTab,
   ManagedUser,
-  OptomUserRow,
+  OptometristUserRow,
   UserFormData,
 } from '../../types';
 
@@ -19,6 +19,7 @@ import {
   updateUserAction,
 } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
+import { MetricCard } from '../../components/shared/MetricCard';
 import { Button } from '../../components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
@@ -155,9 +156,10 @@ export function AdminScreen() {
       all: dateFilteredCustomers.length,
       completed: dateFilteredCustomers.filter((c) => c.status === 'Completed' || c.status === 'Closed')
         .length,
-      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Initiated' || c.status === 'Accepted')
-        .length,
-      pending: dateFilteredCustomers.filter((c) => c.status === 'Created').length,
+      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Accepted').length,
+      pending: dateFilteredCustomers.filter(
+        (c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop'
+      ).length,
     }),
     [dateFilteredCustomers]
   );
@@ -166,11 +168,14 @@ export function AdminScreen() {
     const term = searchTerm.trim().toLowerCase();
 
     return dateFilteredCustomers.filter((c) => {
-      if (customerStatusTab === 'Pending' && c.status !== 'Created') {
+      if (
+        customerStatusTab === 'Pending' &&
+        !(c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop')
+      ) {
         return false;
       }
 
-      if (customerStatusTab === 'InProgress' && !(c.status === 'Initiated' || c.status === 'Accepted')) {
+      if (customerStatusTab === 'InProgress' && c.status !== 'Accepted') {
         return false;
       }
 
@@ -312,14 +317,14 @@ export function AdminScreen() {
     customerResetPage();
   }, [searchTerm, dateRange, customerResetPage]);
 
-  const optomUsersWithStatus = React.useMemo<OptomUserRow[]>(
+  const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () =>
       users
-        .filter((u) => u.role === 'optom')
-        .map((optomUser) => {
-          if (optomUser.status === 'inactive' || !(optomUser.isLoggedIn ?? false)) {
+        .filter((u) => u.role === 'optometrist')
+        .map((optometristUser) => {
+          if (optometristUser.status === 'inactive' || !(optometristUser.isLoggedIn ?? false)) {
             return {
-              ...optomUser,
+              ...optometristUser,
               activeCall: null,
               avail: {
                 badgeClass:
@@ -331,8 +336,8 @@ export function AdminScreen() {
             };
           }
 
-          const optomNameLower = optomUser.name.toLowerCase();
-          const optomEmailLower = optomUser.email.toLowerCase();
+          const optometristNameLower = optometristUser.name.toLowerCase();
+          const optometristEmailLower = optometristUser.email.toLowerCase();
 
           const activeCall = customers.find((c) => {
             const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
@@ -343,12 +348,12 @@ export function AdminScreen() {
 
             const takenByLower = c.callTakenBy.toLowerCase();
 
-            return takenByLower === optomNameLower || takenByLower === optomEmailLower;
+            return takenByLower === optometristNameLower || takenByLower === optometristEmailLower;
           });
 
           if (activeCall) {
             return {
-              ...optomUser,
+              ...optometristUser,
               activeCall,
               avail: {
                 badgeClass:
@@ -361,7 +366,7 @@ export function AdminScreen() {
           }
 
           return {
-            ...optomUser,
+            ...optometristUser,
             activeCall: null,
             avail: {
               badgeClass:
@@ -374,6 +379,39 @@ export function AdminScreen() {
         }),
     [users, customers]
   );
+
+  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
+    () =>
+      users
+        .filter((u) => u.role === 'store')
+        .map((storeUser) => {
+          const isOnline = storeUser.status !== 'inactive' && (storeUser.isLoggedIn ?? false);
+
+          return {
+            ...storeUser,
+            activeCall: null,
+            avail: isOnline
+              ? {
+                  badgeClass:
+                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+                  dotClass: 'bg-emerald-500',
+                  ping: true,
+                  statusLabel: 'Online',
+                }
+              : {
+                  badgeClass:
+                    'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+                  dotClass: 'bg-slate-400',
+                  ping: false,
+                  statusLabel: 'Offline',
+                },
+          };
+        }),
+    [users]
+  );
+
+  const totalOptometrists = React.useMemo(() => users.filter((u) => u.role === 'optometrist').length, [users]);
+  const totalStores = React.useMemo(() => users.filter((u) => u.role === 'store').length, [users]);
 
   const closeForm = () => {
     setIsFormOpen(false);
@@ -394,31 +432,37 @@ export function AdminScreen() {
     if (isEdit && editingEmail) {
       await dispatch(
         updateUserAction(editingEmail, {
-          mobile: formData.mobile || undefined,
-          name: formData.name,
+          city: formData.role === 'store' ? formData.city || undefined : undefined,
+          languages: formData.role === 'optometrist' ? formData.languages : undefined,
+          location: formData.role === 'store' ? formData.location || undefined : undefined,
+          mobile: formData.role !== 'admin' ? formData.mobile || undefined : undefined,
+          name: formData.role === 'optometrist' ? formData.name || undefined : undefined,
           password: formData.password || undefined,
           role: formData.role,
           storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
         })
       );
       toast({
-        description: `${formData.name} has been saved.`,
+        description: `${formData.email} has been saved.`,
         title: 'User Updated',
         type: 'success',
       });
     } else {
       await dispatch(
         createUserAction({
+          city: formData.role === 'store' ? formData.city || undefined : undefined,
           email: formData.email,
-          mobile: formData.mobile || undefined,
-          name: formData.name,
+          languages: formData.role === 'optometrist' ? formData.languages : undefined,
+          location: formData.role === 'store' ? formData.location || undefined : undefined,
+          mobile: formData.role !== 'admin' ? formData.mobile || undefined : undefined,
+          name: formData.role === 'optometrist' ? formData.name || undefined : undefined,
           password: formData.password,
           role: formData.role,
           storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
         })
       );
       toast({
-        description: `${formData.name} has been added.`,
+        description: `${formData.email} has been added.`,
         title: 'User Created',
         type: 'success',
       });
@@ -489,26 +533,60 @@ export function AdminScreen() {
                   ? 'Search, filter, and manage system access'
                   : activeTab === 'feedback'
                     ? 'View store action notes, optometrist assessments, and direct patient feedback'
-                    : 'Track all activity across Store, Optom, and Admin roles'}
+                    : 'Track all activity across Store, Optometrist, and Admin roles'}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button
-              className="h-10 gap-2 px-4 text-xs font-bold"
+              className="h-10 gap-2 px-4 text-xs font-medium"
               onClick={() => window.dispatchEvent(new CustomEvent('titan:open_notifications'))}
               variant="outline"
             >
               <Bell size={14} />
               View Notification
             </Button>
+            {activeTab === 'users' && (
+              <Button
+                className="active:scale-98 h-10 gap-2 px-4 text-xs font-medium shadow-sm transition-all"
+                onClick={handleAddNewClick}
+                variant="gradient"
+              >
+                <UserPlus size={14} />
+                Add User
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Layout Row 1: Metrics Grid (left) + Optom Users Card (right) stretched to same height */}
-        <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-          <AdminCard tabCounts={customerTabCounts} variant="metrics" />
-          <AdminCard data={optomUsersWithStatus} variant="optom-users" />
-        </div>
+        {/* Layout Row 1: Metrics Grid (left) + Optometrist Users Card (right) stretched to same height */}
+        {activeTab === 'users' ? (
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+            <div className="grid grid-rows-2 gap-4">
+              <MetricCard
+                icon={Store}
+                iconGradient="from-blue-500 to-blue-800"
+                label="Total Stores"
+                unitPlural="Stores"
+                unitSingular="Store"
+                value={totalStores}
+              />
+              <MetricCard
+                icon={Stethoscope}
+                iconGradient="from-teal-500 to-teal-800"
+                label="Total Optometrists"
+                unitPlural="Optometrists"
+                unitSingular="Optometrist"
+                value={totalOptometrists}
+              />
+            </div>
+            <AdminCard className="lg:col-span-2" data={storeUsersWithStatus} variant="store-users" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+            <AdminCard tabCounts={customerTabCounts} variant="metrics" />
+            <AdminCard data={optometristUsersWithStatus} variant="optometrist-users" />
+          </div>
+        )}
 
         {/* Layout Row 2: Selected Directory Table View */}
         {activeTab === 'users' ? (
@@ -516,7 +594,6 @@ export function AdminScreen() {
             currentPage={userCurrentPage}
             currentUser={currentUser}
             dateRange={dateRange}
-            onAddNewClick={handleAddNewClick}
             onDateRangeChange={setDateRange}
             onDelete={handleDeleteUser}
             onEdit={handleEditClick}

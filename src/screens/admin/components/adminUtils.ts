@@ -14,8 +14,8 @@ export const DEFAULT_USER_COLUMNS = ['userId', 'name', 'email', 'role', 'status'
 
 export const CUSTOMER_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'id', label: 'ID' },
-  { id: 'name', isMandatory: true, label: 'Patient Name' },
-  { id: 'storeName', label: 'Store Name' },
+  { id: 'name', isMandatory: true, label: 'Name' },
+  { id: 'storeName', label: 'Store Code' },
   { id: 'timeStarted', label: 'Time Started' },
   { id: 'callDuration', label: 'Call Duration' },
   { id: 'ageGender', label: 'Age / Gender' },
@@ -29,9 +29,9 @@ export const DEFAULT_CUSTOMER_COLUMNS = ['id', 'name', 'storeName', 'callDuratio
 export const AUDIT_LOG_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'id', isMandatory: true, label: 'Log ID' },
   { id: 'timestamp', label: 'Timestamp' },
-  { id: 'customerName', label: 'Patient Name' },
+  { id: 'customerName', label: 'Name' },
   { id: 'customerId', label: 'Patient ID' },
-  { id: 'storeName', label: 'Store Name' },
+  { id: 'storeName', label: 'Store Code' },
   { id: 'timeStarted', label: 'Time Started' },
   { id: 'callDuration', label: 'Call Duration' },
   { id: 'status', isMandatory: true, label: 'Status' },
@@ -48,8 +48,8 @@ export const DEFAULT_AUDIT_LOG_COLUMNS = [
 
 export const FEEDBACK_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'id', label: 'Patient ID' },
-  { id: 'name', isMandatory: true, label: 'Patient Name' },
-  { id: 'storeName', label: 'Store Name' },
+  { id: 'name', isMandatory: true, label: 'Name' },
+  { id: 'storeName', label: 'Store Code' },
   { id: 'storeContactEmail', label: 'Store Email' },
   { id: 'callTakenBy', label: 'Store Staff / User' },
   { id: 'patientFeedback', isMandatory: true, label: 'Patient Feedback' },
@@ -67,12 +67,15 @@ export const DEFAULT_FEEDBACK_COLUMNS = [
 
 export const ROLE_OPTIONS = [
   { label: 'Store', value: 'store' },
-  { label: 'Optom', value: 'optom' },
+  { label: 'Optometrist', value: 'optometrist' },
   { label: 'Admin', value: 'admin' },
 ];
 
 export const EMPTY_FORM: UserFormData = {
+  city: '',
   email: '',
+  languages: [],
+  location: '',
   mobile: '',
   name: '',
   password: '',
@@ -81,14 +84,12 @@ export const EMPTY_FORM: UserFormData = {
 };
 
 export function formatSeconds(seconds: number): string {
-  if (isNaN(seconds) || seconds <= 0) {
-    return '00m:00s';
-  }
+  const safeSeconds = isNaN(seconds) ? 0 : Math.max(0, seconds);
+  const hours = Math.floor(safeSeconds / 3600);
+  const mins = Math.floor((safeSeconds % 3600) / 60);
+  const secs = Math.floor(safeSeconds % 60);
 
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  return `${String(mins).padStart(2, '0')}m:${String(secs).padStart(2, '0')}s`;
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 export function getRoleBasedUserId(user: ManagedUser, allUsers: ManagedUser[]): string {
@@ -102,8 +103,8 @@ export function getRoleBasedUserId(user: ManagedUser, allUsers: ManagedUser[]): 
   switch (user.role.toLowerCase()) {
     case 'admin':
       return `ADMIN-${numStr}`;
-    case 'optom':
-      return `OPTOM-${numStr}`;
+    case 'optometrist':
+      return `OPTOMETRIST-${numStr}`;
     case 'store':
       return `STORE-${numStr}`;
     default:

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { NoOptomEventPayload, SSEEventDetail } from '../types';
+import type { NoOptometristEventPayload, SSEEventDetail } from '../types';
 
 import { fetchCustomersAction } from '../Actions/customerActions';
 import { fetchUsersAction } from '../Actions/userActions';
@@ -47,8 +47,8 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
-        } else if (type === 'NO_OPTOM_AVAILABLE' || type === 'OPTOM_NO_RESPONSE') {
-          const payload = data as NoOptomEventPayload;
+        } else if (type === 'NO_OPTOMETRIST_AVAILABLE' || type === 'OPTOMETRIST_NO_RESPONSE') {
+          const payload = data as NoOptometristEventPayload;
           const currentUser = userRef.current;
           const isMatchingStore =
             currentUser?.role === 'store' &&
@@ -56,21 +56,21 @@ export function useSSE(): void {
             !!payload.storeName &&
             currentUser.storeName.toLowerCase() === payload.storeName.toLowerCase();
 
-          if (type === 'NO_OPTOM_AVAILABLE' && currentUser?.role === 'admin') {
+          if (type === 'NO_OPTOMETRIST_AVAILABLE' && currentUser?.role === 'admin') {
             addLogNotification({
-              description: `${payload.storeName || 'A store'} requested an Optom for ${payload.customerName}, but no Optom doctors are currently available.`,
-              title: 'No Optoms Available',
-              type: 'no_optom_available',
+              description: `${payload.storeName || 'A store'} requested an Optometrist for ${payload.customerName}, but no Optometrist doctors are currently available.`,
+              title: 'No Optometrists Available',
+              type: 'no_optometrist_available',
             });
           } else if (isMatchingStore) {
             addLogNotification({
               customerId: payload.customerId,
               description:
-                type === 'NO_OPTOM_AVAILABLE'
-                  ? 'All Optom doctors are currently busy. Please try again in a few minutes.'
-                  : `No Optom doctor answered your request for ${payload.customerName}. Please try requesting again.`,
-              title: type === 'NO_OPTOM_AVAILABLE' ? 'Optom Unavailable' : 'No Optom Answered',
-              type: 'no_optom_available',
+                type === 'NO_OPTOMETRIST_AVAILABLE'
+                  ? 'All Optometrist doctors are currently busy. Please try again in a few minutes.'
+                  : `No Optometrist doctor answered your request for ${payload.customerName}. Please try requesting again.`,
+              title: type === 'NO_OPTOMETRIST_AVAILABLE' ? 'Optometrist Unavailable' : 'No Optometrist Answered',
+              type: 'no_optometrist_available',
             });
           }
         } else if (

@@ -34,52 +34,52 @@ export function AuditLogsBody({
 }: AuditLogsBodyProps) {
   return (
     <>
-      <div className="w-full flex-1 overflow-x-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="w-full min-h-0 flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
               {visibleColumns.includes('id') && (
-                <TableHead className="w-[110px] whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="w-[110px] whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Log ID
                 </TableHead>
               )}
               {visibleColumns.includes('timestamp') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Timestamp
                 </TableHead>
               )}
               {visibleColumns.includes('customerName') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-                  Patient Name
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Name
                 </TableHead>
               )}
               {visibleColumns.includes('customerId') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Patient ID
                 </TableHead>
               )}
               {visibleColumns.includes('storeName') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-                  Store Name
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Store Code
                 </TableHead>
               )}
               {visibleColumns.includes('timeStarted') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Time Started
                 </TableHead>
               )}
               {visibleColumns.includes('callDuration') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Call Duration
                 </TableHead>
               )}
               {visibleColumns.includes('status') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Status
                 </TableHead>
               )}
               {visibleColumns.includes('performedBy') && (
-                <TableHead className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
+                <TableHead className="whitespace-nowrap text-sm font-medium text-muted-foreground">
                   Performed By
                 </TableHead>
               )}
@@ -96,13 +96,13 @@ export function AuditLogsBody({
               paginatedAuditLogs.map((log) => (
                 <TableRow key={log.id}>
                   {visibleColumns.includes('id') && (
-                    <TableCell className="whitespace-nowrap py-3 font-mono text-xs font-bold">
+                    <TableCell className="whitespace-nowrap py-3 font-mono text-xs font-normal">
                       <span
                         className={cn(
-                          'rounded border px-2 py-0.5 font-mono text-[10px] font-extrabold',
+                          'rounded border px-2 py-0.5 font-mono text-[10px] font-normal',
                           log.role === 'admin' || String(log.id).startsWith('ADM')
                             ? 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300'
-                            : log.role === 'optom' || String(log.id).startsWith('OPT')
+                            : log.role === 'optometrist' || String(log.id).startsWith('OPT')
                               ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
                               : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
                         )}
@@ -117,12 +117,12 @@ export function AuditLogsBody({
                     </TableCell>
                   )}
                   {visibleColumns.includes('customerName') && (
-                    <TableCell className="whitespace-nowrap py-3 text-xs font-semibold text-foreground">
+                    <TableCell className="whitespace-nowrap py-3 text-xs font-normal text-foreground">
                       {log.customerName || 'N/A'}
                     </TableCell>
                   )}
                   {visibleColumns.includes('customerId') && (
-                    <TableCell className="whitespace-nowrap py-3 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    <TableCell className="whitespace-nowrap py-3 text-xs font-normal text-blue-600 dark:text-blue-400">
                       {log.customerId}
                     </TableCell>
                   )}
@@ -149,9 +149,9 @@ export function AuditLogsBody({
                     </TableCell>
                   )}
                   {visibleColumns.includes('performedBy') && (
-                    <TableCell className="whitespace-nowrap py-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <TableCell className="whitespace-nowrap py-3 text-xs font-normal text-slate-700 dark:text-slate-300">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate text-xs font-semibold text-foreground">
+                        <span className="truncate text-xs font-normal text-foreground">
                           {log.callTakenBy || 'System / Store'}
                         </span>
                       </div>

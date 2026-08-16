@@ -1,4 +1,4 @@
-import { Eye, EyeOff, ShieldCheck, User } from 'lucide-react';
+import { Eye, EyeOff, MapPin, ShieldCheck, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { UserFormData, UserRole } from '../../../types';
@@ -7,11 +7,14 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { LegacySelect as Select } from '../../../components/ui/select';
 import { SheetBody, SheetFooter } from '../../../components/ui/sheet';
+import { TagInput } from '../../../components/ui/tag-input';
 import { useToast } from '../../../components/ui/toast';
 import { cn } from '../../../lib/utils';
-import { EMAIL_REGEX, MOBILE_REGEX, NAME_REGEX, PASSWORD_REGEX } from '../../../options/Option';
+import { EMAIL_REGEX, LANGUAGES, MOBILE_REGEX, NAME_REGEX, PASSWORD_REGEX } from '../../../options/Option';
 import { useAppSelector } from '../../../store';
 import { EMPTY_FORM, ROLE_OPTIONS } from './adminUtils';
+
+const STORE_CODE_REGEX = /^[A-Za-z0-9]{4}$/;
 
 interface UserFormDrawerProps {
   editingEmail: null | string;
@@ -22,7 +25,28 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
   const { toast } = useToast();
   const users = useAppSelector((state) => state.users.users);
 
-  const [form, setForm] = React.useState<UserFormData>(EMPTY_FORM);
+  const buildFormState = React.useCallback(
+    (email: null | string): UserFormData => {
+      const existingUser = email ? users.find((u) => u.email === email) : null;
+
+      return existingUser
+        ? {
+            city: existingUser.city || '',
+            email: existingUser.email,
+            languages: existingUser.languages || [],
+            location: existingUser.location || '',
+            mobile: existingUser.mobile || '',
+            name: existingUser.name || '',
+            password: '',
+            role: existingUser.role,
+            storeName: existingUser.storeName || '',
+          }
+        : EMPTY_FORM;
+    },
+    [users]
+  );
+
+  const [form, setForm] = React.useState<UserFormData>(() => buildFormState(editingEmail));
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
@@ -31,21 +55,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
   if (editingEmail !== prevEditingEmail) {
     setPrevEditingEmail(editingEmail);
-
-    const existingUser = editingEmail ? users.find((u) => u.email === editingEmail) : null;
-
-    setForm(
-      existingUser
-        ? {
-            email: existingUser.email,
-            mobile: existingUser.mobile || '',
-            name: existingUser.name,
-            password: '',
-            role: existingUser.role,
-            storeName: existingUser.storeName || '',
-          }
-        : EMPTY_FORM
-    );
+    setForm(buildFormState(editingEmail));
     setErrors({});
     setShowPassword(false);
   }
@@ -61,12 +71,6 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-
-    if (!form.name.trim()) {
-      newErrors.name = 'Full name is required';
-    } else if (!NAME_REGEX.test(form.name.trim())) {
-      newErrors.name = 'Name must be between 3 and 50 characters and contain only letters and spaces';
-    }
 
     if (!editingEmail) {
       if (!form.email.trim()) {
@@ -88,12 +92,34 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
       }
     }
 
-    if (form.mobile && !MOBILE_REGEX.test(form.mobile.trim())) {
-      newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
+    if (form.role === 'store') {
+      if (!form.storeName.trim()) {
+        newErrors.storeName = 'Store code is required';
+      } else if (!STORE_CODE_REGEX.test(form.storeName.trim())) {
+        newErrors.storeName = 'Store code must be exactly 4 letters/digits';
+      }
+
+      if (form.mobile && !MOBILE_REGEX.test(form.mobile.trim())) {
+        newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
+      }
     }
 
-    if (form.role === 'store' && !form.storeName.trim()) {
-      newErrors.storeName = 'Store name is required';
+    if (form.role === 'optometrist') {
+      if (!form.name.trim()) {
+        newErrors.name = 'Optometrist name is required';
+      } else if (!NAME_REGEX.test(form.name.trim())) {
+        newErrors.name = 'Name must be between 3 and 50 characters and contain only letters and spaces';
+      }
+
+      if (!form.mobile.trim()) {
+        newErrors.mobile = 'Mobile number is required';
+      } else if (!MOBILE_REGEX.test(form.mobile.trim())) {
+        newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
+      }
+
+      if (form.languages.length === 0) {
+        newErrors.languages = 'Add at least one known language';
+      }
     }
 
     setErrors(newErrors);
@@ -128,32 +154,94 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
     <form className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleSubmit}>
       <SheetBody className="px-6 py-5">
         <div className="space-y-4">
-          {/* Full Name */}
+          {/* User Type */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">
-              Full Name <span className="text-rose-500">*</span>
+            <label className="text-xs font-medium text-muted-foreground">
+              User Type <span className="text-rose-500">*</span>
             </label>
-            <Input
-              className={cn(errors.name && 'border-rose-500 focus-visible:ring-rose-500')}
-              icon={User}
+            <Select
+              disabled={!!editingEmail}
               onChange={(e) => {
-                const clean = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
-                setForm({ ...form, name: clean });
-
-                if (errors.name) {
-                  clearError('name');
-                }
+                const nextRole = e.target.value as UserRole;
+                setForm((prev: UserFormData) => ({
+                  ...prev,
+                  city: nextRole === 'store' ? prev.city : '',
+                  languages: nextRole === 'optometrist' ? prev.languages : [],
+                  location: nextRole === 'store' ? prev.location : '',
+                  name: nextRole === 'optometrist' ? prev.name : '',
+                  role: nextRole,
+                  storeName: nextRole === 'store' ? prev.storeName : '',
+                }));
+                setErrors({});
               }}
-              placeholder="e.g. John Doe"
-              value={form.name}
+              options={ROLE_OPTIONS}
+              value={form.role}
             />
-            {errors.name && <p className="text-[10px] font-semibold text-rose-500">{errors.name}</p>}
+            {editingEmail && (
+              <p className="text-[10px] font-medium italic text-muted-foreground">
+                User role cannot be changed once created.
+              </p>
+            )}
           </div>
+
+          {/* Store Code (store only) */}
+          {form.role === 'store' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Store Code <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                className={cn(errors.storeName && 'border-rose-500 focus-visible:ring-rose-500')}
+                icon={ShieldCheck}
+                onChange={(e) => {
+                  const clean = e.target.value
+                    .replace(/[^A-Za-z0-9]/g, '')
+                    .toUpperCase()
+                    .slice(0, 4);
+                  setForm({ ...form, storeName: clean });
+
+                  if (errors.storeName) {
+                    clearError('storeName');
+                  }
+                }}
+                placeholder="e.g. TCOR"
+                value={form.storeName}
+              />
+              {errors.storeName && (
+                <p className="text-[10px] font-medium text-rose-500">{errors.storeName}</p>
+              )}
+            </div>
+          )}
+
+          {/* Optometrist Name (optometrist only) */}
+          {form.role === 'optometrist' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Optometrist Name <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                className={cn(errors.name && 'border-rose-500 focus-visible:ring-rose-500')}
+                icon={User}
+                onChange={(e) => {
+                  const clean = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
+                  setForm({ ...form, name: clean });
+
+                  if (errors.name) {
+                    clearError('name');
+                  }
+                }}
+                placeholder="e.g. Dr. John Doe"
+                value={form.name}
+              />
+              {errors.name && <p className="text-[10px] font-medium text-rose-500">{errors.name}</p>}
+            </div>
+          )}
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">
-              Email Address <span className="text-rose-500">*</span>
+            <label className="text-xs font-medium text-muted-foreground">
+              {form.role === 'admin' ? 'Admin Email' : 'Email Address'}{' '}
+              <span className="text-rose-500">*</span>
             </label>
             <Input
               className={cn(errors.email && 'border-rose-500 focus-visible:ring-rose-500')}
@@ -169,13 +257,14 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
               type="email"
               value={form.email}
             />
-            {errors.email && <p className="text-[10px] font-semibold text-rose-500">{errors.email}</p>}
+            {errors.email && <p className="text-[10px] font-medium text-rose-500">{errors.email}</p>}
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">
-              Password {!editingEmail && <span className="text-rose-500">*</span>}
+            <label className="text-xs font-medium text-muted-foreground">
+              {form.role === 'admin' ? 'Admin Password' : 'Password'}{' '}
+              {!editingEmail && <span className="text-rose-500">*</span>}
             </label>
             <div className="relative">
               <Input
@@ -201,83 +290,80 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            {errors.password && <p className="text-[10px] font-semibold text-rose-500">{errors.password}</p>}
+            {errors.password && <p className="text-[10px] font-medium text-rose-500">{errors.password}</p>}
           </div>
 
-          {/* User Role */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">
-              User Role <span className="text-rose-500">*</span>
-            </label>
-            <Select
-              disabled={!!editingEmail}
-              onChange={(e) => {
-                const nextRole = e.target.value as UserRole;
-                setForm((prev: UserFormData) => {
-                  const next = { ...prev, role: nextRole };
-
-                  if (nextRole !== 'store') {
-                    next.storeName = '';
-                  }
-
-                  return next;
-                });
-
-                if (errors.storeName) {
-                  clearError('storeName');
-                }
-              }}
-              options={ROLE_OPTIONS}
-              value={form.role}
-            />
-            {editingEmail && (
-              <p className="text-[10px] font-medium italic text-muted-foreground">
-                User role cannot be changed once created.
-              </p>
-            )}
-          </div>
-
-          {/* Mobile Number */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-muted-foreground">Mobile Number</label>
-            <Input
-              className={cn(errors.mobile && 'border-rose-500 focus-visible:ring-rose-500')}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                setForm({ ...form, mobile: val });
-
-                if (errors.mobile) {
-                  clearError('mobile');
-                }
-              }}
-              placeholder="10-digit mobile (optional)"
-              value={form.mobile}
-            />
-            {errors.mobile && <p className="text-[10px] font-semibold text-rose-500">{errors.mobile}</p>}
-          </div>
-
-          {/* Store Name (conditional) */}
-          {form.role === 'store' && (
+          {/* Mobile Number (store & optometrist) */}
+          {form.role !== 'admin' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-muted-foreground">
-                Store Name <span className="text-rose-500">*</span>
+              <label className="text-xs font-medium text-muted-foreground">
+                Mobile Number {form.role === 'optometrist' && <span className="text-rose-500">*</span>}
               </label>
               <Input
-                className={cn(errors.storeName && 'border-rose-500 focus-visible:ring-rose-500')}
-                icon={ShieldCheck}
+                className={cn(errors.mobile && 'border-rose-500 focus-visible:ring-rose-500')}
                 onChange={(e) => {
-                  setForm({ ...form, storeName: e.target.value });
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setForm({ ...form, mobile: val });
 
-                  if (errors.storeName) {
-                    clearError('storeName');
+                  if (errors.mobile) {
+                    clearError('mobile');
                   }
                 }}
-                placeholder="e.g. Apollo Store #104"
-                value={form.storeName}
+                placeholder={form.role === 'optometrist' ? '10-digit mobile' : '10-digit mobile (optional)'}
+                value={form.mobile}
               />
-              {errors.storeName && (
-                <p className="text-[10px] font-semibold text-rose-500">{errors.storeName}</p>
+              {errors.mobile && <p className="text-[10px] font-medium text-rose-500">{errors.mobile}</p>}
+            </div>
+          )}
+
+          {/* Languages Known (optometrist only) */}
+          {form.role === 'optometrist' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">
+                Languages Known <span className="text-rose-500">*</span>
+              </label>
+              <TagInput
+                className={cn(errors.languages && 'border-rose-500')}
+                onChange={(languages) => {
+                  setForm({ ...form, languages });
+
+                  if (errors.languages) {
+                    clearError('languages');
+                  }
+                }}
+                placeholder="Type a language and press Enter"
+                suggestions={LANGUAGES}
+                value={form.languages}
+              />
+              {errors.languages && (
+                <p className="text-[10px] font-medium text-rose-500">{errors.languages}</p>
               )}
+            </div>
+          )}
+
+          {/* City (store only) */}
+          {form.role === 'store' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">City</label>
+              <Input
+                icon={MapPin}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+                placeholder="e.g. Bengaluru"
+                value={form.city}
+              />
+            </div>
+          )}
+
+          {/* Location (store only) */}
+          {form.role === 'store' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Location</label>
+              <Input
+                icon={MapPin}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                placeholder="e.g. Whitefield"
+                value={form.location}
+              />
             </div>
           )}
         </div>
@@ -285,7 +371,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
       <SheetFooter className="sticky bottom-0 bg-card px-6 py-4">
         <Button
-          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-bold shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
           disabled={submitting}
           type="submit"
           variant="gradient"

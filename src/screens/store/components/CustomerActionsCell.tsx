@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, MoreHorizontal, UserPen, Video, XCircle } from 'lucide-react';
+import { CheckCircle2, FileText, MoreHorizontal, PhoneCall, UserPen, XCircle } from 'lucide-react';
 
 import type { Customer, StatusTab, User } from '../../../types';
 
@@ -6,9 +6,76 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 
+export function CustomerStatusBadge({ status }: { status: Customer['status'] }) {
+  if (status === 'Created') {
+    return (
+      <Badge
+        className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+        variant="Created"
+      >
+        Queued
+      </Badge>
+    );
+  }
+
+  if (status === 'Initiated' || status === 'Accepted') {
+    return (
+      <Badge
+        className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+        variant="Initiated"
+      >
+        Testing
+      </Badge>
+    );
+  }
+
+  if (status === 'Completed') {
+    return (
+      <Badge
+        className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+        variant="Completed"
+      >
+        Completed
+      </Badge>
+    );
+  }
+
+  if (status === 'Closed') {
+    return (
+      <Badge
+        className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+        variant="Closed"
+      >
+        Cancelled
+      </Badge>
+    );
+  }
+
+  if (status === 'Drop') {
+    return (
+      <Badge
+        className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+        variant="Drop"
+      >
+        Dropped
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium tracking-wide text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+      variant="default"
+    >
+      {status}
+    </Badge>
+  );
+}
+
 type CustomerActionsCellProps = {
   completingCallId: null | string;
   cust: Customer;
+  disableRequest?: boolean;
   loadingCallId: null | string;
   onCancelCall?: (id: string) => void;
   onCompleteCall: (id: string, name: string) => void;
@@ -16,6 +83,7 @@ type CustomerActionsCellProps = {
   onSelectCustomer: (id: string) => void;
   onSetEditing: (v: boolean) => void;
   onSetEditingRx: (v: boolean) => void;
+  onViewDetails: (id: string) => void;
   statusTab?: StatusTab;
   user: null | User;
 };
@@ -23,6 +91,7 @@ type CustomerActionsCellProps = {
 export function CustomerActionsCell({
   completingCallId,
   cust,
+  disableRequest,
   loadingCallId,
   onCancelCall,
   onCompleteCall,
@@ -30,86 +99,38 @@ export function CustomerActionsCell({
   onSelectCustomer,
   onSetEditing,
   onSetEditingRx,
+  onViewDetails,
   statusTab,
 }: CustomerActionsCellProps) {
-  // ── Status badge for "All" tab ──────────────────────────────────────────
-  const statusBadge = (() => {
-    if (cust.status === 'Created') {
-      return (
-        <Badge
-          className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-          variant="Created"
-        >
-          Queued
-        </Badge>
-      );
-    }
-
-    if (cust.status === 'Initiated' || cust.status === 'Accepted') {
-      return (
-        <Badge
-          className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-          variant="Initiated"
-        >
-          Testing
-        </Badge>
-      );
-    }
-
-    if (cust.status === 'Completed') {
-      return (
-        <Badge
-          className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-          variant="Completed"
-        >
-          Completed
-        </Badge>
-      );
-    }
-
-    if (cust.status === 'Closed') {
-      return (
-        <Badge
-          className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
-          variant="Closed"
-        >
-          Cancelled
-        </Badge>
-      );
-    }
-
-    if (cust.status === 'Drop') {
-      return (
-        <Badge
-          className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-          variant="Drop"
-        >
-          Dropped
-        </Badge>
-      );
-    }
-
+  // ── "All" tab: just a View button, no request/status/kebab actions ──────
+  if (statusTab === 'all') {
     return (
-      <Badge
-        className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-slate-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-        variant="default"
-      >
-        {cust.status}
-      </Badge>
+      <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+        <Button
+          className="h-8 gap-1.5 px-3 text-xs font-medium"
+          onClick={() => onViewDetails(cust.id)}
+          size="sm"
+          variant="outline"
+        >
+          View
+        </Button>
+      </div>
     );
-  })();
+  }
 
   // ── Primary call-action button ──────────────────────────────────────────
   const primaryBtn = (() => {
     if (cust.status === 'Accepted') {
       return (
-        <Button
-          className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-xs font-bold text-muted-foreground opacity-100"
-          disabled
-          title="Call Initiated"
-        >
-          Call Initiated
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-xs font-medium text-muted-foreground opacity-100"
+            disabled
+            title="Call Initiated"
+          >
+            Call Initiated
+          </Button>
+        </div>
       );
     }
 
@@ -117,17 +138,17 @@ export function CustomerActionsCell({
       return (
         <div className="flex items-center gap-1">
           <Button
-            className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-amber-100 px-3 text-xs font-bold text-amber-800 opacity-100 dark:bg-amber-950/60 dark:text-amber-300"
+            className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-amber-100 px-3 text-xs font-medium text-amber-800 opacity-100 dark:bg-amber-950/60 dark:text-amber-300"
             disabled
-            title="Waiting for an Optom doctor to respond"
+            title="Waiting for an Optometrist doctor to respond"
           >
-            Requesting Optom…
+            Requesting Optometrist…
           </Button>
-          {onCancelCall && (
+          {statusTab === 'Pending' && onCancelCall && (
             <Button
-              className="rounded-xs flex h-8 cursor-pointer items-center border border-red-200 px-2 text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/40"
+              className="rounded-xs flex h-8 cursor-pointer items-center border border-red-200 px-2 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/40"
               onClick={() => onCancelCall(cust.id)}
-              title="Cancel pending Optom request"
+              title="Cancel pending Optometrist request"
               variant="outline"
             >
               Cancel
@@ -140,7 +161,7 @@ export function CustomerActionsCell({
     if (cust.status === 'Completed' || cust.status === 'Closed') {
       return (
         <Button
-          className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-xs font-bold text-muted-foreground opacity-100"
+          className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-xs font-medium text-muted-foreground opacity-100"
           disabled
           title="This consultation is already completed"
         >
@@ -151,24 +172,29 @@ export function CustomerActionsCell({
 
     return (
       <Button
-        className="rounded-xs flex h-8 cursor-pointer items-center gap-1.5 border-0 bg-[#4f46e5] px-4 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#4338ca] active:scale-95 dark:bg-indigo-600 dark:hover:bg-indigo-700"
-        disabled={loadingCallId === cust.id}
+        className="flex h-8 cursor-pointer items-center gap-1.5 px-4 text-xs font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={loadingCallId === cust.id || disableRequest}
         onClick={() => onInitiateCall(cust.id)}
-        title="Request an Optom doctor for this call"
+        title={
+          disableRequest
+            ? 'You already have an active Optometrist request. Only one request is allowed at a time.'
+            : 'Request an Optometrist doctor for this call'
+        }
+        variant="gradient"
       >
         {loadingCallId === cust.id ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
         ) : (
-          <Video size={14} />
+          <PhoneCall size={14} />
         )}
-        Request Optom
+        Request
       </Button>
     );
   })();
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-      {statusTab === 'all' ? statusBadge : primaryBtn}
+      {primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
       <Popover>
@@ -190,7 +216,7 @@ export function CustomerActionsCell({
         >
           {/* Edit Customer */}
           <button
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted"
             onClick={() => {
               onSelectCustomer(cust.id);
               onSetEditing(true);
@@ -204,7 +230,7 @@ export function CustomerActionsCell({
 
           {/* Store Rx */}
           <button
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted"
             onClick={() => {
               onSelectCustomer(cust.id);
               onSetEditingRx(true);
@@ -216,12 +242,12 @@ export function CustomerActionsCell({
             <span>Store Rx</span>
           </button>
 
-          {/* Cancel Request — only when call is Initiated */}
-          {cust.status === 'Initiated' && onCancelCall && (
+          {/* Cancel — only available from the Queue tab, while the request is still pending */}
+          {statusTab === 'Pending' && cust.status === 'Initiated' && onCancelCall && (
             <>
               <div className="my-1 h-px bg-border" />
               <button
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
                 onClick={() => onCancelCall(cust.id)}
                 type="button"
               >
@@ -236,7 +262,7 @@ export function CustomerActionsCell({
             <>
               <div className="my-1 h-px bg-border" />
               <button
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-semibold text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={completingCallId === cust.id}
                 onClick={() => onCompleteCall(cust.id, cust.name)}
                 type="button"

@@ -67,9 +67,13 @@ router.post(
           return res.status(403).json({ error: 'This account has been deactivated' });
         }
 
+        // Store devices (including unattended kiosk screens) stay logged in for
+        // the full cookie lifetime instead of the 1-hour idle timeout that
+        // applies to optometrist/admin accounts.
+        const tokenTtlMs = user.role === 'store' ? TOKEN_MAX_AGE_MS : SESSION_IDLE_MS;
         const token = generateToken(
           { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-          SESSION_IDLE_MS
+          tokenTtlMs
         );
         const newTokenSig = token.split('.')[2];
         const loginTimestamp = new Date().toISOString();

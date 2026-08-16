@@ -32,25 +32,23 @@ export function FeedbackDirectoryBody({
   return (
     <>
       {/* Table */}
-      <div className="relative overflow-x-auto">
+      <div className="relative min-h-0 flex-1 overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10">
             <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/50 dark:hover:bg-slate-900/50">
-              {visibleColumns.includes('id') && <TableHead className="w-28 font-bold">Patient ID</TableHead>}
-              {visibleColumns.includes('name') && (
-                <TableHead className="w-44 font-bold">Patient Name</TableHead>
-              )}
+              {visibleColumns.includes('id') && <TableHead className="w-28 text-sm font-medium text-muted-foreground">Patient ID</TableHead>}
+              {visibleColumns.includes('name') && <TableHead className="w-44 text-sm font-medium text-muted-foreground">Name</TableHead>}
               {visibleColumns.includes('storeName') && (
-                <TableHead className="w-36 font-bold">Store Name</TableHead>
+                <TableHead className="w-36 text-sm font-medium text-muted-foreground">Store Code</TableHead>
               )}
               {visibleColumns.includes('storeContactEmail') && (
-                <TableHead className="w-90 font-bold">Store Email</TableHead>
+                <TableHead className="w-90 text-sm font-medium text-muted-foreground">Store Email</TableHead>
               )}
               {visibleColumns.includes('patientFeedback') && (
-                <TableHead className="font-bold">Patient Feedback</TableHead>
+                <TableHead className="text-sm font-medium text-muted-foreground">Patient Feedback</TableHead>
               )}
               {visibleColumns.includes('lastUpdated') && (
-                <TableHead className="w-32 text-right font-bold">Date</TableHead>
+                <TableHead className="w-32 text-right text-sm font-medium text-muted-foreground">Date</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -72,14 +70,14 @@ export function FeedbackDirectoryBody({
                   className="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40"
                 >
                   {visibleColumns.includes('id') && (
-                    <TableCell className="font-mono text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <TableCell className="font-mono text-xs font-normal text-slate-600 dark:text-slate-400">
                       {cust.id}
                     </TableCell>
                   )}
 
                   {visibleColumns.includes('name') && (
                     <TableCell>
-                      <div className="font-semibold text-foreground">{cust.name}</div>
+                      <div className="font-normal text-foreground">{cust.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {cust.age} yrs • {cust.gender}
                       </div>

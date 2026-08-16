@@ -15,19 +15,19 @@ export function MetricCountUp({ className, value }: { className?: string; value:
 }
 
 export function renderCallDuration(cust: Customer) {
-  const optomCallStartTime = cust.optomCallStartTime;
+  const optometristCallStartTime = cust.optometristCallStartTime;
 
-  if (cust.callActive && optomCallStartTime) {
+  if (cust.callActive && optometristCallStartTime) {
     const startMs = parseTimestamp(cust.callStartTime);
-    const optomMs = parseTimestamp(optomCallStartTime);
-    const waitSecs = startMs > 0 && optomMs >= startMs ? Math.floor((optomMs - startMs) / 1000) : 0;
+    const optometristMs = parseTimestamp(optometristCallStartTime);
+    const waitSecs = startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
     const maxCallSecs = Math.max(0, 3540 - waitSecs);
 
-    return <CallTimer active={true} maxDurationSeconds={maxCallSecs} startTime={optomCallStartTime} />;
+    return <CallTimer active={true} maxDurationSeconds={maxCallSecs} startTime={optometristCallStartTime} />;
   }
 
   if (cust.callDuration && cust.callDuration > 0) {
-    return <span className="font-mono font-bold text-foreground">{formatSeconds(cust.callDuration)}</span>;
+    return <span className="text-sm font-normal text-foreground">{formatSeconds(cust.callDuration)}</span>;
   }
 
   return <span className="text-muted-foreground">—</span>;
@@ -43,29 +43,29 @@ export function renderWaitingDuration(cust: Customer, now: number) {
   }
 
   const isFinished = cust.status === 'Closed' || cust.status === 'Completed';
-  const endMs = cust.optomCallStartTime
-    ? parseTimestamp(cust.optomCallStartTime) || now
+  const endMs = cust.optometristCallStartTime
+    ? parseTimestamp(cust.optometristCallStartTime) || now
     : isFinished
       ? parseTimestamp(cust.lastUpdatedOn) || now
       : now;
 
   const elapsedMs = Math.max(0, Math.min(endMs - startMs, MAX_WAITING_MS));
 
-  return <span className="font-mono text-xs text-foreground">{formatDurationLong(elapsedMs)}</span>;
+  return <span className="text-sm font-normal text-foreground">{formatDurationLong(elapsedMs)}</span>;
 }
 
 export function WaitingCell({ cust }: { cust: Customer }) {
   const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
-    if (cust.optomCallStartTime || cust.status === 'Closed' || cust.status === 'Completed') {
+    if (cust.optometristCallStartTime || cust.status === 'Closed' || cust.status === 'Completed') {
       return;
     }
 
     const timer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => clearInterval(timer);
-  }, [cust.optomCallStartTime, cust.status]);
+  }, [cust.optometristCallStartTime, cust.status]);
 
   return renderWaitingDuration(cust, now);
 }

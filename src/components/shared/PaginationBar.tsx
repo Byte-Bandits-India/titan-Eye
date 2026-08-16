@@ -43,7 +43,7 @@ export function PaginationBar({
               ) : (
                 <>
                   <select
-                    className="shadow-3xs h-7 cursor-pointer appearance-none rounded-lg border border-border bg-card pl-2.5 text-xs font-bold text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="shadow-3xs h-7 cursor-pointer appearance-none rounded-lg border border-border bg-card pl-2.5 text-xs font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
                     onChange={(e) => {
                       const val = e.target.value;
 
@@ -71,7 +71,7 @@ export function PaginationBar({
               )}
             </div>
           ) : (
-            <span className="font-bold text-foreground">{itemsPerPage}</span>
+            <span className="font-medium text-foreground">{itemsPerPage}</span>
           )}
           {columns && visibleColumns && onToggleColumn && (
             <ColumnVisibilityDropdown
@@ -136,7 +136,7 @@ function CustomPerPageInput({
   return (
     <input
       autoFocus
-      className="shadow-3xs h-7 w-12 rounded-lg border border-border bg-card px-2 text-center text-xs font-bold text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+      className="shadow-3xs h-7 w-12 rounded-lg border border-border bg-card px-2 text-center text-xs font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
       min={1}
       onBlur={handleSubmit}
       onChange={(e) => setVal(e.target.value)}

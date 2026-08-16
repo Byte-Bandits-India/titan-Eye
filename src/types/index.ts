@@ -3,7 +3,7 @@ export type { DateFilterRange } from '../utils/dateFilter';
 
 // ─── Admin Tab ────────────────────────────────────────────────────────────────
 export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users';
-export type FeedbackFilterTab = 'all' | 'optom' | 'patient' | 'store';
+export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
 export type AppLayoutProps = {
   activeTab?: AdminTab;
@@ -25,7 +25,7 @@ export type AuditLog = {
   customerName?: string;
   id: number | string;
   lastUpdatedOn: null | string;
-  optomCallStartTime?: null | string;
+  optometristCallStartTime?: null | string;
   role?: UserRole;
   status: CustomerStatus;
   storeName?: string;
@@ -52,7 +52,7 @@ export type CollisionData = {
   targetView?: 'info' | 'rx';
 };
 
-// ─── Optom Screen ─────────────────────────────────────────────────────────────
+// ─── Optometrist Screen ─────────────────────────────────────────────────────────────
 export type CollisionModalData = {
   id: string;
   name: string;
@@ -81,9 +81,12 @@ export type CommonRxValues = {
 };
 
 export type CreateUserPayload = {
+  city?: string;
   email: string;
+  languages?: string[];
+  location?: string;
   mobile?: string;
-  name: string;
+  name?: string;
   password: string;
   role: UserRole;
   storeName?: string;
@@ -100,19 +103,21 @@ export type Customer = {
   customerType: string;
   gender: string;
   id: string;
+  isPriority?: boolean;
   lastUpdatedOn?: string;
   mobile: string;
   name: string;
-  offeredToOptomEmail?: null | string;
-  optomCallStartTime?: null | string;
-  optomFeedback?: string;
-  optomRxData?: {
-    le: OptomRxValues;
-    re: OptomRxValues;
+  offeredToOptometristEmail?: null | string;
+  optometristCallStartTime?: null | string;
+  optometristFeedback?: string;
+  optometristRxData?: {
+    le: OptometristRxValues;
+    re: OptometristRxValues;
   };
   patientFeedback?: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
+  queuePosition?: null | number;
   rxData?: {
     autoRefLe: RxValues;
     autoRefRe: RxValues;
@@ -182,14 +187,17 @@ export type LogNotificationType =
   | 'call_closed'
   | 'call_ended'
   | 'call_initiated'
-  | 'no_optom_available'
-  | 'optom_available'
+  | 'no_optometrist_available'
+  | 'optometrist_available'
   | 'patient_registered';
 
 export type ManagedUser = {
+  city?: null | string;
   email: string;
   isLoggedIn?: boolean;
+  languages?: null | string[];
   lastLogin?: null | string;
+  location?: null | string;
   microsoftUpn?: null | string;
   mobile?: null | string;
   name: string;
@@ -206,7 +214,7 @@ export type NetworkStatus = {
 };
 
 // ─── SSE Events ───────────────────────────────────────────────────────────────
-export type NoOptomEventPayload = {
+export type NoOptometristEventPayload = {
   customerId: string;
   customerName: string;
   storeName: null | string;
@@ -221,25 +229,26 @@ export type NotificationPopoverProps = {
   variant?: 'drawer' | 'popover';
 };
 
-export type OptomPatientDetailsProps = {
+export type OptometristPatientDetailsProps = {
+  activeCallTakenByMe?: Customer | null;
   onBack: () => void;
   selectedCustomer: Customer | null;
 };
 
-export type OptomRxValues = CommonRxValues & {
+export type OptometristRxValues = CommonRxValues & {
   va: string;
 };
 
-export type OptomUserAvailability = {
+export type OptometristUserAvailability = {
   badgeClass: string;
   dotClass: string;
   ping: boolean;
   statusLabel: string;
 };
 
-export type OptomUserRow = ManagedUser & {
+export type OptometristUserRow = ManagedUser & {
   activeCall: Customer | null;
-  avail: OptomUserAvailability;
+  avail: OptometristUserAvailability;
 };
 
 export type PaginationBarProps = {
@@ -281,7 +290,7 @@ export type CallSessionPayload = {
   displayName: string;
   groupId?: string;
   meetingUrl?: string;
-  role: 'optom' | 'store';
+  role: 'optometrist' | 'store';
 };
 
 export type SSEEventDetail =
@@ -290,7 +299,7 @@ export type SSEEventDetail =
       type: 'ADMIN_LOG_CREATED' | 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
     }
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
-  | { data: NoOptomEventPayload; type: 'NO_OPTOM_AVAILABLE' | 'OPTOM_NO_RESPONSE' }
+  | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
   | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' };
 
@@ -309,6 +318,11 @@ export type StorePatientDetailsProps = {
   setSelectedCustomerId: (id: null | string) => void;
 };
 
+export type StorePatientDetailsPageProps = {
+  onBack: () => void;
+  selectedCustomer: Customer | null;
+};
+
 export type StoreRxDetailsProps = {
   onBack: () => void;
   selectedCustomer: Customer | null;
@@ -322,8 +336,11 @@ export type TabCounts = {
 };
 
 export type UpdateUserPayload = {
+  city?: string;
+  languages?: string[];
+  location?: string;
   mobile?: string;
-  name: string;
+  name?: string;
   password?: string;
   role: UserRole;
   storeName?: string;
@@ -355,7 +372,10 @@ export type User = {
 };
 
 export type UserFormData = {
+  city: string;
   email: string;
+  languages: string[];
+  location: string;
   mobile: string;
   name: string;
   password: string;
@@ -363,7 +383,7 @@ export type UserFormData = {
   storeName: string;
 };
 
-export type UserRole = 'admin' | 'optom' | 'store';
+export type UserRole = 'admin' | 'optometrist' | 'store';
 
 export type UserState = {
   error: null | string;

@@ -48,7 +48,13 @@ function SessionGuard() {
     prevError.current = authError;
   }, [authError, toast]);
 
+  // The kiosk screen is meant to sit idle showing a screensaver for long
+  // stretches with zero user interaction by design, so it's exempt from the
+  // inactivity auto-logout that applies to every other screen.
+  const isKioskScreen = window.location.pathname.startsWith('/store/kiosk');
+
   useIdleTimeout({
+    enabled: !isKioskScreen,
     onWarning: (secondsLeft) => {
       toast({
         description: `You will be automatically logged out in ${Math.round(secondsLeft / 60)} minute(s) due to inactivity.`,

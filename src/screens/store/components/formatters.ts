@@ -1,34 +1,18 @@
+export function formatHHMMSS(totalSeconds: number): string {
+  const safeSeconds = isNaN(totalSeconds) ? 0 : Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 export function formatDurationLong(ms: number): string {
-  const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-
-  return `${seconds}s`;
+  return formatHHMMSS(Math.floor(Math.max(0, ms) / 1000));
 }
 
 export function formatSeconds(seconds: number): string {
-  if (isNaN(seconds) || seconds <= 0) {
-    return '00m:00s';
-  }
-
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  return `${String(mins).padStart(2, '0')}m:${String(secs).padStart(2, '0')}s`;
+  return formatHHMMSS(seconds);
 }
 
 export function parseTimestamp(val: null | number | string | undefined): number {

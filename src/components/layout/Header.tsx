@@ -7,6 +7,8 @@ import {
   Maximize2,
   MessageSquare,
   Minimize2,
+  Monitor,
+  MonitorPlay,
   Search,
   UserPlus,
   Wifi,
@@ -20,6 +22,7 @@ import { useFullscreen } from '../../hooks/useFullscreen';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { apiClient } from '../../Util/apiClient';
+import { openTeamViewer } from '../../Util/teamViewer';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   DropdownMenu,
@@ -30,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
+import { useToast } from '../ui/toast';
 
 export function Header({
   activeTab,
@@ -41,12 +45,22 @@ export function Header({
 }: HeaderProps) {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
+  const { toast } = useToast();
   const { speed, statusColor, statusLabel, wifiIconColor } = useNetworkStatus();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const [photoUrl, setPhotoUrl] = useState<null | string>(null);
 
   const handleLogout = () => {
     dispatch(logoutAction());
+  };
+
+  const handleOpenTeamViewer = () => {
+    toast({ description: 'Opening TeamViewer connection...', title: 'TeamViewer', type: 'info' });
+    openTeamViewer();
+  };
+
+  const handleOpenKiosk = () => {
+    window.open('/store/kiosk', '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
@@ -97,7 +111,7 @@ export function Header({
   const roleBadge =
     user.role === 'admin'
       ? 'bg-purple-100 text-purple-700 border-purple-200'
-      : user.role === 'optom'
+      : user.role === 'optometrist'
         ? 'bg-blue-100 text-blue-700 border-blue-200'
         : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 
@@ -120,7 +134,7 @@ export function Header({
               className={`${avatarSize} shadow-sm ring-2 ring-white transition-all group-hover:ring-blue-200`}
             >
               {photoUrl && <AvatarImage alt={user.name} src={photoUrl} />}
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-bold text-white">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-medium text-white">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -134,14 +148,14 @@ export function Header({
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12 flex-shrink-0 shadow-md">
               {photoUrl && <AvatarImage alt={user.name} src={photoUrl} />}
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-base font-bold text-white">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-base font-medium text-white">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold text-gray-900">{user.name}</div>
+              <div className="truncate text-sm font-medium text-gray-900">{user.name}</div>
               <div
-                className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-semibold capitalize ${roleBadge}`}
+                className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-medium capitalize ${roleBadge}`}
               >
                 {user.role}
               </div>
@@ -149,7 +163,7 @@ export function Header({
           </div>
         </div>
 
-        <DropdownMenuLabel className="px-2 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+        <DropdownMenuLabel className="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-widest text-slate-400">
           Login Details
         </DropdownMenuLabel>
 
@@ -158,15 +172,15 @@ export function Header({
             <Mail className="text-blue-600" size={13} />
           </div>
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400">Email</div>
-            <div className="truncate text-xs font-semibold text-gray-800">{user.email}</div>
+            <div className="text-[10px] font-medium text-slate-400">Email</div>
+            <div className="truncate text-xs font-medium text-gray-800">{user.email}</div>
           </div>
         </div>
 
         <DropdownMenuSeparator className="my-2" />
 
         <DropdownMenuItem
-          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2.5 font-semibold text-red-600 transition-colors hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
+          className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2.5 font-medium text-red-600 transition-colors hover:bg-red-50 focus:bg-red-50 focus:text-red-700"
           onClick={handleLogout}
         >
           <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50">
@@ -185,10 +199,10 @@ export function Header({
           <img
             alt="Titan Eye Logo"
             className="w-24 shrink-0 object-contain sm:w-28 md:w-32"
-            src="/logo.png"
+            src="/images/logo-black.png"
           />
           {consoleLabel && (
-            <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 sm:max-w-none sm:px-2.5 sm:text-xs">
+            <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:max-w-none sm:px-2.5 sm:text-xs">
               {consoleLabel}
             </div>
           )}
@@ -197,9 +211,9 @@ export function Header({
         {activeTab && setActiveTab && (
           <div className="order-2 hidden items-center gap-2 overflow-x-auto py-0.5 [ms-overflow-style:none] [scrollbar-width:none] md:gap-3 xl:flex [&::-webkit-scrollbar]:hidden">
             <button
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 activeTab === 'customers'
-                  ? 'bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('customers')}
@@ -208,23 +222,23 @@ export function Header({
                 className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}
                 size={16}
               />
-              <span className="whitespace-nowrap">Customers Record</span>
+              <span className="whitespace-nowrap">Dashboard</span>
             </button>
             <button
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 activeTab === 'users'
-                  ? 'bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('users')}
             >
               <UserPlus className={activeTab === 'users' ? 'text-[#1a2b6e]' : 'text-slate-400'} size={16} />
-              <span className="whitespace-nowrap">Users Record</span>
+              <span className="whitespace-nowrap">User Record</span>
             </button>
             <button
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 activeTab === 'feedback'
-                  ? 'bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('feedback')}
@@ -236,9 +250,9 @@ export function Header({
               <span className="whitespace-nowrap">Feedback</span>
             </button>
             <button
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition-all ${
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 activeTab === 'auditLogs'
-                  ? 'bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('auditLogs')}
@@ -270,14 +284,38 @@ export function Header({
             className={`hidden sm:inline ${wifiIconColor} shrink-0 animate-pulse transition-colors duration-300`}
             size={14}
           />
-          <span className="hidden text-xs font-semibold text-gray-700 transition-all duration-300 sm:inline">
+          <span className="hidden text-xs font-medium text-gray-700 transition-all duration-300 sm:inline">
             {speed}
           </span>
           <span
-            className={`hidden sm:inline ${statusColor} rounded-sm px-1.5 py-0.5 text-[9px] font-extrabold transition-colors duration-300 sm:text-[10px]`}
+            className={`hidden sm:inline ${statusColor} rounded-sm px-1.5 py-0.5 text-[9px] font-medium transition-colors duration-300 sm:text-[10px]`}
           >
             {statusLabel}
           </span>
+
+          {user.role === 'store' && (
+            <button
+              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-cyan-700"
+              onClick={handleOpenKiosk}
+              title="Open the TV call screen in a new tab"
+              type="button"
+            >
+              <MonitorPlay className="shrink-0" size={14} />
+              <span className="hidden sm:inline">TV Mode</span>
+            </button>
+          )}
+
+          {user.role === 'optometrist' && (
+            <button
+              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-[#4f46e5] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#4338ca]"
+              onClick={handleOpenTeamViewer}
+              title="Open TeamViewer Remote Control"
+              type="button"
+            >
+              <Monitor className="shrink-0" size={14} />
+              <span className="hidden sm:inline">TeamViewer</span>
+            </button>
+          )}
 
           <button
             className="hidden cursor-pointer rounded-lg p-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 sm:inline-flex sm:p-2"
@@ -293,9 +331,9 @@ export function Header({
         {activeTab && setActiveTab && (
           <div className="order-3 flex w-full max-w-full items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 [ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 xl:hidden [&::-webkit-scrollbar]:hidden">
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'customers'
-                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('customers')}
@@ -304,15 +342,15 @@ export function Header({
                 className={`shrink-0 ${activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
                 size={15}
               />
-              <span className="truncate whitespace-nowrap font-bold">
+              <span className="truncate whitespace-nowrap font-medium">
                 <span className="inline sm:hidden">Customers</span>
-                <span className="hidden sm:inline">Customers Record</span>
+                <span className="hidden sm:inline">Dashboard</span>
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'users'
-                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('users')}
@@ -321,15 +359,15 @@ export function Header({
                 className={`shrink-0 ${activeTab === 'users' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
                 size={15}
               />
-              <span className="truncate whitespace-nowrap font-bold">
+              <span className="truncate whitespace-nowrap font-medium">
                 <span className="inline sm:hidden">Users</span>
-                <span className="hidden sm:inline">Users Record</span>
+                <span className="hidden sm:inline">User Record</span>
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'feedback'
-                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('feedback')}
@@ -338,15 +376,15 @@ export function Header({
                 className={`shrink-0 ${activeTab === 'feedback' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
                 size={15}
               />
-              <span className="truncate whitespace-nowrap font-bold">
+              <span className="truncate whitespace-nowrap font-medium">
                 <span className="inline sm:hidden">Feedback</span>
                 <span className="hidden sm:inline">Customer Feedback</span>
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'auditLogs'
-                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-bold text-[#1a2b6e]'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
               onClick={() => setActiveTab('auditLogs')}
@@ -355,7 +393,7 @@ export function Header({
                 className={`shrink-0 ${activeTab === 'auditLogs' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
                 size={15}
               />
-              <span className="truncate whitespace-nowrap font-bold">
+              <span className="truncate whitespace-nowrap font-medium">
                 <span className="inline sm:hidden">Audit</span>
                 <span className="hidden sm:inline">Audit Logs</span>
               </span>

@@ -2,7 +2,7 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Bell, Plus } from 'lucide-react';
 import * as React from 'react';
 
-import type { ColumnOption, Customer, OptomUserRow, SSEEventDetail, StatusTab } from '../../types';
+import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
 
 import {
   cancelCallAction,
@@ -24,10 +24,11 @@ import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from './components/cells';
-import { CustomerActionsCell } from './components/CustomerActionsCell';
+import { CustomerActionsCell, CustomerStatusBadge } from './components/CustomerActionsCell';
 import { parseTimestamp } from './components/formatters';
 import { StoreCard } from './components/StoreCard';
 import { StorePatientDetails } from './StorePatientDetails';
+import { StorePatientDetailsPage } from './StorePatientDetailsPage';
 import { StoreRxDetails } from './StoreRxDetails';
 
 export function StoreScreen() {
@@ -43,6 +44,7 @@ export function StoreScreen() {
   const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
+  const [isViewingDetails, setIsViewingDetails] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [loadingCallId, setLoadingCallId] = React.useState<null | string>(null);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
@@ -152,6 +154,12 @@ export function StoreScreen() {
     [customers, selectedCustomerId]
   );
 
+  // A store can only have one outstanding Optometrist request at a time.
+  const hasActiveRequest = React.useMemo(
+    () => customers.some((c) => c.status === 'Initiated' || c.status === 'Accepted'),
+    [customers]
+  );
+
   const tabCounts = React.useMemo(
     () => ({
       all: customers.length,
@@ -210,14 +218,14 @@ export function StoreScreen() {
     return list;
   }, [customers, statusTab, customerDateRange, customerSearchTerm]);
 
-  const optomUsersWithStatus = React.useMemo<OptomUserRow[]>(
+  const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () =>
       users
-        .filter((u) => u.role === 'optom')
-        .map((optomUser) => {
-          if (optomUser.status === 'inactive' || !(optomUser.isLoggedIn ?? false)) {
+        .filter((u) => u.role === 'optometrist')
+        .map((optometristUser) => {
+          if (optometristUser.status === 'inactive' || !(optometristUser.isLoggedIn ?? false)) {
             return {
-              ...optomUser,
+              ...optometristUser,
               activeCall: null as Customer | null,
               avail: {
                 badgeClass:
@@ -229,8 +237,8 @@ export function StoreScreen() {
             };
           }
 
-          const optomNameLower = optomUser.name.toLowerCase();
-          const optomEmailLower = optomUser.email.toLowerCase();
+          const optometristNameLower = optometristUser.name.toLowerCase();
+          const optometristEmailLower = optometristUser.email.toLowerCase();
 
           const activeCall = customers.find((c) => {
             const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
@@ -241,12 +249,12 @@ export function StoreScreen() {
 
             const takenByLower = c.callTakenBy.toLowerCase();
 
-            return takenByLower === optomNameLower || takenByLower === optomEmailLower;
+            return takenByLower === optometristNameLower || takenByLower === optometristEmailLower;
           });
 
           if (activeCall) {
             return {
-              ...optomUser,
+              ...optometristUser,
               activeCall,
               avail: {
                 badgeClass:
@@ -259,7 +267,7 @@ export function StoreScreen() {
           }
 
           return {
-            ...optomUser,
+            ...optometristUser,
             activeCall: null as Customer | null,
             avail: {
               badgeClass:
@@ -273,16 +281,16 @@ export function StoreScreen() {
     [users, customers]
   );
 
-  const availableOptomDoctors = React.useMemo(
-    () => optomUsersWithStatus.filter((u) => u.avail.statusLabel === 'Available'),
-    [optomUsersWithStatus]
+  const availableOptometristDoctors = React.useMemo(
+    () => optometristUsersWithStatus.filter((u) => u.avail.statusLabel === 'Available'),
+    [optometristUsersWithStatus]
   );
 
   const prevAvailableCountRef = React.useRef<number>(0);
   const isInitialFetchRef = React.useRef(true);
 
   React.useEffect(() => {
-    const currentCount = availableOptomDoctors.length;
+    const currentCount = availableOptometristDoctors.length;
     const prevCount = prevAvailableCountRef.current;
 
     if (isInitialFetchRef.current) {
@@ -295,27 +303,30 @@ export function StoreScreen() {
     }
 
     if (currentCount > 0 && prevCount === 0) {
-      const names = availableOptomDoctors.map((d) => d.name).join(', ');
+      const names = availableOptometristDoctors.map((d) => d.name).join(', ');
       addLogNotification({
-        description: `${names} ${availableOptomDoctors.length > 1 ? 'are' : 'is'} online and ready for incoming calls.`,
-        title: 'Optom Doctor Available',
-        type: 'optom_available',
+        description: `${names} ${availableOptometristDoctors.length > 1 ? 'are' : 'is'} online and ready for incoming calls.`,
+        title: 'Optometrist Doctor Available',
+        type: 'optometrist_available',
       });
     }
 
     prevAvailableCountRef.current = currentCount;
-  }, [availableOptomDoctors, addLogNotification, users.length]);
+  }, [availableOptometristDoctors, addLogNotification, users.length]);
 
   const STORE_CUSTOMER_COLUMNS = React.useMemo<ColumnOption[]>(
     () => [
       { id: 'id', isMandatory: true, label: 'Customer ID' },
-      { id: 'name', isMandatory: true, label: 'Customer Name' },
-      { id: 'language', isMandatory: false, label: 'Language' },
+      { id: 'name', isMandatory: true, label: 'Name' },
+      { id: 'language', isMandatory: false, label: 'Lang' },
       { id: 'waiting', isMandatory: false, label: 'Waiting' },
       { id: 'callDuration', isMandatory: false, label: 'Call Duration' },
+      ...(statusTab !== 'Pending' ? [{ id: 'optometrist', isMandatory: false, label: 'Optometrist' }] : []),
+      ...(statusTab === 'Pending' ? [{ id: 'position', isMandatory: true, label: 'Queue' }] : []),
+      ...(statusTab === 'all' ? [{ id: 'status', isMandatory: true, label: 'Status' }] : []),
       { id: 'actions', isMandatory: true, label: 'Actions' },
     ],
-    []
+    [statusTab]
   );
 
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
@@ -355,20 +366,20 @@ export function StoreScreen() {
     try {
       await dispatch(initiateCallAction(customerId));
       toast({
-        description: 'Your request has been sent to the available Optom doctor.',
-        title: 'Optom Requested',
+        description: 'Your request has been sent to the available Optometrist doctor.',
+        title: 'Optometrist Requested',
         type: 'success',
       });
     } catch (e) {
       const err = e as Error;
 
-      if (err.message?.includes('No Optom doctors are currently available')) {
+      if (err.message?.includes('No Optometrist doctors are currently available')) {
         toast({
-          description: 'All Optom doctors are currently busy. Please try again in a few minutes.',
-          title: 'Optom Unavailable',
+          description: 'All Optometrist doctors are currently busy. Please try again in a few minutes.',
+          title: 'Optometrist Unavailable',
           type: 'error',
         });
-      } else if (err.message?.includes('already has a pending Optom request')) {
+      } else if (err.message?.includes('already has a pending Optometrist request')) {
         toast({ description: err.message, title: 'Request Already Pending', type: 'error' });
       } else if (err.message?.includes('409') || err.message?.includes('already taken')) {
         toast({
@@ -392,14 +403,14 @@ export function StoreScreen() {
     try {
       await dispatch(cancelCallAction(customerId));
       toast({
-        description: 'Optom request has been cancelled.',
+        description: 'Optometrist request has been cancelled.',
         title: 'Request Cancelled',
         type: 'info',
       });
     } catch (e) {
       const err = e as Error;
       toast({
-        description: err.message || 'Failed to cancel Optom request.',
+        description: err.message || 'Failed to cancel Optometrist request.',
         title: 'System Error',
         type: 'error',
       });
@@ -443,60 +454,79 @@ export function StoreScreen() {
     setSelectedCustomerId(id);
   };
 
+  const handleViewDetails = (id: string) => {
+    setIsAddingNew(false);
+    setIsEditing(false);
+    setIsEditingRx(false);
+    setSelectedCustomerId(id);
+    setIsViewingDetails(true);
+  };
+
   const customerColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
     () => [
       {
         accessorKey: 'id',
         cell: ({ row }) => (
-          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{row.original.id}</span>
+          <span className="text-xs font-normal text-blue-600 dark:text-blue-400">{row.original.id}</span>
         ),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-            Customer ID
-          </span>
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Customer ID</span>
         ),
         id: 'id',
-        meta: { cellClassName: 'py-3', headerClassName: 'w-[100px]' },
+        meta: { cellClassName: 'py-3' },
         size: 100,
       },
       {
         accessorKey: 'name',
-        cell: ({ row }) => <span className="text-xs font-semibold text-foreground">{row.original.name}</span>,
+        cell: ({ row }) => <span className="text-xs font-normal text-foreground">{row.original.name}</span>,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-            Customer Name
-          </span>
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Name</span>
         ),
         id: 'name',
-        meta: { cellClassName: 'py-3', headerClassName: 'min-w-[150px]' },
+        meta: { cellClassName: 'py-3' },
         size: 150,
       },
       {
-        accessorKey: 'preferredLanguage',
-        cell: ({ row }) => (
-          <span className="text-xs font-medium text-foreground">{row.original.preferredLanguage}</span>
-        ),
+        cell: ({ row }) => {
+          const languages = [row.original.preferredLanguage, row.original.preferredLanguage2].filter(
+            (lang): lang is string => Boolean(lang) && lang !== 'None'
+          );
+
+          return (
+            <div className="flex flex-wrap gap-1">
+              {languages.length > 0 ? (
+                languages.map((lang) => (
+                  <span className="text-xs font-medium text-foreground" key={lang}>
+                    {lang}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </div>
+          );
+        },
         enableHiding: true,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-            Language
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+            Preferred Languages
           </span>
         ),
         id: 'language',
-        meta: { cellClassName: 'py-3', headerClassName: 'min-w-[110px]' },
-        size: 110,
+        meta: { cellClassName: 'py-3' },
+        size: 180,
       },
       {
         cell: ({ row }) => <WaitingCell cust={row.original} />,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">Waiting</span>
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Waiting</span>
         ),
         id: 'waiting',
-        meta: { cellClassName: 'py-3', headerClassName: 'min-w-[120px]' },
+        meta: { cellClassName: 'py-3' },
         size: 120,
       },
       {
@@ -504,19 +534,77 @@ export function StoreScreen() {
         cell: ({ row }) => renderCallDuration(row.original),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-bold uppercase text-muted-foreground">
-            Call Duration
-          </span>
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Call Duration</span>
         ),
         id: 'callDuration',
-        meta: { cellClassName: 'py-3', headerClassName: 'min-w-[130px]' },
+        meta: { cellClassName: 'py-3' },
         size: 130,
       },
+      ...(statusTab !== 'Pending'
+        ? [
+            {
+              cell: ({ row }: { row: { original: Customer } }) =>
+                row.original.callTakenBy ? (
+                  <span className="text-xs font-normal text-foreground">{row.original.callTakenBy}</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                ),
+              enableSorting: false,
+              header: () => (
+                <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">
+                  Optometrist
+                </span>
+              ),
+              id: 'optometrist',
+              meta: { cellClassName: 'py-3' },
+              size: 150,
+            } satisfies ColumnDef<DataGridFeatures, Customer>,
+          ]
+        : []),
+      ...(statusTab === 'Pending'
+        ? [
+            {
+              cell: ({ row }: { row: { original: Customer } }) => {
+                const pos = row.original.queuePosition;
+
+                return pos ? (
+                  <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
+                    {pos}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                );
+              },
+              enableSorting: false,
+              header: () => (
+                <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Queue</span>
+              ),
+              id: 'position',
+              meta: { cellClassName: 'py-3' },
+              size: 110,
+            } satisfies ColumnDef<DataGridFeatures, Customer>,
+          ]
+        : []),
+      ...(statusTab === 'all'
+        ? [
+            {
+              cell: ({ row }: { row: { original: Customer } }) => <CustomerStatusBadge status={row.original.status} />,
+              enableSorting: false,
+              header: () => (
+                <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Status</span>
+              ),
+              id: 'status',
+              meta: { cellClassName: 'py-3' },
+              size: 110,
+            } satisfies ColumnDef<DataGridFeatures, Customer>,
+          ]
+        : []),
       {
         cell: ({ row }) => (
           <CustomerActionsCell
             completingCallId={completingCallId}
             cust={row.original}
+            disableRequest={hasActiveRequest}
             loadingCallId={loadingCallId}
             onCancelCall={handleCancelCall}
             onCompleteCall={handleCompleteCall}
@@ -524,23 +612,24 @@ export function StoreScreen() {
             onSelectCustomer={handleSelectCustomer}
             onSetEditing={setIsEditing}
             onSetEditingRx={setIsEditingRx}
+            onViewDetails={handleViewDetails}
             statusTab={statusTab}
             user={user}
           />
         ),
         enableSorting: false,
         header: () => (
-          <span className="block whitespace-nowrap pr-4 text-right text-xs font-bold uppercase text-muted-foreground">
+          <span className="block whitespace-nowrap pr-4 text-right text-sm font-medium text-muted-foreground">
             Actions
           </span>
         ),
         id: 'actions',
-        meta: { cellClassName: 'text-right py-3 pr-4', headerClassName: 'min-w-[240px] text-right pr-4' },
+        meta: { cellClassName: 'py-3 pr-4' },
         size: 240,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadingCallId, completingCallId, user, statusTab]
+    [loadingCallId, completingCallId, user, statusTab, hasActiveRequest]
   );
 
   const customersTable = useTable({
@@ -568,6 +657,8 @@ export function StoreScreen() {
     <AppLayout>
       {isEditingRx ? (
         <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
+      ) : isViewingDetails ? (
+        <StorePatientDetailsPage onBack={() => setIsViewingDetails(false)} selectedCustomer={selectedCustomer} />
       ) : (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -577,7 +668,7 @@ export function StoreScreen() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
-                className="h-10 gap-2 px-4 text-xs font-bold"
+                className="h-10 gap-2 px-4 text-xs font-medium"
                 onClick={() => window.dispatchEvent(new CustomEvent('titan:open_notifications'))}
                 variant="outline"
               >
@@ -585,7 +676,7 @@ export function StoreScreen() {
                 View Notification
               </Button>
               <Button
-                className="h-10 gap-2 px-4 text-sm font-semibold text-white shadow-sm"
+                className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
                 onClick={handleAddNewClick}
                 variant="gradient"
               >
@@ -597,7 +688,7 @@ export function StoreScreen() {
 
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <StoreCard tabCounts={tabCounts} variant="metrics" />
-            <StoreCard data={optomUsersWithStatus} variant="optom-users" />
+            <StoreCard data={optometristUsersWithStatus} variant="optometrist-users" />
           </div>
 
           <StoreCard

@@ -23,10 +23,13 @@ function isSessionLive(u: Pick<UserRow, 'activeTokenSig' | 'lastLogin'>): boolea
 
 const router = Router();
 
-const VALID_ROLES = ['store', 'optom', 'admin'];
+const VALID_ROLES = ['store', 'optometrist', 'admin'];
 
 interface CreateUserBody {
+  city?: string;
   email?: string;
+  languages?: string[];
+  location?: string;
   mobile?: string;
   name?: string;
   password?: string;
@@ -44,12 +47,54 @@ interface UpdateStatusBody {
 
 type UpdateStatusResponseBody = ErrorResponse | { email: string; status: string };
 interface UpdateUserBody {
+  city?: string;
+  languages?: string[];
+  location?: string;
   mobile?: string;
   name?: string;
   password?: string;
   role?: string;
   storeName?: string;
 }
+
+// Optometrist users submit their own display name. Store users don't, so their
+// Store Code doubles as the name shown everywhere (headers, notifications,
+// call attribution, audit logs). Admins get neither — the column stays NOT
+// NULL, so fall back to the email's local part.
+function deriveName(role: string, email: string, name?: string, storeName?: string): string {
+  if (role === 'optometrist' && name?.trim()) {
+    return name.trim();
+  }
+
+  if (role === 'store' && storeName?.trim()) {
+    return storeName.trim();
+  }
+
+  return email.split('@')[0];
+}
+
+function parseLanguages(raw: null | string): null | string[] {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
+function serializeLanguages(role: string, languages?: string[]): null | string {
+  if (role !== 'optometrist' || !Array.isArray(languages) || languages.length === 0) {
+    return null;
+  }
+
+  return JSON.stringify(languages.filter((l) => typeof l === 'string' && l.trim()));
+}
+
 type UserListResponseBody = ErrorResponse | ManagedUserResponse[];
 
 function getFormattedTimestamp(): string {
@@ -75,12 +120,15 @@ function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void
 router.get('/', async (_req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
   try {
     const rows = await all<UserRow>(
-      'SELECT email, name, role, storeName, mobile, lastLogin, status, activeTokenSig FROM users ORDER BY email'
+      'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, status, activeTokenSig FROM users ORDER BY email'
     );
     const result = rows.map((u) => ({
+      city: u.city,
       email: u.email,
       isLoggedIn: isSessionLive(u),
+      languages: parseLanguages(u.languages),
       lastLogin: u.lastLogin,
+      location: u.location,
       mobile: u.mobile,
       name: u.name,
       role: u.role,
@@ -106,14 +154,10 @@ router.post(
     res: Response<ManagedUserResponseBody>
   ) => {
     try {
-      const { email, mobile, name, password, role, storeName } = req.body;
+      const { city, email, languages, location, mobile, name, password, role, storeName } = req.body;
 
       if (!email || typeof email !== 'string' || !email.trim()) {
         return res.status(400).json({ error: 'Email is required' });
-      }
-
-      if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ error: 'Name is required' });
       }
 
       if (!password || typeof password !== 'string' || password.length < 6) {
@@ -134,10 +178,23 @@ router.post(
       }
 
       const finalStoreName = role === 'store' ? storeName || null : null;
+      const derivedName = deriveName(role, normalizedEmail, name, storeName);
+      const finalLanguages = serializeLanguages(role, languages);
 
       await run(
-        'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [normalizedEmail, name.trim(), role, finalStoreName, mobile || null, 'active', hashPassword(password)]
+        'INSERT INTO users (email, name, role, storeName, mobile, location, city, languages, status, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          normalizedEmail,
+          derivedName,
+          role,
+          finalStoreName,
+          mobile || null,
+          location || null,
+          city || null,
+          finalLanguages,
+          'active',
+          hashPassword(password),
+        ]
       );
 
       const adminReq = req as unknown as AuthenticatedRequest;
@@ -152,12 +209,12 @@ router.post(
           adminName,
           'USER_CREATED',
           normalizedEmail,
-          `Role: ${role.toUpperCase()}, Name: ${name.trim()}${finalStoreName ? `, Store: ${finalStoreName}` : ''}`,
+          `Role: ${role.toUpperCase()}${finalStoreName ? `, Store: ${finalStoreName}` : ''}`,
           timestamp,
         ]
       );
       broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_CREATED', target: normalizedEmail });
-      broadcastEvent('USER_CREATED', { email: normalizedEmail, name: name.trim(), role });
+      broadcastEvent('USER_CREATED', { email: normalizedEmail, name: derivedName, role });
       logSecurityEvent('ADMIN_USER_CREATED', {
         adminEmail,
         requestId: req.requestId,
@@ -166,10 +223,13 @@ router.post(
       });
 
       return res.status(201).json({
+        city: city || null,
         email: normalizedEmail,
+        languages: parseLanguages(finalLanguages),
         lastLogin: null,
+        location: location || null,
         mobile: mobile || null,
-        name: name.trim(),
+        name: derivedName,
         role,
         status: 'active',
         storeName: finalStoreName,
@@ -191,19 +251,15 @@ router.put(
   ) => {
     try {
       const email = String(req.params.email);
-      const { mobile, name, password, role, storeName } = req.body;
+      const { city, languages, location, mobile, name, password, role, storeName } = req.body;
 
       const existing = await get<UserRow>(
-        'SELECT email, name, role, storeName, mobile, lastLogin, status, password FROM users WHERE LOWER(email) = LOWER(?)',
+        'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, status, password FROM users WHERE LOWER(email) = LOWER(?)',
         [email]
       );
 
       if (!existing) {
         return res.status(404).json({ error: 'User not found' });
-      }
-
-      if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ error: 'Name is required' });
       }
 
       if (!role || !VALID_ROLES.includes(role)) {
@@ -220,10 +276,22 @@ router.put(
 
       const finalStoreName = role === 'store' ? storeName || null : null;
       const newPassword = password ? hashPassword(password) : existing.password;
+      const derivedName = deriveName(role, existing.email, name, storeName);
+      const finalLanguages = serializeLanguages(role, languages);
 
       await run(
-        'UPDATE users SET name = ?, role = ?, storeName = ?, mobile = ?, password = ? WHERE LOWER(email) = LOWER(?)',
-        [name.trim(), role, finalStoreName, mobile || null, newPassword, email]
+        'UPDATE users SET name = ?, role = ?, storeName = ?, mobile = ?, location = ?, city = ?, languages = ?, password = ? WHERE LOWER(email) = LOWER(?)',
+        [
+          derivedName,
+          role,
+          finalStoreName,
+          mobile || null,
+          location || null,
+          city || null,
+          finalLanguages,
+          newPassword,
+          email,
+        ]
       );
 
       const adminReq = req as unknown as AuthenticatedRequest;
@@ -233,17 +301,10 @@ router.put(
 
       await run(
         'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          adminEmail,
-          adminName,
-          'USER_UPDATED',
-          existing.email,
-          `Role: ${role.toUpperCase()}, Name: ${name.trim()}`,
-          timestamp,
-        ]
+        [adminEmail, adminName, 'USER_UPDATED', existing.email, `Role: ${role.toUpperCase()}`, timestamp]
       );
       broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_UPDATED', target: existing.email });
-      broadcastEvent('USER_UPDATED', { email: existing.email, name: name.trim(), role });
+      broadcastEvent('USER_UPDATED', { email: existing.email, name: derivedName, role });
       logSecurityEvent('ADMIN_USER_UPDATED', {
         adminEmail,
         passwordChanged: Boolean(password),
@@ -253,10 +314,13 @@ router.put(
       });
 
       return res.json({
+        city: city || null,
         email: existing.email,
+        languages: parseLanguages(finalLanguages),
         lastLogin: existing.lastLogin,
+        location: location || null,
         mobile: mobile || null,
-        name: name.trim(),
+        name: derivedName,
         role,
         status: existing.status,
         storeName: finalStoreName,

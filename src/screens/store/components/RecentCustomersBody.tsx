@@ -46,7 +46,9 @@ export function RecentCustomersBody({
 }: RecentCustomersBodyProps) {
   return (
     <>
-      <StatusTabs onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+      <StatusTabs hideCompleted onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+
+      <div className="border-b border-gray-200" />
 
       <div className="flex-1 overflow-x-auto">
         <DataGrid
@@ -55,9 +57,9 @@ export function RecentCustomersBody({
           table={customersTable}
           tableLayout={{
             dense: false,
-            headerBackground: true,
+            headerBackground: false,
             headerBorder: true,
-            rowBorder: true,
+            rowBorder: false,
             width: 'auto',
           }}
         >

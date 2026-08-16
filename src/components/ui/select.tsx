@@ -25,7 +25,7 @@ const SelectTrigger = React.forwardRef<
 >(({ children, className, size = 'default', ...props }, ref) => (
   <SelectPrimitive.Trigger
     className={cn(
-      'shadow-xs flex w-full cursor-pointer items-center justify-between rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800/50 [&>span]:line-clamp-1',
+      'shadow-xs flex w-full cursor-pointer items-center justify-between rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800/50 [&>span]:line-clamp-1',
       size === 'sm' ? 'h-7' : 'h-9',
       className
     )}
@@ -72,7 +72,7 @@ const SelectItem = React.forwardRef<
 >(({ children, className, ...props }, ref) => (
   <SelectPrimitive.Item
     className={cn(
-      'relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-xs font-semibold outline-none transition-colors focus:bg-blue-50 focus:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/50 dark:focus:text-blue-300',
+      'relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-xs font-medium outline-none transition-colors focus:bg-blue-50 focus:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/50 dark:focus:text-blue-300',
       className
     )}
     ref={ref}

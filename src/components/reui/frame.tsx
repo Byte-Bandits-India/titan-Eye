@@ -169,7 +169,7 @@ function FramePanel({ className, fit, ...props }: React.ComponentProps<'div'> & 
 }
 
 function FrameTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('text-sm font-semibold', className)} data-slot="frame-panel-title" {...props} />;
+  return <div className={cn('text-sm font-medium', className)} data-slot="frame-panel-title" {...props} />;
 }
 
 export { Frame, FrameDescription, FrameFooter, FrameHeader, FramePanel, FrameTitle, frameVariants };
