@@ -23,6 +23,7 @@ export interface CustomerRow {
   callDuration: number;
   callStartTime: null | string;
   callTakenBy: null | string;
+  cancellationReason: null | string;
   createdOn: null | string;
   customerType: string;
   declinedByOptometristEmails: null | string;
@@ -56,6 +57,24 @@ export interface FeedbackTokenRow {
 
 export type SqlParam = bigint | Buffer | null | number | string;
 
+export interface VideoRow {
+  id: number;
+  mimeType: null | string;
+  originalName: null | string;
+  size: null | number;
+  sourceType: 'upload' | 'youtube';
+  storedName: null | string;
+  title: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  youtubeUrl: null | string;
+}
+
+export interface KioskSettingRow {
+  activeVideoId: null | number;
+  id: number;
+}
+
 export interface UserRow {
   activeTokenSig: null | string;
   azureObjectId: null | string;
@@ -64,6 +83,7 @@ export interface UserRow {
   failedLoginAttempts: number;
   languages: null | string;
   lastLogin: null | string;
+  lastPing: null | string;
   location: null | string;
   lockedUntil: null | string;
   microsoftUpn: null | string;
@@ -124,7 +144,8 @@ export async function initializeDatabase(): Promise<void> {
       activeTokenSig TEXT,
       location TEXT,
       city TEXT,
-      languages TEXT
+      languages TEXT,
+      lastPing TEXT
     )
   `);
 
@@ -138,6 +159,10 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     await run(`ALTER TABLE users ADD COLUMN languages TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN lastPing TEXT`);
   } catch {}
 
   await run(`UPDATE users SET role = 'optometrist' WHERE role = 'optom'`);
@@ -241,6 +266,10 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE customers ADD COLUMN isPriority INTEGER DEFAULT 0`);
   } catch {}
 
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN cancellationReason TEXT`);
+  } catch {}
+
   await run(
     `UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`
   );
@@ -308,6 +337,69 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      sourceType TEXT NOT NULL DEFAULT 'upload',
+      storedName TEXT,
+      originalName TEXT,
+      mimeType TEXT,
+      size INTEGER,
+      youtubeUrl TEXT,
+      uploadedBy TEXT NOT NULL,
+      uploadedAt TEXT NOT NULL
+    )
+  `);
+
+  try {
+    await run(`ALTER TABLE videos ADD COLUMN sourceType TEXT NOT NULL DEFAULT 'upload'`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE videos ADD COLUMN youtubeUrl TEXT`);
+  } catch {}
+
+  try {
+    const columns = db.prepare('PRAGMA table_info(videos)').all() as { name: string; notnull: number }[];
+    const storedNameColumn = columns.find((c) => c.name === 'storedName');
+
+    // Older databases created the videos table before YouTube links were supported, with
+    // storedName/originalName/mimeType/size as NOT NULL. SQLite can't relax a column
+    // constraint via ALTER TABLE, so rebuild the table when that legacy schema is detected.
+    if (storedNameColumn?.notnull) {
+      await run(`ALTER TABLE videos RENAME TO videos_legacy`);
+      await run(`
+        CREATE TABLE videos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          sourceType TEXT NOT NULL DEFAULT 'upload',
+          storedName TEXT,
+          originalName TEXT,
+          mimeType TEXT,
+          size INTEGER,
+          youtubeUrl TEXT,
+          uploadedBy TEXT NOT NULL,
+          uploadedAt TEXT NOT NULL
+        )
+      `);
+      await run(`
+        INSERT INTO videos (id, title, sourceType, storedName, originalName, mimeType, size, youtubeUrl, uploadedBy, uploadedAt)
+        SELECT id, title, sourceType, storedName, originalName, mimeType, size, youtubeUrl, uploadedBy, uploadedAt FROM videos_legacy
+      `);
+      await run(`DROP TABLE videos_legacy`);
+    }
+  } catch (e) {
+    logger.error('Videos table migration failed', { errorMessage: e instanceof Error ? e.message : String(e) });
+  }
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS kiosk_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      activeVideoId INTEGER
+    )
+  `);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS admin_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       adminEmail TEXT NOT NULL,
@@ -334,7 +426,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason
     FROM customers
   `);
 

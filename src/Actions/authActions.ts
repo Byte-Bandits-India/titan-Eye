@@ -6,24 +6,26 @@ import { loginFailure, loginStart, loginSuccess, logout } from '../Reducers/auth
 import { AppDispatch } from '../store';
 import { apiClient } from '../Util/apiClient';
 
-export const loginAction = (email: string, password: string) => async (dispatch: AppDispatch) => {
-  dispatch(loginStart());
+export const loginAction =
+  (email: string, password: string, rememberMe = false) =>
+  async (dispatch: AppDispatch) => {
+    dispatch(loginStart());
 
-  try {
-    const response = await apiClient.post<LoginResponse>('/login', { email, password });
-    dispatch(loginSuccess(response.data));
-  } catch (e) {
-    let message = 'An error occurred during login.';
+    try {
+      const response = await apiClient.post<LoginResponse>('/login', { email, password, rememberMe });
+      dispatch(loginSuccess({ ...response.data, rememberMe }));
+    } catch (e) {
+      let message = 'An error occurred during login.';
 
-    if (axios.isAxiosError(e) && e.response?.data) {
-      const data = e.response.data as { error?: string };
-      message = data.error || message;
+      if (axios.isAxiosError(e) && e.response?.data) {
+        const data = e.response.data as { error?: string };
+        message = data.error || message;
+      }
+
+      dispatch(loginFailure(message));
+      throw e instanceof Error ? e : new Error(message);
     }
-
-    dispatch(loginFailure(message));
-    throw e instanceof Error ? e : new Error(message);
-  }
-};
+  };
 
 export const logoutAction = () => async (dispatch: AppDispatch) => {
   try {

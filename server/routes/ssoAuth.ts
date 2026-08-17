@@ -1,6 +1,6 @@
 import { Request, Response, Router } from 'express';
 
-import { generateToken, SESSION_IDLE_MS } from '../config/jwt.js';
+import { generateToken, JWT_TTL_MS } from '../config/jwt.js';
 import {
   cryptoProvider,
   ENTRA_REDIRECT_URI,
@@ -133,8 +133,6 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
     }
 
-    const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
     const token = generateToken(
       {
         email: fullUser.email,
@@ -142,7 +140,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         role: fullUser.role,
         storeName: fullUser.storeName ?? undefined,
       },
-      SESSION_IDLE_MS
+      JWT_TTL_MS
     );
 
     const newTokenSig = token.split('.')[2];
@@ -162,7 +160,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     res.cookie('token', token, {
       httpOnly: true,
-      maxAge: TOKEN_MAX_AGE_MS,
+      maxAge: JWT_TTL_MS,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
     });

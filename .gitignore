@@ -40,3 +40,5 @@ database.db-wal
 
 localData
 scripts
+# Uploaded media
+uploads/

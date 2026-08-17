@@ -6,6 +6,7 @@ import type {
   AuditLog,
   CustomerStatusTab,
   ManagedUser,
+  ManagedVideo,
   OptometristUserRow,
   UserFormData,
 } from '../../types';
@@ -41,6 +42,8 @@ import {
   getRoleBasedUserId,
 } from './components/adminUtils';
 import { UserFormDrawer } from './components/UserFormDrawer';
+import { VideoDirectoryBody } from './components/VideoDirectoryBody';
+import { VideoUploadDialog } from './components/VideoUploadDialog';
 
 export function AdminScreen() {
   const currentUser = useAppSelector((state) => state.auth.user);
@@ -274,6 +277,99 @@ export function AdminScreen() {
 
     return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [activeTab, fetchAuditLogs]);
+
+  const [videos, setVideos] = React.useState<ManagedVideo[]>([]);
+  const [kioskVideoId, setKioskVideoId] = React.useState<null | number>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = React.useState(false);
+
+  const fetchVideos = React.useCallback(async () => {
+    try {
+      const [videosRes, kioskRes] = await Promise.all([
+        apiClient.get<ManagedVideo[]>('/videos'),
+        apiClient.get<{ video: ManagedVideo | null }>('/videos/kiosk-active'),
+      ]);
+      setVideos(Array.isArray(videosRes.data) ? videosRes.data : []);
+      setKioskVideoId(kioskRes.data.video?.id ?? null);
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to fetch videos',
+        type: 'error',
+      });
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    if (activeTab === 'videos') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchVideos();
+    }
+  }, [activeTab, fetchVideos]);
+
+  const handleUploadVideoFile = async (file: File, title: string) => {
+    setIsUploadingVideo(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('title', title);
+
+      const res = await apiClient.post<ManagedVideo>('/videos', formData);
+      setVideos((prev) => [res.data, ...prev]);
+      setIsUploadDialogOpen(false);
+      toast({ description: `${title} has been uploaded.`, title: 'Video Uploaded', type: 'success' });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to upload video',
+        type: 'error',
+      });
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleDeleteVideo = async (video: ManagedVideo) => {
+    if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/videos/${video.id}`);
+      setVideos((prev) => prev.filter((v) => v.id !== video.id));
+
+      if (kioskVideoId === video.id) {
+        setKioskVideoId(null);
+      }
+
+      toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to delete video',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleSetKioskVideo = async (video: ManagedVideo) => {
+    try {
+      await apiClient.put('/videos/kiosk-active', { videoId: video.id });
+      setKioskVideoId(video.id);
+      toast({
+        description: `${video.title} will now play in store kiosk mode.`,
+        title: 'Kiosk Video Updated',
+        type: 'success',
+      });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to set kiosk video',
+        type: 'error',
+      });
+    }
+  };
 
   const dateFilteredAuditLogs = React.useMemo(
     () => filterAuditLogsByDate(auditLogs, dateRange),
@@ -527,7 +623,9 @@ export function AdminScreen() {
                   ? 'User Directory'
                   : activeTab === 'feedback'
                     ? 'Customer & Store Feedback'
-                    : 'System Audit Logs'}
+                    : activeTab === 'videos'
+                      ? 'Video Library'
+                      : 'System Audit Logs'}
             </h1>
             <p className="text-xs text-muted-foreground sm:text-sm">
               {activeTab === 'customers'
@@ -536,7 +634,9 @@ export function AdminScreen() {
                   ? 'Search, filter, and manage system access'
                   : activeTab === 'feedback'
                     ? 'View store action notes, optometrist assessments, and direct patient feedback'
-                    : 'Track all activity across Store, Optometrist, and Admin roles'}
+                    : activeTab === 'videos'
+                      ? 'Upload and manage videos available in the admin console'
+                      : 'Track all activity across Store, Optometrist, and Admin roles'}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -584,7 +684,7 @@ export function AdminScreen() {
             </div>
             <AdminCard className="lg:col-span-2" data={storeUsersWithStatus} variant="store-users" />
           </div>
-        ) : (
+        ) : activeTab === 'videos' ? null : (
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <AdminCard tabCounts={customerTabCounts} variant="metrics" />
             <AdminCard data={optometristUsersWithStatus} variant="optometrist-users" />
@@ -671,6 +771,14 @@ export function AdminScreen() {
             variant="feedback"
             visibleColumns={visibleFeedbackCols}
           />
+        ) : activeTab === 'videos' ? (
+          <VideoDirectoryBody
+            kioskVideoId={kioskVideoId}
+            onDelete={handleDeleteVideo}
+            onSetKioskVideo={handleSetKioskVideo}
+            onUploadClick={() => setIsUploadDialogOpen(true)}
+            videos={videos}
+          />
         ) : (
           <AdminCard
             currentPage={auditLogCurrentPage}
@@ -717,6 +825,13 @@ export function AdminScreen() {
           <UserFormDrawer editingEmail={editingEmail} onSubmitUser={handleSubmitUser} />
         </SheetContent>
       </Sheet>
+
+      <VideoUploadDialog
+        isUploading={isUploadingVideo}
+        onOpenChange={setIsUploadDialogOpen}
+        onUploadFile={handleUploadVideoFile}
+        open={isUploadDialogOpen}
+      />
     </AppLayout>
   );
 }

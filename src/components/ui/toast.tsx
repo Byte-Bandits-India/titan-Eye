@@ -2,8 +2,6 @@
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import * as React from 'react';
 
-import { cn } from '../../lib/utils';
-
 export interface ToastMessage {
   description: string;
   duration?: number;
@@ -72,36 +70,35 @@ export function useToast() {
 
 function Toaster({ dismiss, toasts }: { dismiss: (id: string) => void; toasts: ToastMessage[] }) {
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-md flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-[22rem] flex-col gap-3">
       {toasts.map((t) => (
         <div
-          className={cn(
-            'pointer-events-auto flex translate-y-0 transform gap-3 rounded-xl border p-4 shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-5',
-            t.type === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/90 dark:text-emerald-300'
-              : t.type === 'error'
-                ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/90 dark:text-rose-300'
-                : 'border-gray-200 bg-white text-gray-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200'
-          )}
+          className="pointer-events-auto w-full overflow-hidden rounded-xl shadow-lg duration-200 animate-in fade-in slide-in-from-top-5"
           key={t.id}
+          style={{ backgroundColor: '#4F59C9' }}
         >
-          <div className="mt-0.5 flex-shrink-0">
-            {t.type === 'success' && (
-              <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            )}
-            {t.type === 'error' && <AlertCircle className="h-5 w-5 text-rose-600 dark:text-rose-400" />}
-            {t.type === 'info' && <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+          <div className="flex items-start gap-4 p-5">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+              style={{ backgroundColor: '#F3D4FE', color: '#9035B8' }}
+            >
+              {t.type === 'success' && <CheckCircle className="h-5 w-5" />}
+              {t.type === 'error' && <AlertCircle className="h-5 w-5" />}
+              {t.type === 'info' && <Info className="h-5 w-5" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              {t.title && <p className="truncate text-base font-bold text-white">{t.title}</p>}
+              <p className="mt-1.5 text-sm font-medium text-white/90">{t.description}</p>
+            </div>
+            <button
+              className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+              onClick={() => dismiss(t.id)}
+              title="Close"
+              type="button"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <div className="flex-grow">
-            {t.title && <div className="mb-0.5 text-sm font-medium">{t.title}</div>}
-            <div className="text-xs opacity-90">{t.description}</div>
-          </div>
-          <button
-            className="h-4 w-4 flex-shrink-0 text-gray-400 transition-colors hover:text-gray-600 dark:text-zinc-500 dark:hover:text-zinc-300"
-            onClick={() => dismiss(t.id)}
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       ))}
     </div>

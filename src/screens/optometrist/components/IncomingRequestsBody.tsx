@@ -47,7 +47,13 @@ export function IncomingRequestsBody({
 }: IncomingRequestsBodyProps) {
   return (
     <>
-      <StatusTabs hideCompleted onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+      <StatusTabs
+        hideCompleted
+        onValueChange={onStatusTabChange}
+        pendingLabel="Queue"
+        tabCounts={tabCounts}
+        value={statusTab}
+      />
 
       <div className="border-b border-gray-200" />
 

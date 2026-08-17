@@ -14,6 +14,20 @@ export const optometristFields: (keyof OptometristRxValues)[] = [
 export const rxHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'];
 export const optometristHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
 
+export const MANDATORY_OPTOMETRIST_FIELDS: (keyof OptometristRxValues)[] = ['sph', 'cyl', 'axis', 'va'];
+
+export function isOptometristRxComplete(
+  rx: null | undefined | { le: OptometristRxValues; re: OptometristRxValues }
+): boolean {
+  if (!rx) {
+    return false;
+  }
+
+  return (['re', 'le'] as const).every((eye) =>
+    MANDATORY_OPTOMETRIST_FIELDS.every((field) => Boolean(rx[eye]?.[field]))
+  );
+}
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export const PAGINATION = {
@@ -22,6 +36,7 @@ export const PAGINATION = {
 } as const;
 
 export const STORAGE_KEYS = {
+  REMEMBERED_EMAIL: 'titan_remembered_email',
   USER: 'titan_user',
 } as const;
 
@@ -30,6 +45,7 @@ export const APP_CONFIG = {
   COMPANY_NAME: 'Titan Company Limited',
   COMPANY_URL: 'titan.co.in',
   NETWORK_POLL_INTERVAL_MS: 10_000,
+  PRESENCE_PING_INTERVAL_MS: 10_000,
 } as const;
 
 export const NAME_REGEX = /^[A-Za-z\s]{3,50}$/;
@@ -80,6 +96,16 @@ export const ADD_OPTIONS: string[] = (() => {
   return opts;
 })();
 
+export const SUBJECTIVE_ADD_OPTIONS: string[] = (() => {
+  const opts: string[] = [];
+
+  for (let i = 75; i <= 400; i += 25) {
+    opts.push(`+${(i / 100).toFixed(2)}`);
+  }
+
+  return opts;
+})();
+
 export const AXIS_OPTIONS: string[] = (() => {
   const opts: string[] = [];
 
@@ -111,6 +137,8 @@ export const PRISM_OPTIONS: string[] = (() => {
 })();
 
 export const BASE_OPTIONS: string[] = ['In', 'Out', 'Up', 'Down'];
+
+export const VA_OPTIONS: string[] = ['6/6', '6/7.5', '6/9', '6/12', '6/15'];
 
 export const emptyRxValues: RxValues = {
   add: '',

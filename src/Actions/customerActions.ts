@@ -92,10 +92,11 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
   }
 };
 
-export const cancelCallAction = (id: string) => async (dispatch: AppDispatch) => {
+export const dropCustomerAction = (id: string, reason: string) => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
-      `/customers/${encodeURIComponent(id)}/cancel-call`
+      `/customers/${encodeURIComponent(id)}/drop-customer`,
+      { reason }
     );
 
     if (response.data.customer) {
@@ -105,7 +106,7 @@ export const cancelCallAction = (id: string) => async (dispatch: AppDispatch) =>
     return response.data;
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    const msg = handleApiError(err, dispatch, 'Failed to cancel call request.');
+    const msg = handleApiError(err, dispatch, 'Failed to drop customer.');
     throw new Error(msg);
   }
 };

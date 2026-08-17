@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { Loader2 } from 'lucide-react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
@@ -12,8 +13,20 @@ import { KioskScreen } from '../screens/store/KioskScreen';
 import { StoreScreen } from '../screens/store/StoreScreen';
 import { useAppSelector } from '../store';
 
+function AuthChecking() {
+  return (
+    <div className="flex min-h-[80vh] flex-1 items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 export function BaseRedirect() {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { authChecked, isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  if (!authChecked) {
+    return <AuthChecking />;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate replace to="/login" />;
@@ -35,8 +48,12 @@ export function getHomeRoute(role: UserRole): string {
 }
 
 export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { authChecked, isAuthenticated, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
+
+  if (!authChecked) {
+    return <AuthChecking />;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate replace state={{ from: location }} to="/login" />;
@@ -50,8 +67,12 @@ export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
 }
 
 export function PublicRoute({ children }: RouteProps) {
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { authChecked, isAuthenticated, user } = useAppSelector((state) => state.auth);
   const location = useLocation();
+
+  if (!authChecked) {
+    return <AuthChecking />;
+  }
 
   if (isAuthenticated && user) {
     const from = (location.state as { from?: { pathname: string; search: string } } | null)?.from;

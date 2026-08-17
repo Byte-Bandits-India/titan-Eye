@@ -74,7 +74,14 @@ export function RxScrollPicker({
       </SelectTrigger>
       <SelectContent align="center" className="max-h-56 min-w-[7rem]" position="popper" ref={contentRef}>
         {options.map((opt) => (
-          <SelectItem className="justify-center text-center font-mono text-xs" key={opt} value={opt}>
+          <SelectItem
+            className={cn(
+              'justify-center text-center font-mono text-xs',
+              (opt === '0.00' || opt === '0') && 'font-bold'
+            )}
+            key={opt}
+            value={opt}
+          >
             {opt}
           </SelectItem>
         ))}

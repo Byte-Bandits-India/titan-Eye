@@ -4,9 +4,9 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { NotificationLogProvider } from './components/ui/notificationLog';
 import { ToastProvider, useToast } from './components/ui/toast';
-import { useIdleTimeout } from './hooks/useIdleTimeout';
+import { usePresenceHeartbeat } from './hooks/usePresenceHeartbeat';
 import { useSSE } from './hooks/useSSE';
-import { loginSuccess } from './Reducers/authReducer';
+import { authCheckFailed, loginSuccess } from './Reducers/authReducer';
 import { routes } from './Routes';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store';
@@ -16,21 +16,36 @@ function SessionGuard() {
   const { toast } = useToast();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const authChecked = useAppSelector((s) => s.auth.authChecked);
   const authError = useAppSelector((s) => s.auth.error);
   const prevError = useRef<null | string>(null);
+  const didVerifyRef = useRef(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      apiClient
-        .get('/me')
-        .then((res) => {
-          dispatch(loginSuccess({ user: res.data.user }));
-        })
-        .catch((err) => {
-          console.warn('Session verification failed on mount:', err);
-        });
+    if (didVerifyRef.current) {
+      return;
     }
-  }, [isAuthenticated, dispatch]);
+
+    // Verify against the session cookie once on mount: either to refresh a cached session, or
+    // to resolve a fresh tab that hasn't confirmed auth state yet (e.g. TV Mode's kiosk tab,
+    // whose sessionStorage doesn't carry over from the opener) instead of bouncing it straight
+    // to /login before we know whether its cookie is actually valid.
+    if (!isAuthenticated && authChecked) {
+      return;
+    }
+
+    didVerifyRef.current = true;
+
+    apiClient
+      .get('/me')
+      .then((res) => {
+        dispatch(loginSuccess({ user: res.data.user }));
+      })
+      .catch((err) => {
+        console.warn('Session verification failed on mount:', err);
+        dispatch(authCheckFailed());
+      });
+  }, [isAuthenticated, authChecked, dispatch]);
 
   useEffect(() => {
     if (
@@ -48,24 +63,17 @@ function SessionGuard() {
     prevError.current = authError;
   }, [authError, toast]);
 
-  const isKioskScreen = window.location.pathname.startsWith('/store/kiosk');
-
-  useIdleTimeout({
-    enabled: !isKioskScreen,
-    onWarning: (secondsLeft) => {
-      toast({
-        description: `You will be automatically logged out in ${Math.round(secondsLeft / 60)} minute(s) due to inactivity.`,
-        title: 'Session Expiring Soon',
-        type: 'error',
-      });
-    },
-  });
-
   return null;
 }
 
 function SSEBridge() {
   useSSE();
+
+  return null;
+}
+
+function PresenceBridge() {
+  usePresenceHeartbeat();
 
   return null;
 }
@@ -90,10 +98,9 @@ export default function App() {
       <ToastProvider>
         <NotificationLogProvider>
           <SSEBridge />
+          <PresenceBridge />
           <SessionGuard />
           <div className="flex min-h-screen flex-col font-sans antialiased">
-            {' '}
-            {/* use select none */}
             <RouterProvider router={router} />
           </div>
         </NotificationLogProvider>

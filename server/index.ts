@@ -18,6 +18,7 @@ import feedbackRouter from './routes/feedback.js';
 import ssoAuthRouter from './routes/ssoAuth.js';
 import systemRouter from './routes/system.js';
 import usersRouter from './routes/users.js';
+import videosRouter from './routes/videos.js';
 import { callsRouter } from './routes/calls.js';
 import webhooksRouter from './routes/webhooks.js';
 import { alertCritical, logger, logSecurityEvent, resolveLogDir } from './utils/logger.js';
@@ -152,6 +153,7 @@ app.use(
         ],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
+        frameSrc: ["'self'", 'https://www.youtube.com', 'https://youtube.com'],
         imgSrc: ["'self'", 'data:', 'blob:'],
         mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
@@ -302,6 +304,7 @@ app.use('/api/feedback', apiLimiter, feedbackRouter);
 app.use('/api/calls', apiLimiter, authenticateToken, callsRouter);
 app.use('/api', apiLimiter, authenticateToken, systemRouter);
 app.use('/api/users', apiLimiter, authenticateToken, usersRouter);
+app.use('/api/videos', apiLimiter, authenticateToken, videosRouter);
 
 const distPath = path.resolve('dist');
 

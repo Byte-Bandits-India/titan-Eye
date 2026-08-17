@@ -7,7 +7,7 @@ import { dropCallAction, initiateCallAction, updateCustomerAction } from '../../
 import { CardFrame } from '../../components/shared/CardFrame';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
-import { optometristFields, optometristHeaders } from '../../options/Option';
+import { isOptometristRxComplete, optometristFields, optometristHeaders } from '../../options/Option';
 import { useAppDispatch } from '../../store';
 import { OptometristCallDrawer } from './components/OptometristCallDrawer';
 
@@ -68,6 +68,7 @@ function RxDeviceCard({
 export function OptometristPatientDetails({
   activeCallTakenByMe,
   onBack,
+  readOnly = false,
   selectedCustomer,
 }: OptometristPatientDetailsProps) {
   const dispatch = useAppDispatch();
@@ -155,6 +156,21 @@ export function OptometristPatientDetails({
     }
   };
 
+  const handleCompleteClick = () => {
+    if (!isOptometristRxComplete(selectedCustomer?.optometristRxData)) {
+      toast({
+        description:
+          'Sph, Cyl, Axis and VA are required for both eyes. Start the consultation and fill in the Subjective/Final prescription before marking as Completed.',
+        title: 'Prescription Incomplete',
+        type: 'error',
+      });
+
+      return;
+    }
+
+    void applyStatusUpdate('Completed');
+  };
+
   const handleDropCall = async () => {
     if (!selectedCustomer) {
       return;
@@ -200,12 +216,12 @@ export function OptometristPatientDetails({
             Back
           </Button>
 
-          {selectedCustomer?.status === 'Accepted' ? (
+          {readOnly ? null : selectedCustomer?.status === 'Accepted' ? (
             <div className="inline-flex h-10 items-center overflow-hidden rounded-md border border-border">
               <button
                 className="h-full cursor-pointer bg-white px-4 text-sm font-normal text-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-card"
                 disabled={isUpdatingStatus}
-                onClick={() => applyStatusUpdate('Completed')}
+                onClick={handleCompleteClick}
                 type="button"
               >
                 Completed
@@ -362,13 +378,23 @@ export function OptometristPatientDetails({
         </div>
       )}
 
-      {selectedCustomer?.status !== 'Completed' && selectedCustomer?.status !== 'Closed' && (
+      {!readOnly && selectedCustomer?.status !== 'Completed' && selectedCustomer?.status !== 'Closed' && (
         <div className="flex flex-col items-center gap-2">
           <Button
             className="active:scale-98 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            disabled={!selectedCustomer}
+            disabled={!selectedCustomer || hasOtherActiveCall}
             onClick={() => {
               if (!selectedCustomer) {
+                return;
+              }
+
+              if (hasOtherActiveCall) {
+                toast({
+                  description: 'Finish or drop your current consultation before starting another.',
+                  title: 'Consultation Already In Progress',
+                  type: 'error',
+                });
+
                 return;
               }
 
@@ -390,9 +416,11 @@ export function OptometristPatientDetails({
               }
             }}
             title={
-              selectedCustomer && selectedCustomer.status !== 'Accepted'
-                ? 'Accept the patient in order to consult this patient'
-                : undefined
+              hasOtherActiveCall
+                ? 'You already have an active consultation in progress.'
+                : selectedCustomer && selectedCustomer.status !== 'Accepted'
+                  ? 'Accept the patient in order to consult this patient'
+                  : undefined
             }
             type="button"
             variant="gradient"
@@ -401,8 +429,15 @@ export function OptometristPatientDetails({
             {isConsultationOpen && isConsultationMinimized ? 'Resume Consultation' : 'Start Consultation'}
           </Button>
 
-          {selectedCustomer && selectedCustomer.status !== 'Accepted' && (
-            <p className="text-sm text-muted-foreground">Accept the customer to start consulting.</p>
+          {hasOtherActiveCall ? (
+            <p className="text-sm text-muted-foreground">
+              You already have an active consultation in progress.
+            </p>
+          ) : (
+            selectedCustomer &&
+            selectedCustomer.status !== 'Accepted' && (
+              <p className="text-sm text-muted-foreground">Accept the customer to start consulting.</p>
+            )
           )}
         </div>
       )}

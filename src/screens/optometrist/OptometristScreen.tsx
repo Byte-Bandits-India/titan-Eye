@@ -331,6 +331,36 @@ export function OptometristScreen() {
     [users, customers]
   );
 
+  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
+    () =>
+      users
+        .filter((u) => u.role === 'store')
+        .map((storeUser) => {
+          const isOnline = storeUser.status !== 'inactive' && (storeUser.isLoggedIn ?? false);
+
+          return {
+            ...storeUser,
+            activeCall: null,
+            avail: isOnline
+              ? {
+                  badgeClass:
+                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+                  dotClass: 'bg-emerald-500',
+                  ping: true,
+                  statusLabel: 'Online',
+                }
+              : {
+                  badgeClass:
+                    'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+                  dotClass: 'bg-slate-400',
+                  ping: false,
+                  statusLabel: 'Offline',
+                },
+          };
+        }),
+    [users]
+  );
+
   const {
     currentPage,
     nextPage,
@@ -628,6 +658,7 @@ export function OptometristScreen() {
         <OptometristPatientDetails
           activeCallTakenByMe={activeCallTakenByMe}
           onBack={() => setIsEditing(false)}
+          readOnly={statusTab === 'all'}
           selectedCustomer={selectedCustomer}
         />
       ) : (
@@ -653,7 +684,11 @@ export function OptometristScreen() {
           {/* ── Row 1: Metrics (left) + Optometrist Users table (right) ── */}
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <OptometristCard tabCounts={tabCounts} variant="metrics" />
-            <OptometristCard data={optometristUsersWithStatus} variant="optometrist-users" />
+            <OptometristCard
+              data={optometristUsersWithStatus}
+              storeData={storeUsersWithStatus}
+              variant="optometrist-users"
+            />
           </div>
 
           {/* ── Row 2: Queue Requests table ── */}

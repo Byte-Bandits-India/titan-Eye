@@ -10,7 +10,6 @@ import { Input } from '../../../components/ui/input';
 import { Sheet, SheetBody, SheetContent, SheetFooter } from '../../../components/ui/sheet';
 import { useToast } from '../../../components/ui/toast';
 import {
-  ADD_OPTIONS,
   ADD_REGEX,
   AXIS_OPTIONS,
   AXIS_REGEX,
@@ -18,12 +17,15 @@ import {
   CYL_OPTIONS,
   CYL_REGEX,
   emptyOptometristRxValues,
+  MANDATORY_OPTOMETRIST_FIELDS,
   optometristFields,
   optometristHeaders,
   POWER_OPTIONS,
   PRISM_OPTIONS,
   PRISM_REGEX,
   SPH_REGEX,
+  SUBJECTIVE_ADD_OPTIONS,
+  VA_OPTIONS,
 } from '../../../options/Option';
 import { useAppDispatch } from '../../../store';
 import { apiClient } from '../../../Util/apiClient';
@@ -35,13 +37,16 @@ interface OptometristCallDrawerProps {
   onMinimize: () => void;
 }
 
+const MANDATORY_FIELDS: ReadonlySet<keyof OptometristRxValues> = new Set(MANDATORY_OPTOMETRIST_FIELDS);
+
 const OPTIONS_BY_FIELD: Partial<Record<keyof OptometristRxValues, string[]>> = {
-  add: ADD_OPTIONS,
+  add: SUBJECTIVE_ADD_OPTIONS,
   axis: AXIS_OPTIONS,
   base: BASE_OPTIONS,
   cyl: CYL_OPTIONS,
   prism: PRISM_OPTIONS,
   sph: POWER_OPTIONS,
+  va: VA_OPTIONS,
 };
 
 const REGEX_BY_FIELD: Partial<Record<keyof OptometristRxValues, RegExp>> = {
@@ -132,6 +137,12 @@ export function OptometristCallDrawer({
         const regex = REGEX_BY_FIELD[field];
         const val = data[field];
 
+        if (MANDATORY_FIELDS.has(field) && !val) {
+          errors[`${eye}.${field}`] = true;
+
+          return;
+        }
+
         if (regex && val && !regex.test(val)) {
           errors[`${eye}.${field}`] = true;
         }
@@ -157,7 +168,7 @@ export function OptometristCallDrawer({
   const handleCompleteAndSave = async () => {
     if (!validate()) {
       toast({
-        description: 'Some prescription fields contain invalid values. Please fix them before saving.',
+        description: 'Sph, Cyl, Axis and VA are required for both eyes. Please fill them in before saving.',
         title: 'Validation Error',
         type: 'error',
       });
@@ -216,6 +227,7 @@ export function OptometristCallDrawer({
 
     return (
       <RxScrollPicker
+        defaultValue={MANDATORY_FIELDS.has(field) ? '____' : '0.00'}
         hasError={hasError}
         onChange={(val) => setData({ ...data, [field]: val })}
         options={options}
@@ -261,11 +273,22 @@ export function OptometristCallDrawer({
               </h2>
 
               <div className="space-y-2">
+                <div className="grid grid-cols-3 items-center gap-2">
+                  <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
+                    Right
+                  </p>
+                  <span />
+                  <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
+                    Left
+                  </p>
+                </div>
+
                 {optometristFields.map((field, idx) => (
                   <div className="grid grid-cols-3 items-center gap-2" key={field}>
                     {renderValueCell('re', field)}
-                    <p className="text-center text-xs font-medium text-muted-foreground">
+                    <p className="text-center text-xs font-bold text-muted-foreground">
                       {optometristHeaders[idx]}
+                      {MANDATORY_FIELDS.has(field) && <span className="text-rose-500"> *</span>}
                     </p>
                     {renderValueCell('le', field)}
                   </div>

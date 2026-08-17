@@ -3,7 +3,7 @@ import { Response, Router } from 'express';
 
 import type { CustomerInput } from '../types.js';
 
-import { SESSION_IDLE_MS } from '../config/jwt.js';
+import { PRESENCE_IDLE_MS } from '../config/jwt.js';
 import { all, CustomerLogRow, CustomerRow, get, run, SqlParam, UserRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
@@ -15,10 +15,10 @@ const router = Router();
 async function findNextAvailableOptometrist(
   excludeEmails: string[]
 ): Promise<null | { email: string; name: string }> {
-  const sessionCutoff = new Date(Date.now() - SESSION_IDLE_MS).toISOString();
+  const presenceCutoff = new Date(Date.now() - PRESENCE_IDLE_MS).toISOString();
   const optometristUsers = await all<{ email: string; name: string }>(
-    `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastLogin >= ? ORDER BY name ASC`,
-    [sessionCutoff]
+    `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
+    [presenceCutoff]
   );
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
   const busyRows = await all<{ callTakenBy: null | string }>(
@@ -190,7 +190,7 @@ async function verifyCustomerAccess(
             preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
             status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
             callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime,
-            offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority
+            offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason
      FROM customers WHERE id = ?`,
     [customerId]
   );
@@ -662,8 +662,9 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       }
 
       const isOptometristRequester = requesterRole === 'optometrist';
+      const isUnclaimedOffer = customer.status === 'Initiated' && !customer.callTakenBy;
 
-      if (!(isStoreHolder && isOptometristRequester)) {
+      if (!((isStoreHolder || isUnclaimedOffer) && isOptometristRequester)) {
         return res
           .status(409)
           .json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
@@ -700,9 +701,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
           storeName: customer.storeName,
         });
 
-        return res
-          .status(409)
-          .json({ error: 'No Optometrist doctors are currently available to take this call.' });
+        return res.status(409).json({ error: 'No Optometrists are currently available.' });
       }
 
       await run(
@@ -905,56 +904,70 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
   }
 });
 
-router.post('/:id/cancel-call', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const id = String(req.params.id);
-    const customer = await verifyCustomerAccess(req, res, id);
+interface DropCustomerBody {
+  reason?: string;
+}
 
-    if (!customer) {
-      return;
-    }
+router.post(
+  '/:id/drop-customer',
+  async (req: AuthenticatedRequest<{ id: string }, unknown, DropCustomerBody>, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const customer = await verifyCustomerAccess(req, res, id);
 
-    const timestamp = new Date().toLocaleString('en-US', {
-      day: 'numeric',
-      hour: 'numeric',
-      hour12: true,
-      minute: '2-digit',
-      month: 'short',
-      second: '2-digit',
-      year: 'numeric',
-    });
+      if (!customer) {
+        return;
+      }
 
-    await run(
-      `
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+
+      if (!reason) {
+        return res.status(400).json({ error: 'A cancellation reason is required' });
+      }
+
+      const timestamp = new Date().toLocaleString('en-US', {
+        day: 'numeric',
+        hour: 'numeric',
+        hour12: true,
+        minute: '2-digit',
+        month: 'short',
+        second: '2-digit',
+        year: 'numeric',
+      });
+
+      await run(
+        `
       UPDATE customers SET
         status = 'Closed',
         callActive = 0,
         callTakenBy = NULL,
         offeredToOptometristEmail = NULL,
         declinedByOptometristEmails = NULL,
+        cancellationReason = ?,
         lastUpdatedOn = ?
       WHERE id = ?
     `,
-      [timestamp, id]
-    );
+        [reason.slice(0, 500), timestamp, id]
+      );
 
-    const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+      const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
 
-    if (!updatedRow) {
+      if (!updatedRow) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      const updatedCustomer = toApiCustomer(updatedRow);
+      broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+      return res.json({ customer: updatedCustomer, ok: true });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error('Drop customer error', { errorMessage: error.message, requestId: req.requestId });
+
       return res.status(500).json({ error: 'Internal server error' });
     }
-
-    const updatedCustomer = toApiCustomer(updatedRow);
-    broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
-
-    return res.json({ customer: updatedCustomer, ok: true });
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    logger.error('Cancel call error', { errorMessage: error.message, requestId: req.requestId });
-
-    return res.status(500).json({ error: 'Internal server error' });
   }
-});
+);
 
 router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) => {
   try {

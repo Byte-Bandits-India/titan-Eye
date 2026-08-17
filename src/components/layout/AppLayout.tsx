@@ -1,5 +1,6 @@
 import type { AppLayoutProps } from '../../types';
 
+import { useAppSelector } from '../../store';
 import { NotificationPopover } from '../shared/NotificationPopover';
 import { Footer } from './Footer';
 import { Header } from './Header';
@@ -14,6 +15,9 @@ export function AppLayout({
   searchValue,
   setActiveTab,
 }: AppLayoutProps) {
+  const user = useAppSelector((state) => state.auth.user);
+  const isStore = user?.role === 'store';
+
   return (
     <div className="font-pro flex min-h-screen flex-1 flex-col bg-[#F2F3F3]">
       <Header
@@ -27,7 +31,11 @@ export function AppLayout({
       />
       {children}
       <Footer />
-      <NotificationPopover onSelectCustomer={onSelectCustomer} showTrigger={false} variant="drawer" />
+      {isStore ? (
+        <NotificationPopover onSelectCustomer={onSelectCustomer} showTrigger={false} variant="toast" />
+      ) : (
+        <NotificationPopover onSelectCustomer={onSelectCustomer} showTrigger={false} variant="drawer" />
+      )}
     </div>
   );
 }

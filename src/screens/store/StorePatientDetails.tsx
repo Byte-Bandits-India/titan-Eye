@@ -244,40 +244,49 @@ export function StorePatientDetails({
 
   const sheetFieldsMarkup = (
     <div className="space-y-4">
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Customer Type *</label>
-        <Select
-          onChange={(e) => setField('customerType')(e.target.value)}
-          options={[
-            { label: 'New', value: 'New' },
-            { label: 'Existing', value: 'Existing' },
-          ]}
-          value={form.customerType}
-        />
+      <div className="flex items-center gap-2">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+          1
+        </span>
+        <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
       </div>
-
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Name *</label>
-        <Input
-          className={cn(errors.name && 'border-red-500 focus-visible:ring-red-500')}
-          icon={User}
-          onChange={(e) => {
-            const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
-            setField('name')(cleanVal);
-          }}
-          placeholder="Enter full name"
-          required
-          type="text"
-          value={form.name}
-        />
-        {errors.name && <p className="text-[10px] font-medium text-red-500">{errors.name}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      <div className="border-b border-border" />
+      <div className="grid grid-cols-3 gap-x-6 gap-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Age *</label>
+          <label className="text-sm font-medium text-muted-foreground">Customer Number *</label>
           <Input
-            className={cn(errors.age && 'border-red-500 focus-visible:ring-red-500')}
+            className={cn('rounded-none', errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
+            icon={Phone}
+            onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
+            placeholder="Enter mobile number"
+            required
+            type="tel"
+            value={form.mobile}
+          />
+          {errors.mobile && <p className="text-sm font-medium text-red-500">{errors.mobile}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Name *</label>
+          <Input
+            className={cn('rounded-none', errors.name && 'border-red-500 focus-visible:ring-red-500')}
+            icon={User}
+            onChange={(e) => {
+              const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
+              setField('name')(cleanVal);
+            }}
+            placeholder="Enter full name"
+            required
+            type="text"
+            value={form.name}
+          />
+          {errors.name && <p className="text-sm font-medium text-red-500">{errors.name}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Age *</label>
+          <Input
+            className={cn('rounded-none', errors.age && 'border-red-500 focus-visible:ring-red-500')}
             inputMode="numeric"
             onChange={(e) => {
               const cleanVal = e.target.value.replace(/\D/g, '');
@@ -294,11 +303,13 @@ export function StorePatientDetails({
             type="text"
             value={form.age}
           />
-          {errors.age && <p className="text-[10px] font-medium text-red-500">{errors.age}</p>}
+          {errors.age && <p className="text-sm font-medium text-red-500">{errors.age}</p>}
         </div>
+
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Gender *</label>
+          <label className="text-sm font-medium text-muted-foreground">Gender *</label>
           <Select
+            className="rounded-none"
             onChange={(e) => setField('gender')(e.target.value)}
             options={[
               { label: 'Male', value: 'Male' },
@@ -308,39 +319,24 @@ export function StorePatientDetails({
             value={form.gender}
           />
         </div>
-      </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">Mobile Number *</label>
-        <Input
-          className={cn(errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
-          icon={Phone}
-          onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
-          placeholder="Enter mobile number"
-          required
-          type="tel"
-          value={form.mobile}
-        />
-        {errors.mobile && <p className="text-[10px] font-medium text-red-500">{errors.mobile}</p>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Preferred Language 1 *</label>
+          <label className="text-sm font-medium text-muted-foreground">Preferred Language 1 *</label>
           <Select
-            className={cn(errors.preferredLanguage && 'border-red-500 focus:ring-red-500')}
+            className={cn('rounded-none', errors.preferredLanguage && 'border-red-500 focus:ring-red-500')}
             onChange={(e) => setField('preferredLanguage')(e.target.value)}
             options={LANGUAGES.map((lang) => ({ label: lang, value: lang }))}
             value={form.preferredLanguage}
           />
           {errors.preferredLanguage && (
-            <p className="text-[10px] font-medium text-red-500">{errors.preferredLanguage}</p>
+            <p className="text-sm font-medium text-red-500">{errors.preferredLanguage}</p>
           )}
         </div>
+
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Preferred Language 2</label>
+          <label className="text-sm font-medium text-muted-foreground">Preferred Language 2</label>
           <Select
-            className={cn(errors.preferredLanguage2 && 'border-red-500 focus:ring-red-500')}
+            className={cn('rounded-none', errors.preferredLanguage2 && 'border-red-500 focus:ring-red-500')}
             onChange={(e) => setField('preferredLanguage2')(e.target.value)}
             options={[
               { label: 'None', value: 'None' },
@@ -352,7 +348,7 @@ export function StorePatientDetails({
             value={form.preferredLanguage2}
           />
           {errors.preferredLanguage2 && (
-            <p className="text-[10px] font-medium text-red-500">{errors.preferredLanguage2}</p>
+            <p className="text-sm font-medium text-red-500">{errors.preferredLanguage2}</p>
           )}
         </div>
       </div>
@@ -360,11 +356,11 @@ export function StorePatientDetails({
   );
 
   return (
-    <form className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleFormSubmit}>
+    <form className="flex max-h-[80vh] flex-col overflow-hidden" noValidate onSubmit={handleFormSubmit}>
       <SheetBody className="px-6 py-5">{sheetFieldsMarkup}</SheetBody>
-      <SheetFooter className="sticky bottom-0 bg-card">
+      <SheetFooter className="sticky bottom-0 justify-center bg-card">
         <Button
-          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-medium shadow-md transition-all"
+          className="active:scale-98 h-10 w-48 cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all"
           type="submit"
           variant="gradient"
         >

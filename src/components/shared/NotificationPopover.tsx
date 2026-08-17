@@ -701,6 +701,87 @@ export function NotificationPopover({
     </ScrollArea>
   );
 
+  if (variant === 'toast') {
+    const toastItems = allNotifications.slice(0, 4);
+
+    return (
+      <>
+        {toastItems.length > 0 && (
+          <div className="fixed bottom-4 right-4 z-50 flex w-full max-w-[22rem] flex-col-reverse gap-3">
+            {toastItems.map((item) => {
+              const title = item.title;
+              const subtitle = item.category === 'customer' ? item.subtitle : item.description;
+              const initial = (title || 'N').trim().charAt(0).toUpperCase();
+              const dismissId = item.category === 'customer' ? item.customer.id : item.id;
+              const isCallAccepted = item.category === 'customer' && item.type === 'call_accepted';
+              const isRetryable =
+                item.category === 'log' && item.logType === 'no_optometrist_available' && item.customerId;
+
+              return (
+                <div
+                  className="w-full overflow-hidden rounded-xl shadow-lg duration-200 animate-in fade-in slide-in-from-bottom-4"
+                  key={`toast-${item.category}-${item.id}`}
+                  style={{ backgroundColor: '#4F59C9' }}
+                >
+                  <div className="flex items-start gap-4 p-5">
+                    <div
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold"
+                      style={{ backgroundColor: '#F3D4FE', color: '#9035B8' }}
+                    >
+                      {initial}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-bold text-white">{title}</p>
+                      <p className="mt-1.5 text-sm font-medium text-white/90">{subtitle}</p>
+                    </div>
+                    <button
+                      className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                      onClick={() =>
+                        item.category === 'customer'
+                          ? handleDismiss(dismissId)
+                          : dismissLogNotification(dismissId)
+                      }
+                      title="Close"
+                      type="button"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  {isCallAccepted && (
+                    <div className="flex" style={{ backgroundColor: '#222876' }}>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        onClick={() => handleAccept(item.customer.id)}
+                        type="button"
+                      >
+                        View
+                      </button>
+                    </div>
+                  )}
+
+                  {isRetryable && (
+                    <div className="flex" style={{ backgroundColor: '#222876' }}>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={retryingLogId === item.id}
+                        onClick={() => handleRetryFromLog(item.customerId!, item.id)}
+                        type="button"
+                      >
+                        {retryingLogId === item.id ? 'Retrying…' : 'Try Again'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {callSession && <TeamsCallModal onClose={handleCallModalClose} session={callSession} />}
+      </>
+    );
+  }
+
   if (variant === 'drawer') {
     return (
       <>

@@ -308,7 +308,17 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                           className="w-[100px] animate-none border-b border-r border-slate-400 bg-slate-50/50 px-3 py-4 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400"
                           rowSpan={2}
                         >
-                          {rowIdx < 2 ? 'Auto Ref' : 'PGP'}
+                          {rowIdx < 2 ? (
+                            'Auto Ref'
+                          ) : (
+                            <>
+                              PGP
+                              <br />
+                              Old RX
+                              <br />
+                              Outside RX
+                            </>
+                          )}
                         </TableCell>
                       )}
                       <TableCell className="w-[60px] animate-none whitespace-nowrap border-b border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
@@ -347,11 +357,12 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                           >
                             <RxScrollPicker
                               defaultValue={
-                                (field as string) === 'axis' ||
-                                (field as string) === 'prism' ||
-                                (field as string) === 'base'
-                                  ? '0'
-                                  : '0.00'
+                                (row === 'autoRefRe' || row === 'autoRefLe') &&
+                                (field === 'sph' || field === 'cyl' || field === 'axis' || field === 'pd')
+                                  ? '____'
+                                  : field === 'prism' || field === 'base'
+                                    ? '0'
+                                    : '0.00'
                               }
                               hasError={hasErr}
                               onChange={(val) => setRxField(row, field, val)}

@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import {
   ClipboardList,
+  FilmIcon,
   History,
   LogOut,
   Mail,
@@ -14,6 +15,7 @@ import {
   Wifi,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import type { HeaderProps } from '../../types';
 
@@ -45,6 +47,7 @@ export function Header({
 }: HeaderProps) {
   const user = useAppSelector((state) => state.auth.user);
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { speed, statusColor, statusLabel, wifiIconColor } = useNetworkStatus();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
@@ -60,7 +63,7 @@ export function Header({
   };
 
   const handleOpenKiosk = () => {
-    window.open('/store/kiosk', '_blank', 'noopener,noreferrer');
+    navigate('/store/kiosk');
   };
 
   useEffect(() => {
@@ -195,7 +198,7 @@ export function Header({
   return (
     <header className="shadow-xs sticky top-0 z-40 min-h-[48px] border-b border-gray-200 bg-white px-3 py-1.5 sm:px-6 sm:py-2">
       <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-2.5 sm:gap-3 xl:flex-nowrap">
-        <div className="order-1 flex min-w-0 shrink-0 select-none items-center gap-1.5 sm:gap-2">
+        <div className="order-1 flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
           <img
             alt="Titan Eye Logo"
             className="w-24 shrink-0 object-contain sm:w-28 md:w-32"
@@ -263,6 +266,17 @@ export function Header({
               />
               <span className="whitespace-nowrap">Audit Logs</span>
             </button>
+            <button
+              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                activeTab === 'videos'
+                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              onClick={() => setActiveTab('videos')}
+            >
+              <FilmIcon className={activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'} size={16} />
+              <span className="whitespace-nowrap">Videos</span>
+            </button>
           </div>
         )}
 
@@ -297,7 +311,7 @@ export function Header({
             <button
               className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-cyan-700"
               onClick={handleOpenKiosk}
-              title="Open the TV call screen in a new tab"
+              title="Open the TV call screen"
               type="button"
             >
               <MonitorPlay className="shrink-0" size={14} />
@@ -397,6 +411,20 @@ export function Header({
                 <span className="inline sm:hidden">Audit</span>
                 <span className="hidden sm:inline">Audit Logs</span>
               </span>
+            </button>
+            <button
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+                activeTab === 'videos'
+                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+              onClick={() => setActiveTab('videos')}
+            >
+              <FilmIcon
+                className={`shrink-0 ${activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
+                size={15}
+              />
+              <span className="truncate whitespace-nowrap font-medium">Videos</span>
             </button>
           </div>
         )}

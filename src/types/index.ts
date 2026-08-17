@@ -1,7 +1,7 @@
 import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
-export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users';
+export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users' | 'videos';
 export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
 export type AppLayoutProps = {
@@ -30,7 +30,21 @@ export type AuditLog = {
   storeName?: string;
 };
 
+export type ManagedVideo = {
+  id: number;
+  mimeType: null | string;
+  originalName: null | string;
+  size: null | number;
+  sourceType: 'upload' | 'youtube';
+  storedName: null | string;
+  title: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  youtubeUrl: null | string;
+};
+
 export type AuthState = {
+  authChecked: boolean;
   error: null | string;
   isAuthenticated: boolean;
   loading: boolean;
@@ -97,6 +111,7 @@ export type Customer = {
   callDuration?: number;
   callStartTime?: null | string;
   callTakenBy?: null | string;
+  cancellationReason?: null | string;
   createdOn?: null | string;
   customerType: string;
   gender: string;
@@ -220,12 +235,13 @@ export type NotificationPopoverProps = {
   onSelectCustomer?: (customerId: string) => void;
   showTrigger?: boolean;
   trigger?: React.ReactNode;
-  variant?: 'drawer' | 'popover';
+  variant?: 'drawer' | 'popover' | 'toast';
 };
 
 export type OptometristPatientDetailsProps = {
   activeCallTakenByMe?: Customer | null;
   onBack: () => void;
+  readOnly?: boolean;
   selectedCustomer: Customer | null;
 };
 
@@ -295,7 +311,8 @@ export type SSEEventDetail =
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
   | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
-  | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' };
+  | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' }
+  | { data: { videoId: null | number }; type: 'KIOSK_VIDEO_CHANGED' };
 
 export type StatsGridProps = {
   customers: Customer[];

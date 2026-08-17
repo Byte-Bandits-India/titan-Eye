@@ -1,13 +1,75 @@
 import { Maximize, PhoneIncoming } from 'lucide-react';
 import * as React from 'react';
 
-import type { CallSessionPayload } from '../../types';
+import type { CallSessionPayload, ManagedVideo } from '../../types';
 
 import { TeamsCallModal } from '../../components/shared/TeamsCallModal';
 import { useFullscreen } from '../../hooks/useFullscreen';
+import { API_BASE_URL } from '../../options/Option';
 import { useAppSelector } from '../../store';
+import { apiClient } from '../../Util/apiClient';
+import { getYoutubeEmbedUrl } from '../../utils/youtube';
 
 const INCOMING_CALL_SPLASH_MS = 2200;
+
+function useKioskVideo(): ManagedVideo | null {
+  const [video, setVideo] = React.useState<ManagedVideo | null>(null);
+
+  const fetchKioskVideo = React.useCallback(async () => {
+    try {
+      const res = await apiClient.get<{ video: ManagedVideo | null }>('/videos/kiosk-active');
+      setVideo(res.data.video ?? null);
+    } catch {
+      setVideo(null);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchKioskVideo();
+
+    const handleKioskVideoChanged = () => void fetchKioskVideo();
+
+    window.addEventListener('titan:kiosk_video_changed', handleKioskVideoChanged);
+
+    return () => window.removeEventListener('titan:kiosk_video_changed', handleKioskVideoChanged);
+  }, [fetchKioskVideo]);
+
+  return video;
+}
+
+function KioskVideoBackground({ onError, video }: { onError: () => void; video: ManagedVideo }) {
+  if (video.sourceType === 'youtube' && video.youtubeUrl) {
+    const embedUrl = getYoutubeEmbedUrl(video.youtubeUrl, { autoplay: true, loop: true, mute: true });
+
+    if (!embedUrl) {
+      onError();
+
+      return null;
+    }
+
+    return (
+      <iframe
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        src={embedUrl}
+        title={video.title}
+      />
+    );
+  }
+
+  return (
+    <video
+      autoPlay
+      className="absolute inset-0 h-full w-full object-cover"
+      loop
+      muted
+      onError={onError}
+      playsInline
+      src={`${API_BASE_URL}/videos/${video.id}/stream`}
+    />
+  );
+}
 
 function useClock() {
   const [now, setNow] = React.useState(() => new Date());
@@ -82,11 +144,19 @@ function IncomingCallSplash({ session }: { session: CallSessionPayload }) {
 
 function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
   const [imageFailed, setImageFailed] = React.useState(false);
+  const [videoFailed, setVideoFailed] = React.useState(false);
   const { isFullscreen } = useFullscreen();
+  const kioskVideo = useKioskVideo();
+
+  const showVideo = Boolean(kioskVideo) && !videoFailed;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-slate-950">
-      {!imageFailed && (
+      {showVideo && kioskVideo && (
+        <KioskVideoBackground onError={() => setVideoFailed(true)} video={kioskVideo} />
+      )}
+
+      {!showVideo && !imageFailed && (
         <img
           alt=""
           className="animate-kiosk-kenburns absolute inset-0 h-full w-full object-cover"
@@ -95,17 +165,11 @@ function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
         />
       )}
 
-      {imageFailed && (
+      {!showVideo && imageFailed && (
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(34,211,238,0.14),transparent_55%)]" />
       )}
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/50" />
-
-      <img
-        alt="TITAN EYE+ Logo"
-        className="absolute left-8 top-8 z-10 h-9 w-auto drop-shadow-lg"
-        src="/images/logo.png"
-      />
 
       <div className="absolute right-8 top-8 z-10 drop-shadow-lg">
         <KioskClock />

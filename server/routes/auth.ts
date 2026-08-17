@@ -3,7 +3,7 @@ import { ParamsDictionary } from 'express-serve-static-core';
 
 import type { AuthUserResponse, ErrorResponse } from '../types.js';
 
-import { generateToken, SESSION_IDLE_MS, verifyToken } from '../config/jwt.js';
+import { generateToken, JWT_TTL_MS, verifyToken } from '../config/jwt.js';
 import { db, get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest, authenticateToken } from '../middleware/auth.js';
 import { verifyPassword } from '../utils/hash.js';
@@ -15,11 +15,11 @@ const router = Router();
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000;
-const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface LoginBody {
   email?: string;
   password?: string;
+  rememberMe?: boolean;
 }
 
 type LoginResponseBody = ErrorResponse | { user: AuthUserResponse };
@@ -28,7 +28,7 @@ router.post(
   '/login',
   async (req: Request<ParamsDictionary, LoginResponseBody, LoginBody>, res: Response<LoginResponseBody>) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, rememberMe } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
@@ -67,10 +67,9 @@ router.post(
           return res.status(403).json({ error: 'This account has been deactivated' });
         }
 
-        const tokenTtlMs = user.role === 'store' ? TOKEN_MAX_AGE_MS : SESSION_IDLE_MS;
         const token = generateToken(
           { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-          tokenTtlMs
+          JWT_TTL_MS
         );
         const newTokenSig = token.split('.')[2];
         const loginTimestamp = new Date().toISOString();
@@ -99,9 +98,11 @@ router.post(
 
         res.cookie('token', token, {
           httpOnly: true,
-          maxAge: TOKEN_MAX_AGE_MS,
           sameSite: 'strict',
           secure: process.env.NODE_ENV === 'production',
+          // Omitting maxAge makes this a session cookie, cleared when the browser closes,
+          // so login is required again next time unless the user opted into "Remember me".
+          ...(rememberMe ? { maxAge: JWT_TTL_MS } : {}),
         });
 
         return res.json({

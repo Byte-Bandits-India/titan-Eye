@@ -69,7 +69,7 @@ export function useSSE(): void {
 
           if (type === 'NO_OPTOMETRIST_AVAILABLE' && currentUser?.role === 'admin') {
             addLogNotification({
-              description: `${payload.storeName || 'A store'} requested an Optometrist for ${payload.customerName}, but no Optometrist doctors are currently available.`,
+              description: `${payload.storeName || 'A store'} requested an Optometrist for ${payload.customerName}, but no Optometrist are currently available.`,
               title: 'No Optometrists Available',
               type: 'no_optometrist_available',
             });
@@ -78,8 +78,8 @@ export function useSSE(): void {
               customerId: payload.customerId,
               description:
                 type === 'NO_OPTOMETRIST_AVAILABLE'
-                  ? 'All Optometrist doctors are currently busy. Please try again in a few minutes.'
-                  : `No Optometrist doctor answered your request for ${payload.customerName}. Please try requesting again.`,
+                  ? 'Optometrists are currently busy. Please try again.'
+                  : `No Optometrists answered your request for ${payload.customerName}.`,
               title:
                 type === 'NO_OPTOMETRIST_AVAILABLE' ? 'Optometrist Unavailable' : 'No Optometrist Answered',
               type: 'no_optometrist_available',
@@ -95,6 +95,8 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
+        } else if (type === 'KIOSK_VIDEO_CHANGED') {
+          window.dispatchEvent(new CustomEvent('titan:kiosk_video_changed', { detail: eventData }));
         } else if (type === 'CALL_SESSION_READY' || type === 'CALL_SESSION_ENDED') {
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
           window.dispatchEvent(

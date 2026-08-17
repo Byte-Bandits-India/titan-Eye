@@ -3,22 +3,29 @@ import { ParamsDictionary } from 'express-serve-static-core';
 
 import type { ErrorResponse, ManagedUserResponse } from '../types.js';
 
-import { SESSION_IDLE_MS } from '../config/jwt.js';
+import { PRESENCE_IDLE_MS, SESSION_ABANDONED_MS } from '../config/jwt.js';
 import { all, get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { hashPassword } from '../utils/hash.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 
-function isSessionLive(u: Pick<UserRow, 'activeTokenSig' | 'lastLogin'>): boolean {
-  if (!u.activeTokenSig || !u.lastLogin) {
+// "Online" is derived purely from the app sending recent presence pings, not just a live
+// session/token, so status drops to offline shortly after the app is closed rather than
+// staying "online" for the full session-idle window.
+function isPresenceOnline(u: Pick<UserRow, 'activeTokenSig' | 'lastPing'>): boolean {
+  if (!u.activeTokenSig || !u.lastPing) {
     return false;
   }
 
-  return Date.now() - new Date(u.lastLogin).getTime() < SESSION_IDLE_MS;
+  return Date.now() - new Date(u.lastPing).getTime() < PRESENCE_IDLE_MS;
 }
 
 const router = Router();
+
+// In-memory snapshot of which users were online at the last presence sweep, used to broadcast
+// USER_UPDATED only when a user's online state actually flips (not on every tick).
+const onlineEmails = new Set<string>();
 
 const VALID_ROLES = ['store', 'optometrist', 'admin'];
 
@@ -113,12 +120,12 @@ function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void
 router.get('/', async (_req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
   try {
     const rows = await all<UserRow>(
-      'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, status, activeTokenSig FROM users ORDER BY email'
+      'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, lastPing, status, activeTokenSig FROM users ORDER BY email'
     );
     const result = rows.map((u) => ({
       city: u.city,
       email: u.email,
-      isLoggedIn: isSessionLive(u),
+      isLoggedIn: isPresenceOnline(u),
       languages: parseLanguages(u.languages),
       lastLogin: u.lastLogin,
       location: u.location,
@@ -133,6 +140,51 @@ router.get('/', async (_req: AuthenticatedRequest, res: Response<UserListRespons
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch users error', { errorMessage: error.message, requestId: _req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/ping', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.email) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    await run('UPDATE users SET lastPing = ? WHERE LOWER(email) = LOWER(?)', [
+      new Date().toISOString(),
+      req.user.email,
+    ]);
+
+    return res.status(204).end();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Presence ping error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/offline', async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.email) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  try {
+    const email = req.user.email;
+    const wasOnline = onlineEmails.has(email.toLowerCase());
+
+    await run('UPDATE users SET lastPing = NULL WHERE LOWER(email) = LOWER(?)', [email]);
+    onlineEmails.delete(email.toLowerCase());
+
+    if (wasOnline) {
+      broadcastEvent('USER_UPDATED', { email, isLoggedIn: false });
+    }
+
+    return res.status(204).end();
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Presence offline error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -429,11 +481,15 @@ router.put(
   }
 );
 
+// Abandoned-session sweep: sessions are meant to last as long as the app stays open (pings keep
+// arriving), so this only invalidates a token once pings have stopped for a long grace period —
+// i.e. the tab was actually closed/crashed without the pagehide beacon firing — not on a fixed
+// clock from login time.
 setInterval(async () => {
   try {
-    const cutoff = new Date(Date.now() - SESSION_IDLE_MS).toISOString();
+    const cutoff = new Date(Date.now() - SESSION_ABANDONED_MS).toISOString();
     const staleUsers = await all<Pick<UserRow, 'email' | 'lastLogin' | 'name' | 'role' | 'status'>>(
-      `SELECT email, name, role, status, lastLogin FROM users WHERE activeTokenSig IS NOT NULL AND lastLogin < ?`,
+      `SELECT email, name, role, status, lastLogin FROM users WHERE activeTokenSig IS NOT NULL AND COALESCE(lastPing, lastLogin) < ?`,
       [cutoff]
     );
 
@@ -454,5 +510,38 @@ setInterval(async () => {
     });
   }
 }, 60 * 1000);
+
+// Presence sweep: recomputes who is online from recent ping activity and broadcasts
+// USER_UPDATED only for users whose online state flipped since the last tick, so closing
+// the app (no more pings) flips a user to offline shortly after, without needing a beacon.
+setInterval(async () => {
+  try {
+    const rows = await all<Pick<UserRow, 'activeTokenSig' | 'email' | 'lastPing'>>(
+      'SELECT email, activeTokenSig, lastPing FROM users WHERE activeTokenSig IS NOT NULL'
+    );
+    const currentlyOnline = new Set(
+      rows.filter((u) => isPresenceOnline(u)).map((u) => u.email.toLowerCase())
+    );
+
+    for (const email of currentlyOnline) {
+      if (!onlineEmails.has(email)) {
+        broadcastEvent('USER_UPDATED', { email, isLoggedIn: true });
+      }
+    }
+
+    for (const email of onlineEmails) {
+      if (!currentlyOnline.has(email)) {
+        broadcastEvent('USER_UPDATED', { email, isLoggedIn: false });
+      }
+    }
+
+    onlineEmails.clear();
+    currentlyOnline.forEach((email) => onlineEmails.add(email));
+  } catch (err) {
+    logger.error('Presence sweep failed', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
+  }
+}, 10 * 1000);
 
 export default router;

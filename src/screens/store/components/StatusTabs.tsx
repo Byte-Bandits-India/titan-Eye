@@ -5,13 +5,20 @@ import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 type StatusTabsProps = {
   hideCompleted?: boolean;
   onValueChange: (tab: StatusTab) => void;
+  pendingLabel?: string;
   tabCounts: TabCounts;
   value: StatusTab;
 };
 
-export function StatusTabs({ hideCompleted, onValueChange, tabCounts, value }: StatusTabsProps) {
+export function StatusTabs({
+  hideCompleted,
+  onValueChange,
+  pendingLabel = 'Created',
+  tabCounts,
+  value,
+}: StatusTabsProps) {
   const tabs = [
-    { count: tabCounts.pending, label: 'Created', value: 'Pending' as StatusTab },
+    { count: tabCounts.pending, label: pendingLabel, value: 'Pending' as StatusTab },
     { count: tabCounts.inProgress, label: 'Testing', value: 'InProgress' as StatusTab },
     ...(hideCompleted
       ? []

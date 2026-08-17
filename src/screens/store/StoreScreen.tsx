@@ -1,12 +1,12 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
-import { Bell, Plus } from 'lucide-react';
+import { Plus, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
 import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
 
 import {
-  cancelCallAction,
   completeCallAction,
+  dropCustomerAction,
   fetchCustomersAction,
   initiateCallAction,
   updateCustomerAction,
@@ -17,7 +17,7 @@ import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/d
 import { CompleteCallModal } from '../../components/shared/CompleteCallModal';
 import { Button } from '../../components/ui/button';
 import { useNotificationLog } from '../../components/ui/notificationLog';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast';
 import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION } from '../../options/Option';
@@ -25,6 +25,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from './components/cells';
 import { CustomerActionsCell, CustomerStatusBadge } from './components/CustomerActionsCell';
+import { CancelRequestDialog } from './components/CancelRequestDialog';
 import { parseTimestamp } from './components/formatters';
 import { StoreCard } from './components/StoreCard';
 import { StorePatientDetails } from './StorePatientDetails';
@@ -304,8 +305,8 @@ export function StoreScreen() {
     if (currentCount > 0 && prevCount === 0) {
       const names = availableOptometristDoctors.map((d) => d.name).join(', ');
       addLogNotification({
-        description: `${names} ${availableOptometristDoctors.length > 1 ? 'are' : 'is'} online and ready for incoming calls.`,
-        title: 'Optometrist Doctor Available',
+        description: `${names} ${availableOptometristDoctors.length > 1 ? 'are' : 'is'} online and ready for Testing.`,
+        title: 'Optometrist Available',
         type: 'optometrist_available',
       });
     }
@@ -372,9 +373,9 @@ export function StoreScreen() {
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
 
-      if (err.message?.includes('No Optometrist doctors are currently available')) {
+      if (err.message?.includes('No Optometrists are currently available')) {
         toast({
-          description: 'All Optometrist doctors are currently busy. Please try again in a few minutes.',
+          description: 'All Optometrists are currently busy.',
           title: 'Optometrist Unavailable',
           type: 'error',
         });
@@ -398,21 +399,37 @@ export function StoreScreen() {
     }
   };
 
-  const handleCancelCall = async (customerId: string) => {
+  const [cancelRequestTarget, setCancelRequestTarget] = React.useState<Customer | null>(null);
+  const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
+
+  const handleOpenCancelDialog = (customerId: string) => {
+    setCancelRequestTarget(customers.find((c) => c.id === customerId) ?? null);
+  };
+
+  const handleConfirmCancelRequest = async (reason: string) => {
+    if (!cancelRequestTarget) {
+      return;
+    }
+
+    setIsCancellingRequest(true);
+
     try {
-      await dispatch(cancelCallAction(customerId));
+      await dispatch(dropCustomerAction(cancelRequestTarget.id, reason));
       toast({
-        description: 'Optometrist request has been cancelled.',
+        description: `The request for ${cancelRequestTarget.name} has been cancelled.`,
         title: 'Request Cancelled',
         type: 'info',
       });
+      setCancelRequestTarget(null);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       toast({
-        description: err.message || 'Failed to cancel Optometrist request.',
+        description: err.message || 'Failed to cancel the request.',
         title: 'System Error',
         type: 'error',
       });
+    } finally {
+      setIsCancellingRequest(false);
     }
   };
 
@@ -461,12 +478,20 @@ export function StoreScreen() {
     setIsViewingDetails(true);
   };
 
+  const handleOpenRxFromNotification = (id: string) => {
+    setIsAddingNew(false);
+    setIsEditing(false);
+    setIsViewingDetails(false);
+    setSelectedCustomerId(id);
+    setIsEditingRx(true);
+  };
+
   const customerColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
     () => [
       {
         accessorKey: 'id',
         cell: ({ row }) => (
-          <span className="text-xs font-normal text-blue-600 dark:text-blue-400">{row.original.id}</span>
+          <span className="text-sm font-normal text-blue-600 dark:text-blue-400">{row.original.id}</span>
         ),
         enableSorting: false,
         header: () => (
@@ -478,7 +503,7 @@ export function StoreScreen() {
       },
       {
         accessorKey: 'name',
-        cell: ({ row }) => <span className="text-xs font-normal text-foreground">{row.original.name}</span>,
+        cell: ({ row }) => <span className="text-sm font-normal text-foreground">{row.original.name}</span>,
         enableSorting: false,
         header: () => (
           <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Name</span>
@@ -497,12 +522,12 @@ export function StoreScreen() {
             <div className="flex flex-wrap gap-1">
               {languages.length > 0 ? (
                 languages.map((lang) => (
-                  <span className="text-xs font-medium text-foreground" key={lang}>
+                  <span className="text-sm font-medium text-foreground" key={lang}>
                     {lang}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">—</span>
               )}
             </div>
           );
@@ -544,9 +569,9 @@ export function StoreScreen() {
             {
               cell: ({ row }: { row: { original: Customer } }) =>
                 row.original.callTakenBy ? (
-                  <span className="text-xs font-normal text-foreground">{row.original.callTakenBy}</span>
+                  <span className="text-sm font-normal text-foreground">{row.original.callTakenBy}</span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 ),
               enableSorting: false,
               header: () => (
@@ -567,11 +592,11 @@ export function StoreScreen() {
                 const pos = row.original.queuePosition;
 
                 return pos ? (
-                  <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
+                  <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
                     {pos}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 );
               },
               enableSorting: false,
@@ -607,7 +632,7 @@ export function StoreScreen() {
             cust={row.original}
             disableRequest={hasActiveRequest}
             loadingCallId={loadingCallId}
-            onCancelCall={handleCancelCall}
+            onCancelCall={handleOpenCancelDialog}
             onCompleteCall={handleCompleteCall}
             onInitiateCall={handleInitiateCall}
             onSelectCustomer={handleSelectCustomer}
@@ -655,7 +680,7 @@ export function StoreScreen() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout onSelectCustomer={handleOpenRxFromNotification}>
       {isEditingRx ? (
         <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
       ) : isViewingDetails ? (
@@ -671,13 +696,9 @@ export function StoreScreen() {
               <p className="mt-0.5 text-sm font-normal text-muted-foreground">{user.name}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button
-                className="h-10 gap-2 px-4 text-xs font-medium"
-                onClick={() => window.dispatchEvent(new CustomEvent('titan:open_notifications'))}
-                variant="outline"
-              >
-                <Bell size={14} />
-                View Notification
+              <Button className="h-10 gap-2 px-4 py-4 text-sm font-medium" variant="outline">
+                <TrendingUp size={16} />
+                Sales Conversion
               </Button>
               <Button
                 className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
@@ -735,7 +756,14 @@ export function StoreScreen() {
         />
       )}
 
-      <Sheet
+      <CancelRequestDialog
+        customer={cancelRequestTarget}
+        isSubmitting={isCancellingRequest}
+        onConfirm={handleConfirmCancelRequest}
+        onOpenChange={(open) => !open && setCancelRequestTarget(null)}
+      />
+
+      <Dialog
         onOpenChange={(open) => {
           if (!open) {
             setIsAddingNew(false);
@@ -744,16 +772,15 @@ export function StoreScreen() {
         }}
         open={isAddingNew || isEditing}
       >
-        <SheetContent side="right">
-          <SheetHeader>
-            <SheetTitle>
+        <DialogContent
+          className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-xl p-0 sm:max-w-3xl"
+          overlayClassName="bg-black/60"
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>
               {isEditing ? 'Edit Customer Details' : 'Customer Details'} - {user.name}
-            </SheetTitle>
-            <p className="mt-1.5 text-sm text-foreground">
-              Please provide the customer&apos;s details to create an accurate profile and ensure their
-              information is available for future visits and service.
-            </p>
-          </SheetHeader>
+            </DialogTitle>
+          </DialogHeader>
           <StorePatientDetails
             isAddingNew={isAddingNew}
             layout="sheet"
@@ -769,8 +796,8 @@ export function StoreScreen() {
             selectedCustomer={isEditing ? selectedCustomer : null}
             setSelectedCustomerId={setSelectedCustomerId}
           />
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -4,6 +4,7 @@ import type { OptometristUserRow } from '../../../types';
 
 import { OptometristAvatar } from '../../../components/shared/OptometristAvatar';
 import { cn } from '../../../lib/utils';
+import { renderCallDuration } from '../../store/components/cells';
 
 type OptometristUsersInfiniteBodyProps = {
   data: OptometristUserRow[];
@@ -17,7 +18,7 @@ function availabilityRank(row: OptometristUserRow): number {
     return 0;
   }
 
-  if (row.avail.statusLabel.startsWith('In call')) {
+  if (row.avail.statusLabel.toLowerCase().startsWith('in call')) {
     return 1;
   }
 
@@ -33,11 +34,13 @@ function statusInfo(row: OptometristUserRow): { classes: string; label: string }
     };
   }
 
-  if (row.avail.statusLabel.startsWith('In call')) {
+  if (row.avail.statusLabel.toLowerCase().startsWith('in call')) {
+    const storeCode = row.activeCall?.storeName;
+
     return {
       classes:
         'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
-      label: 'In Call',
+      label: storeCode ? `In Call with ${storeCode}` : 'In Call',
     };
   }
 
@@ -77,12 +80,13 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
               <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Optometrist</th>
               <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Languages Known</th>
               <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Call Duration</th>
             </tr>
           </thead>
           <tbody>
             {visibleData.length === 0 ? (
               <tr>
-                <td className="py-8 text-center text-muted-foreground" colSpan={3}>
+                <td className="py-8 text-center text-muted-foreground" colSpan={4}>
                   No Optometrist found.
                 </td>
               </tr>
@@ -131,6 +135,13 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
                       >
                         {label}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {row.activeCall ? (
+                        renderCallDuration(row.activeCall)
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 );

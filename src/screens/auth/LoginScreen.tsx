@@ -5,7 +5,7 @@ import * as React from 'react';
 import { loginAction } from '../../Actions/authActions';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
-import { API_BASE_URL } from '../../options/Option';
+import { API_BASE_URL, STORAGE_KEYS } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 
 const SSO_ERROR_MESSAGES: Record<string, string> = {
@@ -15,10 +15,11 @@ const SSO_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function LoginScreen() {
-  const [email, setEmail] = React.useState('');
+  const rememberedEmail = React.useMemo(() => localStorage.getItem(STORAGE_KEYS.REMEMBERED_EMAIL) ?? '', []);
+  const [email, setEmail] = React.useState(rememberedEmail);
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
-  const [rememberMe, setRememberMe] = React.useState(false);
+  const [rememberMe, setRememberMe] = React.useState(Boolean(rememberedEmail));
 
   const dispatch = useAppDispatch();
   const { loading: isLoading } = useAppSelector((state) => state.auth);
@@ -57,7 +58,14 @@ export function LoginScreen() {
     }
 
     try {
-      await dispatch(loginAction(email, password));
+      await dispatch(loginAction(email, password, rememberMe));
+
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.REMEMBERED_EMAIL);
+      }
+
       toast({
         description: `Logged in successfully.`,
         title: 'Success',
@@ -83,24 +91,18 @@ export function LoginScreen() {
   };
 
   const inputClasses = cn(
-    'h-12 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900',
+    'h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900',
     'outline-none transition-colors placeholder:text-gray-400',
-    'focus:border-gray-400 focus:ring-1 focus:ring-gray-400'
+    'focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20'
   );
 
   return (
     <div className="animated-gradient-bg flex min-h-screen w-full items-center justify-center p-6">
-      <div className="flex w-full max-w-4xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xl">
-        {/* Left poster image */}
-        <div className="hidden flex-1 lg:block">
-          <img alt="What is Myopia?" className="h-full w-full object-cover" src="/images/login.png" />
-        </div>
-
-        {/* Right sign-in panel */}
-        <div className="flex w-full flex-1 flex-col justify-center px-8 py-10 sm:px-12 sm:py-14">
-          <div className="mb-8 flex flex-col items-center text-center">
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div className="flex flex-col justify-center px-7 py-8 sm:px-9 sm:py-10">
+          <div className="mb-7 flex flex-col items-center text-center">
             <p className="mb-2 text-sm text-gray-500">Welcome to</p>
-            <img alt="TITAN EYE+" className="h-auto w-40" src="/images/logo-black.png" />
+            <img alt="TITAN EYE+" className="h-auto w-36" src="/images/logo-black.png" />
             <p className="mt-2 text-xs font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
             <div className="mt-3 h-0.5 w-10 rounded-full bg-teal-600" />
           </div>
@@ -170,7 +172,7 @@ export function LoginScreen() {
             </div>
 
             <button
-              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-base font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-sm font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isLoading}
               type="submit"
             >
@@ -185,14 +187,14 @@ export function LoginScreen() {
             </button>
           </form>
 
-          <div className="my-6 flex items-center gap-3">
+          <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
             <span className="text-xs font-medium uppercase text-gray-400">or continue with</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
           <button
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="flex h-11 w-full items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             onClick={handleMicrosoftSignIn}
             type="button"
           >
@@ -202,7 +204,7 @@ export function LoginScreen() {
               <rect fill="#00a4ef" height="9" width="9" x="1" y="11" />
               <rect fill="#ffb900" height="9" width="9" x="11" y="11" />
             </svg>
-            Continue with Microsoft
+            Microsoft SSO
           </button>
         </div>
       </div>
