@@ -1,10 +1,14 @@
 import axios from 'axios';
 
 import { API_BASE_URL } from '../options/Option';
+import { decryptClientPayload, encryptClientPayload, isEncryptedEnvelope } from './cryptoClient';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // sends the httpOnly auth cookie automatically
+  headers: {
+    'x-e2ee-client': 'true',
+  },
+  withCredentials: true,
 });
 
 let _store: import('../store').AppStore | null = null;
@@ -13,8 +17,36 @@ export function setStore(store: import('../store').AppStore) {
   _store = store;
 }
 
+apiClient.interceptors.request.use(async (config) => {
+  if (
+    config.data &&
+    typeof config.data === 'object' &&
+    !(config.data instanceof FormData) &&
+    !(config.data instanceof Blob) &&
+    !isEncryptedEnvelope(config.data)
+  ) {
+    try {
+      config.data = await encryptClientPayload(config.data as object);
+    } catch {
+      /* fallback to plaintext if encryption unconfigured */
+    }
+  }
+
+  return config;
+});
+
 apiClient.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    if (response.data && typeof response.data === 'object' && isEncryptedEnvelope(response.data)) {
+      try {
+        response.data = await decryptClientPayload(response.data);
+      } catch {
+        /* fallback */
+      }
+    }
+
+    return response;
+  },
   (error) => {
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;

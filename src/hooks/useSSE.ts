@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { NoOptometristEventPayload, SSEEventDetail } from '../types';
+import type { Customer, NoOptometristEventPayload, SSEEventDetail } from '../types';
 
 import { fetchCustomersAction } from '../Actions/customerActions';
 import { fetchUsersAction } from '../Actions/userActions';
@@ -8,6 +8,7 @@ import { useNotificationLog } from '../components/ui/notificationLog';
 import { API_BASE_URL } from '../options/Option';
 import { customerCreated, customerUpdated } from '../Reducers/customerReducer';
 import { useAppDispatch, useAppSelector } from '../store';
+import { decryptClientPayload, isEncryptedEnvelope } from '../Util/cryptoClient';
 
 export function useSSE(): void {
   const dispatch = useAppDispatch();
@@ -32,23 +33,33 @@ export function useSSE(): void {
       withCredentials: true,
     });
 
-    eventSource.onmessage = (event: MessageEvent) => {
+    eventSource.onmessage = async (event: MessageEvent) => {
       try {
         const parsed = JSON.parse(String(event.data)) as SSEEventDetail;
+        let eventData = parsed.data;
+
+        if (eventData && typeof eventData === 'object' && isEncryptedEnvelope(eventData)) {
+          try {
+            eventData = await decryptClientPayload(eventData);
+          } catch {
+            /* fallback to raw */
+          }
+        }
+
         const { type } = parsed;
 
         if (type === 'CUSTOMER_CREATED') {
-          dispatch(customerCreated(parsed.data));
+          dispatch(customerCreated(eventData as Customer));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'CUSTOMER_UPDATED') {
-          dispatch(customerUpdated(parsed.data));
+          dispatch(customerUpdated(eventData as Customer));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'NO_OPTOMETRIST_AVAILABLE' || type === 'OPTOMETRIST_NO_RESPONSE') {
-          const payload: NoOptometristEventPayload = parsed.data;
+          const payload = eventData as NoOptometristEventPayload;
           const currentUser = userRef.current;
           const isMatchingStore =
             currentUser?.role === 'store' &&

@@ -10,6 +10,7 @@ import path from 'path';
 import { verifyToken } from './config/jwt.js';
 import { initializeDatabase } from './db/database.js';
 import { authenticateToken } from './middleware/auth.js';
+import { payloadEncryptionMiddleware } from './middleware/payloadEncryptionMiddleware.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
@@ -154,7 +155,7 @@ app.use(
         imgSrc: ["'self'", 'data:', 'blob:'],
         mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
         workerSrc: ["'self'", 'blob:'],
@@ -169,7 +170,7 @@ app.use(
 );
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(), payment=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
   next();
 });
@@ -288,6 +289,8 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Expires', '0');
   next();
 });
+
+app.use('/api', payloadEncryptionMiddleware);
 
 app.use('/api/login', authLimiter);
 app.use('/api', authRouter);
