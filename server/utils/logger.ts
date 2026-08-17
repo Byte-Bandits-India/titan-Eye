@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import winston from 'winston';
+
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { Syslog } from 'winston-syslog';
 
@@ -31,13 +32,22 @@ const SENSITIVE_SUBSTRINGS = [
   'privatekey',
 ];
 
-export function stableStringify(value: unknown): string {
+export type JsonPrimitive = string | number | boolean | null | undefined;
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
+export interface JsonObject {
+  [key: string]: JsonValue;
+}
+export type JsonArray = JsonValue[];
+
+export type SecurityEventMeta = JsonObject;
+
+export function stableStringify(value: JsonValue): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
   }
 
   if (value && typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
+    const obj = value as JsonObject;
     const keys = Object.keys(obj).sort();
 
     return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(',')}}`;
@@ -52,20 +62,20 @@ function isSensitiveKey(key: string): boolean {
   return SENSITIVE_SUBSTRINGS.some((s) => normalized.includes(s));
 }
 
-function redact(value: unknown, seen = new WeakSet<object>()): unknown {
+function redact(value: JsonValue, seen = new WeakSet<object>()): JsonValue {
   if (Array.isArray(value)) {
     return value.map((v) => redact(v, seen));
   }
 
   if (value && typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
+    const obj = value as JsonObject;
 
     if (seen.has(obj)) {
       return '[Circular]';
     }
 
     seen.add(obj);
-    const out: Record<string, unknown> = {};
+    const out: JsonObject = {};
 
     for (const [key, val] of Object.entries(obj)) {
       out[key] = isSensitiveKey(key) ? '[REDACTED]' : redact(val, seen);
@@ -81,10 +91,10 @@ const redactFormat = winston.format((info) => {
   const { level: _level, message: _message, service: _service, timestamp: _timestamp, ...meta } = info;
 
   for (const key of Object.keys(meta)) {
-    delete (info as Record<string, unknown>)[key];
+    delete (info as JsonObject)[key];
   }
 
-  Object.assign(info, redact(meta) as object);
+  Object.assign(info, redact(meta as JsonObject) as object);
 
   return info;
 });
@@ -102,7 +112,7 @@ const consoleFormat = winston.format.combine(
   winston.format.errors({ stack: true }),
   winston.format.colorize(),
   winston.format.printf(({ level, message, timestamp, ...meta }) => {
-    delete (meta as Record<string, unknown>).service;
+    delete (meta as JsonObject).service;
     const extra = Object.keys(meta).length ? ` ${JSON.stringify(meta)}` : '';
 
     return `${timestamp} ${level}: ${message}${extra}`;
@@ -170,8 +180,6 @@ if (securitySyslog) {
   securityLogger.add(securitySyslog);
 }
 
-export type SecurityEventMeta = Record<string, unknown>;
-
 const GENESIS_HASH = '0'.repeat(64);
 const CHAIN_STATE_FILE = path.join(LOG_DIR, '.security-chain-state.json');
 
@@ -194,7 +202,7 @@ const chainState = loadChainState();
 export function logSecurityEvent(event: string, meta: SecurityEventMeta = {}) {
   const eventTimestamp = new Date().toISOString();
   const prevHash = chainState.lastHash;
-  const redactedMeta = redact(meta) as Record<string, unknown>;
+  const redactedMeta = redact(meta) as JsonObject;
 
   const canonical = stableStringify({ event, eventTimestamp, meta: redactedMeta, prevHash });
   const hash = crypto.createHash('sha256').update(canonical).digest('hex');
@@ -211,7 +219,9 @@ function persistChainState() {
   try {
     fs.writeFileSync(CHAIN_STATE_FILE, JSON.stringify(chainState), { mode: 0o640 });
   } catch (e) {
-    logger.error('Failed to persist security log chain state', { errorMessage: (e as Error).message });
+    logger.error('Failed to persist security log chain state', {
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
   }
 }
 
@@ -230,7 +240,9 @@ export function alertCritical(message: string, meta: SecurityEventMeta = {}) {
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   }).catch((err) => {
-    logger.error('Failed to deliver alert webhook', { errorMessage: (err as Error).message });
+    logger.error('Failed to deliver alert webhook', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
   });
 }
 

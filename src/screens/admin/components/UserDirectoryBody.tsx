@@ -45,7 +45,7 @@ export function UserDirectoryBody({
 }: UserDirectoryBodyProps) {
   return (
     <>
-      <div className="w-full min-h-0 flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 w-full flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
@@ -118,9 +118,7 @@ export function UserDirectoryBody({
                     </TableCell>
                   )}
                   {visibleColumns.includes('name') && (
-                    <TableCell className="whitespace-nowrap font-normal text-foreground">
-                      {u.name}
-                    </TableCell>
+                    <TableCell className="whitespace-nowrap font-normal text-foreground">{u.name}</TableCell>
                   )}
                   {visibleColumns.includes('email') && (
                     <TableCell className="whitespace-nowrap text-muted-foreground">{u.email}</TableCell>

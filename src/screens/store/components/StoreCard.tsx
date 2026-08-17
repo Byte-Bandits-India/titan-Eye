@@ -128,7 +128,12 @@ export function StoreCard(props: StoreCardProps) {
 
   return (
     <CardFrame className="!mt-4">
-      <CardHeader icon={Users2} iconGradient="from-[#EF427F] to-[#892649]" right={searchFilter} title="Recent Customers" />
+      <CardHeader
+        icon={Users2}
+        iconGradient="from-[#EF427F] to-[#892649]"
+        right={searchFilter}
+        title="Recent Customers"
+      />
       <RecentCustomersBody
         columns={columns}
         currentPage={currentPage}

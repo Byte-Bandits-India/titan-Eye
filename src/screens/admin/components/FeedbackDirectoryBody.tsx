@@ -36,8 +36,12 @@ export function FeedbackDirectoryBody({
         <Table>
           <TableHeader className="sticky top-0 z-10">
             <TableRow className="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/50 dark:hover:bg-slate-900/50">
-              {visibleColumns.includes('id') && <TableHead className="w-28 text-sm font-medium text-muted-foreground">Patient ID</TableHead>}
-              {visibleColumns.includes('name') && <TableHead className="w-44 text-sm font-medium text-muted-foreground">Name</TableHead>}
+              {visibleColumns.includes('id') && (
+                <TableHead className="w-28 text-sm font-medium text-muted-foreground">Patient ID</TableHead>
+              )}
+              {visibleColumns.includes('name') && (
+                <TableHead className="w-44 text-sm font-medium text-muted-foreground">Name</TableHead>
+              )}
               {visibleColumns.includes('storeName') && (
                 <TableHead className="w-36 text-sm font-medium text-muted-foreground">Store Code</TableHead>
               )}
@@ -48,7 +52,9 @@ export function FeedbackDirectoryBody({
                 <TableHead className="text-sm font-medium text-muted-foreground">Patient Feedback</TableHead>
               )}
               {visibleColumns.includes('lastUpdated') && (
-                <TableHead className="w-32 text-right text-sm font-medium text-muted-foreground">Date</TableHead>
+                <TableHead className="w-32 text-right text-sm font-medium text-muted-foreground">
+                  Date
+                </TableHead>
               )}
             </TableRow>
           </TableHeader>

@@ -89,7 +89,7 @@ try {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 } catch (e) {
-  logger.warn('DB pragmas warning', { errorMessage: (e as Error).message });
+  logger.warn('DB pragmas warning', { errorMessage: e instanceof Error ? e.message : String(e) });
 }
 
 export async function all<T>(sql: string, params: SqlParam[] = []): Promise<T[]> {
@@ -140,8 +140,6 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE users ADD COLUMN languages TEXT`);
   } catch {}
 
-  // The optom role was renamed to optometrist; migrate any existing rows
-  // before the VALID_ROLES cleanup below, which would otherwise delete them.
   await run(`UPDATE users SET role = 'optometrist' WHERE role = 'optom'`);
 
   await run(`
@@ -171,9 +169,6 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
-  // Columns were renamed from optom* to optometrist*; rename existing
-  // columns in place before the ADD COLUMN migrations below (which are
-  // now no-ops on a DB that already has the new names).
   try {
     await run(`ALTER TABLE customers RENAME COLUMN optomFeedback TO optometristFeedback`);
   } catch {}
@@ -246,8 +241,6 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE customers ADD COLUMN isPriority INTEGER DEFAULT 0`);
   } catch {}
 
-  // Legacy rows predate the createdOn column; lastUpdatedOn is the closest
-  // available timestamp for them and only backfills rows still missing it.
   await run(
     `UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`
   );
@@ -347,24 +340,26 @@ export async function initializeDatabase(): Promise<void> {
 
   const VALID_ROLES = ['store', 'optometrist', 'admin'];
   await run(`DELETE FROM users WHERE role NOT IN (${VALID_ROLES.map(() => '?').join(',')})`, VALID_ROLES);
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'pass@123';
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
+  if (adminEmail && adminPassword) {
+    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
 
-  if (!existingAdmin) {
-    await run(
-      'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)]
-    );
-  } else {
-    await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', ['active', adminEmail]);
+    if (!existingAdmin) {
+      await run(
+        'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)]
+      );
+    } else {
+      await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', ['active', adminEmail]);
 
-    if (!existingAdmin.password.includes(':')) {
-      await run('UPDATE users SET password = ? WHERE email = ?', [
-        hashPassword(adminPassword),
-        existingAdmin.email,
-      ]);
+      if (!existingAdmin.password.includes(':')) {
+        await run('UPDATE users SET password = ? WHERE email = ?', [
+          hashPassword(adminPassword),
+          existingAdmin.email,
+        ]);
+      }
     }
   }
 

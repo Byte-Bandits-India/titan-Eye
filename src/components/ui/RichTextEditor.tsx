@@ -82,7 +82,6 @@ export function RichTextEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readOnly]);
 
-  // Update value from props
   React.useEffect(() => {
     if (quillRef.current) {
       const editorElement = containerRef.current?.querySelector('.ql-editor');
@@ -101,7 +100,6 @@ export function RichTextEditor({
     }
   }, [value]);
 
-  // Direct DOM style overrides to ensure they work in production
   React.useEffect(() => {
     if (containerRef.current) {
       const editorElement = containerRef.current.querySelector('.ql-editor') as HTMLElement;

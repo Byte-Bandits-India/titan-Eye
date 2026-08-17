@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "preview": "vite preview",
+    "package:deploy": "node scripts/package-deploy.js",
     "verify-logs": "npm run build:server && node dist-server/scripts/verifySecurityLog.js"
   },
   "dependencies": {

@@ -3,13 +3,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { logoutAction } from '../Actions/authActions';
 import { useAppDispatch, useAppSelector } from '../store';
 
-// ── VAPT Security: Inactivity / idle session timeout ─────────────────────────
-// If the user is authenticated but has not interacted with the page for
-// IDLE_TIMEOUT_MS milliseconds, automatically log them out.
-// This complements the server-side JWT TTL (1 hour) set in auth.ts.
-
-const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour — matches server SESSION_IDLE_MS
-const WARNING_BEFORE_MS = 2 * 60 * 1000; // show warning 2 minutes before timeout
+const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+const WARNING_BEFORE_MS = 2 * 60 * 1000;
 
 const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
   'mousemove',
@@ -21,9 +16,6 @@ const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
 ];
 
 interface UseIdleTimeoutOptions {
-  // Set to false for screens that are expected to sit unattended with no user
-  // interaction by design (e.g. the store kiosk call screen) so they aren't
-  // logged out simply for having no mouse/keyboard activity.
   enabled?: boolean;
   onWarning?: (secondsLeft: number) => void;
 }
@@ -51,14 +43,12 @@ export function useIdleTimeout({ enabled = true, onWarning }: UseIdleTimeoutOpti
 
     clearTimers();
 
-    // Warning timer
     if (onWarning) {
       warnRef.current = setTimeout(() => {
         onWarning(Math.round(WARNING_BEFORE_MS / 1000));
       }, IDLE_TIMEOUT_MS - WARNING_BEFORE_MS);
     }
 
-    // Logout timer
     timerRef.current = setTimeout(() => {
       dispatch(logoutAction());
     }, IDLE_TIMEOUT_MS);

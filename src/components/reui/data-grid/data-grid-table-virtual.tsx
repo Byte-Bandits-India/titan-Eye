@@ -6,7 +6,7 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { flexRender } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { DataGridFeatures, DataGridTableInstance } from '@/components/reui/data-grid/data-grid';
 
@@ -55,11 +55,8 @@ interface DataGridTableVirtualProps<TData extends object> {
   onFetchMore?: () => void;
   overscan?: number;
   renderHeader?: boolean;
-  /** Scroll animation used when revealing a controlled target row. */
   scrollBehavior?: ScrollBehavior;
-  /** Alignment used when revealing a controlled target row. Defaults to auto. */
   scrollToRowAlign?: DataGridTableVirtualScrollAlignment;
-  /** Index within the center (non-pinned) row section to reveal. */
   scrollToRowIndex?: number;
   virtualizerOptions?: DataGridTableVirtualizerOptions<TData>;
 }
@@ -117,8 +114,6 @@ function DataGridTableVirtualBody<TData extends object>({
   const totalRows = topRows.length + centerRows.length + bottomRows.length;
 
   if (!totalRows) {
-    // Initial load must not flash the empty state as if the query returned
-    // nothing.
     if (isLoading) {
       return (
         <DataGridTableVirtualStatusRow table={table}>
@@ -221,7 +216,7 @@ function DataGridTableVirtualBody<TData extends object>({
 function DataGridTableVirtualPinnedPlaceholderCell<TData extends object>({
   column,
 }: {
-  column: Column<DataGridFeatures, TData, unknown>;
+  column: Column<DataGridFeatures, TData>;
 }) {
   const { props } = useDataGrid();
   const isPinned = column.getIsPinned();
@@ -520,11 +515,6 @@ function scrollDataGridTableToOffset({
   }
 }
 
-/**
- * Memoized virtual body: skip re-renders during active column resize.
- * Column widths update via CSS variables on the <table> element,
- * so the browser handles width changes without React re-renders.
- */
 const MemoizedVirtualBody = memo(
   DataGridTableVirtualBody,
   (_prev, next) => !!next.table.state.columnResizing.isResizingColumn
@@ -634,18 +624,12 @@ function DataGridTableVirtual<TData extends object>({
   const scrollToRowId = scrollToRowIndex !== undefined ? centerRows[scrollToRowIndex]?.id : undefined;
   const scrollToRowVirtualItem =
     isVirtualizationEnabled && scrollToRowIndex !== undefined
-      ? virtualItems.find((item) => item.index === scrollToRowIndex)
+      ? virtualItems.find((item: VirtualItem) => item.index === scrollToRowIndex)
       : undefined;
   const pendingScrollToRowIndexRef = useRef<null | number>(null);
   const lastScrollRequestRef = useRef<DataGridTableVirtualScrollRequest | null>(null);
-  // Latch onFetchMore per row count: virtualItems gets a new identity every
-  // scroll frame, so without it the effect fires duplicate page requests
-  // before the consumer flips isFetchingMore, and loops at end-of-data when
-  // hasMore is never set.
   const fetchMoreFiredAtCountRef = useRef<null | number>(null);
 
-  // Resolve after every commit so a stable getter can expose a replaced ref;
-  // the request signature prevents duplicate scrolling on ordinary renders.
   useEffect(() => {
     const previousRequest = lastScrollRequestRef.current;
 
@@ -799,9 +783,6 @@ function DataGridTableVirtual<TData extends object>({
               height,
               overflow: 'auto',
               position: 'relative',
-              // Standalone mode: this node IS the scroll container, so it
-              // must stay at its parent's width (not the resizable table
-              // width) or horizontal scrolling becomes impossible.
               width: 'auto',
             }
       }

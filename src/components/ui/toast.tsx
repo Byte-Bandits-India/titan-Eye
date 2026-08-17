@@ -28,7 +28,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const toast = React.useCallback(
     ({ description, duration = 5000, title, type = 'info' }: Omit<ToastMessage, 'id'>) => {
       setToasts((prev) => {
-        // Deduplicate: skip if the same title+description is already visible
         const isDuplicate = prev.some((t) => t.title === title && t.description === description);
 
         if (isDuplicate) {

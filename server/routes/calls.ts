@@ -70,9 +70,6 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
     let meetingUrl: string | undefined;
     let groupId: string | undefined;
 
-    // Use ACS Group Call for direct in-browser Optometrist <-> Store consultations.
-    // If USE_TEAMS_MEETING is explicitly set to 'true' in env and Graph is configured,
-    // create a Teams Online Meeting link instead.
     const useTeamsMeeting = process.env.USE_TEAMS_MEETING === 'true';
     const organizerUpn = req.user?.email || process.env.TEAMS_MEETING_ORGANIZER_UPN;
 
@@ -85,17 +82,15 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
         meetingUrl = meeting.joinWebUrl;
       } catch (graphErr) {
         logger.warn('[Calls] Graph Teams meeting creation unavailable, falling back to ACS Group Call:', {
-          error: (graphErr as Error).message,
+          error: graphErr instanceof Error ? graphErr.message : String(graphErr),
         });
       }
     }
 
-    // Fall back to ACS Group Call if Teams meeting link is not enabled or unavailable
     if (!meetingUrl) {
       groupId = crypto.randomUUID();
     }
 
-    // 3. Issue ACS Tokens for both Optometrist and Store
     const optometristTokenResult = await createAcsUserAndToken();
     const storeTokenResult = await createAcsUserAndToken();
     const acsEndpoint = getAcsEndpoint();
@@ -122,7 +117,6 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
 
     activeSessions.set(customerId, { optometristSession, storeSession });
 
-    // 4. Update DB status to Accepted and disarm pending offer timer
     const timestamp = new Date().toLocaleString('en-US', {
       day: 'numeric',
       hour: 'numeric',
@@ -152,7 +146,6 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
       broadcastEvent('CUSTOMER_UPDATED', toApiCustomer(updatedRow));
     }
 
-    // 5. Broadcast to Store via SSE
     broadcastEvent('CALL_SESSION_READY', storeSession);
 
     logger.info('[Calls] Started ACS call session', {
@@ -164,7 +157,7 @@ router.post('/start', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json(optometristSession);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('[Calls] Failed to start call session', { error: error.message });
 
     return res.status(500).json({ error: error.message || 'Failed to start video call session' });

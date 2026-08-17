@@ -141,7 +141,14 @@ app.use(
           'wss://*.turn.azure.com',
         ],
         defaultSrc: ["'self'"],
-        fontSrc: ["'self'"],
+        fontSrc: [
+          "'self'",
+          'data:',
+          'https://*.cdn.office.net',
+          'https://*.office.net',
+          'https://*.microsoft.com',
+          'https://*.azure.com',
+        ],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
@@ -171,7 +178,6 @@ if (process.env.NODE_ENV === 'production') {
   app.use((req: Request, res: Response, next: NextFunction) => {
     const host = req.headers.host || '';
 
-    // Skip redirect for internal loopback proxy requests from IIS
     if (host.startsWith('127.0.0.1') || host.startsWith('localhost')) {
       return next();
     }
@@ -190,7 +196,6 @@ if (process.env.NODE_ENV === 'production') {
   app.use((req: Request, res: Response, next: NextFunction) => {
     const host = req.headers.host || '';
 
-    // Allow internal loopback requests from IIS reverse proxy
     if (host.startsWith('127.0.0.1') || host.startsWith('localhost')) {
       return next();
     }
@@ -290,9 +295,6 @@ app.use('/api/auth/microsoft', authLimiter, ssoAuthRouter);
 app.post('/api/customers', customerCreateLimiter);
 app.use('/api/customers', apiLimiter, authenticateToken, customersRouter);
 app.use('/api/webhooks', apiLimiter, webhooksRouter);
-// No authenticateToken: the patient scans a QR code on their own device with
-// no account of any kind. Access is scoped by the random per-customer token
-// itself, not a session.
 app.use('/api/feedback', apiLimiter, feedbackRouter);
 app.use('/api/calls', apiLimiter, authenticateToken, callsRouter);
 app.use('/api', apiLimiter, authenticateToken, systemRouter);
@@ -381,7 +383,7 @@ initializeDatabase()
       });
     });
   })
-  .catch((err: unknown) => {
+  .catch((err) => {
     const error = err instanceof Error ? err : new Error(String(err));
     alertCritical('Failed to initialize database — server did not start', {
       errorMessage: error.message,

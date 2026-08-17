@@ -145,7 +145,7 @@ router.post(
 
       return res.status(400).json({ error: 'Invalid eventType' });
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Webhook event error', { errorMessage: error.message, requestId: req.requestId });
 
       return res.status(500).json({ error: 'Internal server error' });

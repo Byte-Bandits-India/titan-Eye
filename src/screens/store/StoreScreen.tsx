@@ -154,7 +154,6 @@ export function StoreScreen() {
     [customers, selectedCustomerId]
   );
 
-  // A store can only have one outstanding Optometrist request at a time.
   const hasActiveRequest = React.useMemo(
     () => customers.some((c) => c.status === 'Initiated' || c.status === 'Accepted'),
     [customers]
@@ -344,7 +343,7 @@ export function StoreScreen() {
 
   const visibleColumnIds = React.useMemo(
     () =>
-      STORE_CUSTOMER_COLUMNS.filter((col) => col.isMandatory || columnVisibility[col.id] !== false).map(
+      STORE_CUSTOMER_COLUMNS.filter((col) => col.isMandatory || columnVisibility?.[col.id] !== false).map(
         (col) => col.id
       ),
     [STORE_CUSTOMER_COLUMNS, columnVisibility]
@@ -371,7 +370,7 @@ export function StoreScreen() {
         type: 'success',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
 
       if (err.message?.includes('No Optometrist doctors are currently available')) {
         toast({
@@ -408,7 +407,7 @@ export function StoreScreen() {
         type: 'info',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message || 'Failed to cancel Optometrist request.',
         title: 'System Error',
@@ -427,7 +426,7 @@ export function StoreScreen() {
         feedbackUrl: `${window.location.origin}/feedback/${result.token}`,
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message || 'Failed to mark the call as completed.',
         title: 'System Error',
@@ -588,7 +587,9 @@ export function StoreScreen() {
       ...(statusTab === 'all'
         ? [
             {
-              cell: ({ row }: { row: { original: Customer } }) => <CustomerStatusBadge status={row.original.status} />,
+              cell: ({ row }: { row: { original: Customer } }) => (
+                <CustomerStatusBadge status={row.original.status} />
+              ),
               enableSorting: false,
               header: () => (
                 <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Status</span>
@@ -658,7 +659,10 @@ export function StoreScreen() {
       {isEditingRx ? (
         <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
       ) : isViewingDetails ? (
-        <StorePatientDetailsPage onBack={() => setIsViewingDetails(false)} selectedCustomer={selectedCustomer} />
+        <StorePatientDetailsPage
+          onBack={() => setIsViewingDetails(false)}
+          selectedCustomer={selectedCustomer}
+        />
       ) : (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">

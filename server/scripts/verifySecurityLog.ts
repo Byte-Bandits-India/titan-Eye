@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 
-import { stableStringify } from '../utils/logger.js';
+import { JsonObject, JsonValue, stableStringify } from '../utils/logger.js';
 
 const GENESIS_HASH = '0'.repeat(64);
 const NON_META_KEYS = new Set([
@@ -12,7 +12,7 @@ const NON_META_KEYS = new Set([
 ]);
 
 interface SecurityLogLine {
-  [key: string]: unknown;
+  [key: string]: JsonValue;
   eventTimestamp?: string;
   hash?: string;
   message: string;
@@ -76,7 +76,7 @@ function verify(target: string): boolean {
         ok = false;
       }
 
-      const meta: Record<string, unknown> = {};
+      const meta: JsonObject = {};
 
       for (const [key, value] of Object.entries(entry)) {
         if (!NON_META_KEYS.has(key)) {meta[key] = value;}

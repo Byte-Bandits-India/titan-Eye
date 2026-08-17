@@ -1,7 +1,6 @@
 import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
-// ─── Admin Tab ────────────────────────────────────────────────────────────────
 export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users';
 export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
@@ -52,7 +51,6 @@ export type CollisionData = {
   targetView?: 'info' | 'rx';
 };
 
-// ─── Optometrist Screen ─────────────────────────────────────────────────────────────
 export type CollisionModalData = {
   id: string;
   name: string;
@@ -147,7 +145,6 @@ export type CustomerState = {
 
 export type CustomerStatus = 'Accepted' | 'Closed' | 'Completed' | 'Created' | 'Drop' | 'Initiated';
 
-// ─── Admin Screen ─────────────────────────────────────────────────────────────
 export type CustomerStatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
 
 export type CustomerTabCounts = {
@@ -180,7 +177,6 @@ export type LogNotification = {
   type: LogNotificationType;
 };
 
-// ─── Notification Log ─────────────────────────────────────────────────────────
 export type LogNotificationType =
   | 'assessment_accepted'
   | 'assessment_complete'
@@ -213,14 +209,12 @@ export type NetworkStatus = {
   wifiIconColor: string;
 };
 
-// ─── SSE Events ───────────────────────────────────────────────────────────────
 export type NoOptometristEventPayload = {
   customerId: string;
   customerName: string;
   storeName: null | string;
 };
 
-// ─── Notification Popover ─────────────────────────────────────────────────────
 export type NotificationPopoverProps = {
   autoOpen?: boolean;
   onSelectCustomer?: (customerId: string) => void;
@@ -307,7 +301,6 @@ export type StatsGridProps = {
   customers: Customer[];
 };
 
-// ─── Store Screen ─────────────────────────────────────────────────────────────
 export type StatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
 
 export type StorePatientDetailsProps = {

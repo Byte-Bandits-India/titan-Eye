@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'titan-eye-super-secure-jwt-secret-key-123456789-abc';
+export const JWT_SECRET = process.env.JWT_SECRET ?? '';
 export const SESSION_IDLE_MS = 60 * 60 * 1000;
 
 export interface UserPayload {
@@ -39,7 +39,15 @@ export function verifyToken(token: string): null | UserPayload {
       return null;
     }
 
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as UserPayload;
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    if (typeof payload.email !== 'string' || typeof payload.name !== 'string') {
+      return null;
+    }
 
     if (payload.exp && Date.now() > payload.exp) {
       return null;

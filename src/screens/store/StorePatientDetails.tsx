@@ -196,7 +196,7 @@ export function StorePatientDetails({
         setSelectedCustomerId(created.id);
         onBack();
       } catch (e) {
-        const err = e as Error;
+        const err = e instanceof Error ? e : new Error(String(e));
         toast({
           description: err.message || 'Failed to connect to backend database.',
           title: 'Error Saving Patient',
@@ -232,7 +232,7 @@ export function StorePatientDetails({
           type: 'success',
         });
       } catch (e) {
-        const err = e as Error;
+        const err = e instanceof Error ? e : new Error(String(e));
         toast({
           description: err.message || 'Failed to connect to backend database.',
           title: 'Error Updating Patient',

@@ -13,9 +13,9 @@ import { revokeToken } from '../utils/tokenBlacklist.js';
 
 const router = Router();
 
-const LOCKOUT_THRESHOLD = 5; // failed attempts before lockout
-const LOCKOUT_DURATION_MS = 30 * 60 * 1000; // 30 minutes lockout
-const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours absolute token max age
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_DURATION_MS = 30 * 60 * 1000;
+const TOKEN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface LoginBody {
   email?: string;
@@ -67,9 +67,6 @@ router.post(
           return res.status(403).json({ error: 'This account has been deactivated' });
         }
 
-        // Store devices (including unattended kiosk screens) stay logged in for
-        // the full cookie lifetime instead of the 1-hour idle timeout that
-        // applies to optometrist/admin accounts.
         const tokenTtlMs = user.role === 'store' ? TOKEN_MAX_AGE_MS : SESSION_IDLE_MS;
         const token = generateToken(
           { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
@@ -157,7 +154,7 @@ router.post(
 
       return res.status(401).json({ error: 'Invalid email or password' });
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Login error', { errorMessage: error.message, requestId: req.requestId });
 
       return res.status(500).json({ error: 'Internal server error' });
@@ -190,7 +187,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
       },
     });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch current user error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -218,7 +215,7 @@ router.post('/logout', (req: Request, res: Response<LogoutResponseBody>) => {
         logSecurityEvent('LOGOUT', { email: payload.email, ip: req.ip, requestId: req.requestId });
       } catch (e) {
         logger.warn('Logout cleanup failed', {
-          errorMessage: (e as Error).message,
+          errorMessage: e instanceof Error ? e.message : String(e),
           requestId: req.requestId,
         });
       }

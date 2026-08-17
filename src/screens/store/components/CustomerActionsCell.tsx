@@ -102,7 +102,6 @@ export function CustomerActionsCell({
   onViewDetails,
   statusTab,
 }: CustomerActionsCellProps) {
-  // ── "All" tab: just a View button, no request/status/kebab actions ──────
   if (statusTab === 'all') {
     return (
       <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
@@ -118,7 +117,6 @@ export function CustomerActionsCell({
     );
   }
 
-  // ── Primary call-action button ──────────────────────────────────────────
   const primaryBtn = (() => {
     if (cust.status === 'Accepted') {
       return (

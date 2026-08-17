@@ -94,8 +94,6 @@ function DataGridScrollArea({
   const showHorizontal = orientation !== 'vertical';
   const showVertical = orientation !== 'horizontal';
   const usesCustomVerticalScrollbar = showVertical && !!dataGridProps.tableLayout?.headerSticky;
-  // Pinned columns are sticky and never scroll, so the horizontal scrollbar
-  // track is inset to span only the scrollable center region between them.
   const isColumnsPinnable = !!dataGridProps.tableLayout?.columnsPinnable;
   const scrollbarInsetStart = isColumnsPinnable ? table.getStartTotalSize() : 0;
   const scrollbarInsetEnd = isColumnsPinnable ? table.getEndTotalSize() : 0;
@@ -107,9 +105,6 @@ function DataGridScrollArea({
     document.body.style.webkitUserSelect = '';
   }, []);
 
-  // The overlay is mounted one commit after the sync that detected overflow,
-  // so it misses that sync's write. Seeding it from the ref callback lands the
-  // geometry during commit, before the browser paints the track.
   const setOverlayRef = useCallback((node: HTMLDivElement | null) => {
     overlayRef.current = node;
 
@@ -183,11 +178,6 @@ function DataGridScrollArea({
     if (!areMetricsEqual(nextMetrics, metricsRef.current)) {
       metricsRef.current = nextMetrics;
 
-      // Scoped to the overlay, never to the container. These four properties
-      // inherit, and thumbTop changes on essentially every scroll frame, so
-      // writing them on the element that wraps the whole grid invalidates
-      // computed style for every row and cell each frame. The overlay subtree
-      // is their only reader.
       if (overlayRef.current) {
         applyMetrics(overlayRef.current, nextMetrics);
       }
@@ -255,9 +245,6 @@ function DataGridScrollArea({
     scheduleSync();
     viewport.addEventListener('scroll', scheduleSync, { passive: true });
 
-    // A table that mounts after this effect (empty state swapped for data)
-    // would otherwise never be observed and the custom scrollbar would
-    // overlap the sticky header. One-shot: disconnects once resolved.
     let mutationObserver: MutationObserver | null = null;
 
     if (!resolvedOnMount && typeof MutationObserver !== 'undefined') {
@@ -372,9 +359,6 @@ function DataGridScrollArea({
     <div className="relative" ref={containerRef}>
       <ScrollAreaPrimitive.Root
         className={cn('relative', className)}
-        // Styling hook: present while the sticky-header scroll mode detects
-        // vertical overflow, so consumers can style scrollable vs short
-        // grids with a plain ancestor attribute selector.
         data-overflow-vertical={hasCustomVerticalOverflow ? 'true' : undefined}
         data-slot="data-grid-scroll-area"
         {...props}

@@ -276,7 +276,8 @@ export function NotificationPopover({
           const startMs = parseTimestamp(c.callStartTime);
           const optometristCallStartTime = c.optometristCallStartTime;
           const optometristMs = parseTimestamp(optometristCallStartTime || c.lastUpdatedOn);
-          const waitSecs = startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
+          const waitSecs =
+            startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
           const isPost59Min = waitSecs >= 3540;
 
           let subtitleText = `${c.callTakenBy || 'Optometrist Doctor'} accepted the call`;
@@ -454,7 +455,7 @@ export function NotificationPopover({
         type: 'success',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
 
       toast({
         description: err.message || 'Failed to request an Optometrist doctor.',
@@ -653,7 +654,9 @@ export function NotificationPopover({
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1 pr-24">
-                  <div className="truncate text-xs font-medium leading-snug text-foreground">{item.title}</div>
+                  <div className="truncate text-xs font-medium leading-snug text-foreground">
+                    {item.title}
+                  </div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</div>
                   {item.type === 'incoming_call' && (
                     <div className="flex items-center gap-2 pt-2">

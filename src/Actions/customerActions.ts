@@ -36,7 +36,7 @@ export const fetchCustomersAction = () => async (dispatch: AppDispatch) => {
     const response = await apiClient.get<Customer[]>('/customers');
     dispatch(fetchSuccess(response.data));
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to fetch customers.');
     dispatch(fetchFailure(msg));
   }
@@ -53,7 +53,7 @@ export const createCustomerAction = (customer: Partial<Customer>) => async (disp
 
     return created;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to register customer.');
     throw new Error(msg);
   }
@@ -68,7 +68,7 @@ export const updateCustomerAction =
       );
       dispatch(customerUpdated(response.data.customer));
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       const msg = handleApiError(err, dispatch, 'Failed to update customer.');
       throw new Error(msg);
     }
@@ -86,7 +86,7 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to initiate call.');
     throw new Error(msg);
   }
@@ -104,7 +104,7 @@ export const cancelCallAction = (id: string) => async (dispatch: AppDispatch) =>
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to cancel call request.');
     throw new Error(msg);
   }
@@ -122,7 +122,7 @@ export const rejectCallAction = (id: string) => async (dispatch: AppDispatch) =>
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to reject call.');
     throw new Error(msg);
   }
@@ -140,7 +140,7 @@ export const dropCallAction = (id: string) => async (dispatch: AppDispatch) => {
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to drop call.');
     throw new Error(msg);
   }
@@ -158,7 +158,7 @@ export const endCallAction = (id: string) => async (dispatch: AppDispatch) => {
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to end call.');
     throw new Error(msg);
   }
@@ -176,7 +176,7 @@ export const completeCallAction = (id: string) => async (dispatch: AppDispatch) 
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to mark the call as completed.');
     throw new Error(msg);
   }
@@ -188,7 +188,7 @@ export const fetchCustomerLogsAction = (id: string) => async (dispatch: AppDispa
 
     return response.data;
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to fetch customer logs.');
     throw new Error(msg);
   }

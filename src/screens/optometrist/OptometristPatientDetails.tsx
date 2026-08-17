@@ -105,9 +105,6 @@ export function OptometristPatientDetails({
       updatedCustomer.callActive = false;
     }
 
-    // Only Created/Drop actually release the customer back into the queue for
-    // (re)assignment - Completed/Closed are terminal states, so callTakenBy is
-    // kept so the store can see which optometrist handled the consultation.
     if (status === 'Created' || status === 'Drop') {
       updatedCustomer.callTakenBy = null;
     }
@@ -121,7 +118,7 @@ export function OptometristPatientDetails({
         type: 'success',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: `Failed to update status: ${err.message || 'Database error'}`,
         title: 'Error Updating Status',
@@ -147,7 +144,7 @@ export function OptometristPatientDetails({
         type: 'success',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message || 'Failed to accept this call.',
         title: 'Error Accepting Call',
@@ -172,7 +169,7 @@ export function OptometristPatientDetails({
       });
       onBack();
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: `Failed to drop call: ${err.message || 'Database error'}`,
         title: 'Error Dropping Call',
@@ -322,7 +319,7 @@ export function OptometristPatientDetails({
           <CardFrame className="p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-t border-border bg-muted/40">
+                <tr className="bg-muted/40 border-t border-border">
                   <th className="px-3 py-2 text-left font-medium text-foreground">R X</th>
                   {optometristHeaders.map((header) => (
                     <th className="px-3 py-2 text-center font-medium text-foreground" key={header}>

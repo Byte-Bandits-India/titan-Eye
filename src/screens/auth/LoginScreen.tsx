@@ -64,7 +64,7 @@ export function LoginScreen() {
         type: 'success',
       });
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       let errorMessage = 'Invalid email or password.';
 
       if (axios.isAxiosError(err) && err.response?.data) {

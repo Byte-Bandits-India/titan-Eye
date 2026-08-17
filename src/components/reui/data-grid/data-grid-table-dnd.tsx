@@ -78,7 +78,7 @@ function DataGridTableDndBodyRows<TData extends object>({ table }: { table: Data
         <Fragment key={row.id}>
           <DataGridTableBodyRow row={row}>
             <SortableContext items={table.state.columnOrder} strategy={horizontalListSortingStrategy}>
-              {row.getVisibleCells().map((cell: Cell<DataGridFeatures, TData, unknown>) => (
+              {row.getVisibleCells().map((cell: Cell<DataGridFeatures, TData>) => (
                 <DataGridTableDndCell cell={cell} key={cell.id} />
               ))}
             </SortableContext>
@@ -91,11 +91,7 @@ function DataGridTableDndBodyRows<TData extends object>({ table }: { table: Data
   );
 }
 
-function DataGridTableDndCell<TData extends object>({
-  cell,
-}: {
-  cell: Cell<DataGridFeatures, TData, unknown>;
-}) {
+function DataGridTableDndCell<TData extends object>({ cell }: { cell: Cell<DataGridFeatures, TData> }) {
   const { props } = useDataGrid();
   const { isDragging, setNodeRef, transform, transition } = useSortable({
     id: cell.column.id,
@@ -123,12 +119,11 @@ function DataGridTableDndCell<TData extends object>({
 function DataGridTableDndHeader<TData extends object>({
   header,
 }: {
-  header: Header<DataGridFeatures, TData, unknown>;
+  header: Header<DataGridFeatures, TData>;
 }) {
   const { props } = useDataGrid();
   const { column } = header;
 
-  // Check if column ordering is enabled for this column
   const canOrder = (column.columnDef as { enableColumnOrdering?: boolean }).enableColumnOrdering !== false;
 
   const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({
@@ -174,11 +169,6 @@ function DataGridTableDndHeader<TData extends object>({
   );
 }
 
-/**
- * Memoized body rows: skip re-renders during active column resize.
- * Column widths update via CSS variables on the <table> element,
- * so the browser handles width changes without React re-renders.
- */
 const MemoizedDataGridTableDndBodyRows = memo(
   DataGridTableDndBodyRows,
   (_prev, next) => !!next.table.state.columnResizing.isResizingColumn
@@ -191,15 +181,13 @@ function DataGridTableDnd<TData extends object>({
   footerContent?: ReactNode;
   handleDragEnd: (event: DragEndEvent) => void;
 }) {
-  const { props, table } = useDataGrid();
+  const { props, table } = useDataGrid<TData>();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDraggingColumn, setIsDraggingColumn] = useState(false);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    // Keyboard reordering moves one sortable position per keypress instead
-    // of the sensor's raw 25px default.
+    useSensor(MouseSensor),
+    useSensor(TouchSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -223,7 +211,6 @@ function DataGridTableDnd<TData extends object>({
     };
   }, [isDraggingColumn]);
 
-  // Custom modifier to restrict dragging within table bounds with edge offset
   const modifiers = useMemo(() => {
     const restrictToTableBounds: Modifier = ({ draggingNodeRect, transform }) => {
       if (!draggingNodeRect || !containerRef.current) {

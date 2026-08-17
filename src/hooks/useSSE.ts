@@ -25,7 +25,6 @@ export function useSSE(): void {
       return;
     }
 
-    // Initial fetch on mount / authentication
     dispatch(fetchCustomersAction());
     dispatch(fetchUsersAction());
 
@@ -35,20 +34,21 @@ export function useSSE(): void {
 
     eventSource.onmessage = (event: MessageEvent) => {
       try {
-        const { data, type } = JSON.parse(event.data as string) as SSEEventDetail;
+        const parsed = JSON.parse(String(event.data)) as SSEEventDetail;
+        const { type } = parsed;
 
         if (type === 'CUSTOMER_CREATED') {
-          dispatch(customerCreated(data));
+          dispatch(customerCreated(parsed.data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
         } else if (type === 'CUSTOMER_UPDATED') {
-          dispatch(customerUpdated(data));
+          dispatch(customerUpdated(parsed.data));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
         } else if (type === 'NO_OPTOMETRIST_AVAILABLE' || type === 'OPTOMETRIST_NO_RESPONSE') {
-          const payload = data as NoOptometristEventPayload;
+          const payload: NoOptometristEventPayload = parsed.data;
           const currentUser = userRef.current;
           const isMatchingStore =
             currentUser?.role === 'store' &&
@@ -69,7 +69,8 @@ export function useSSE(): void {
                 type === 'NO_OPTOMETRIST_AVAILABLE'
                   ? 'All Optometrist doctors are currently busy. Please try again in a few minutes.'
                   : `No Optometrist doctor answered your request for ${payload.customerName}. Please try requesting again.`,
-              title: type === 'NO_OPTOMETRIST_AVAILABLE' ? 'Optometrist Unavailable' : 'No Optometrist Answered',
+              title:
+                type === 'NO_OPTOMETRIST_AVAILABLE' ? 'Optometrist Unavailable' : 'No Optometrist Answered',
               type: 'no_optometrist_available',
             });
           }
@@ -82,14 +83,14 @@ export function useSSE(): void {
         ) {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
         } else if (type === 'CALL_SESSION_READY' || type === 'CALL_SESSION_ENDED') {
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data, type } }));
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
           window.dispatchEvent(
             new CustomEvent(
               type === 'CALL_SESSION_READY' ? 'titan:call_session_ready' : 'titan:call_session_ended',
               {
-                detail: data,
+                detail: parsed.data,
               }
             )
           );

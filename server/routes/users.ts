@@ -1,4 +1,4 @@
-import { Request, Response, Router } from 'express';
+import { Response, Router } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
 
 import type { ErrorResponse, ManagedUserResponse } from '../types.js';
@@ -10,9 +10,6 @@ import { hashPassword } from '../utils/hash.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 
-// activeTokenSig is only cleared on explicit logout, not on token expiry, so a
-// non-null value alone doesn't mean the session is still live — also require
-// the login to be within the token's lifetime.
 function isSessionLive(u: Pick<UserRow, 'activeTokenSig' | 'lastLogin'>): boolean {
   if (!u.activeTokenSig || !u.lastLogin) {
     return false;
@@ -57,10 +54,6 @@ interface UpdateUserBody {
   storeName?: string;
 }
 
-// Optometrist users submit their own display name. Store users don't, so their
-// Store Code doubles as the name shown everywhere (headers, notifications,
-// call attribution, audit logs). Admins get neither — the column stays NOT
-// NULL, so fall back to the email's local part.
 function deriveName(role: string, email: string, name?: string, storeName?: string): string {
   if (role === 'optometrist' && name?.trim()) {
     return name.trim();
@@ -79,7 +72,7 @@ function parseLanguages(raw: null | string): null | string[] {
   }
 
   try {
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = JSON.parse(raw);
 
     return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : null;
   } catch {
@@ -138,7 +131,7 @@ router.get('/', async (_req: AuthenticatedRequest, res: Response<UserListRespons
 
     return res.json(result);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch users error', { errorMessage: error.message, requestId: _req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -150,7 +143,7 @@ router.use(requireAdmin);
 router.post(
   '/',
   async (
-    req: Request<ParamsDictionary, ManagedUserResponseBody, CreateUserBody>,
+    req: AuthenticatedRequest<ParamsDictionary, ManagedUserResponseBody, CreateUserBody>,
     res: Response<ManagedUserResponseBody>
   ) => {
     try {
@@ -197,9 +190,8 @@ router.post(
         ]
       );
 
-      const adminReq = req as unknown as AuthenticatedRequest;
-      const adminEmail = adminReq.user?.email || 'admin@gmail.com';
-      const adminName = adminReq.user?.name || 'Admin';
+      const adminEmail = req.user?.email || 'admin@gmail.com';
+      const adminName = req.user?.name || 'Admin';
       const timestamp = getFormattedTimestamp();
 
       await run(
@@ -235,7 +227,7 @@ router.post(
         storeName: finalStoreName,
       });
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Create user error', { errorMessage: error.message, requestId: req.requestId });
 
       return res.status(500).json({ error: 'Internal server error' });
@@ -246,7 +238,7 @@ router.post(
 router.put(
   '/:email',
   async (
-    req: Request<{ email: string }, ManagedUserResponseBody, UpdateUserBody>,
+    req: AuthenticatedRequest<{ email: string }, ManagedUserResponseBody, UpdateUserBody>,
     res: Response<ManagedUserResponseBody>
   ) => {
     try {
@@ -294,9 +286,8 @@ router.put(
         ]
       );
 
-      const adminReq = req as unknown as AuthenticatedRequest;
-      const adminEmail = adminReq.user?.email || 'admin@gmail.com';
-      const adminName = adminReq.user?.name || 'Admin';
+      const adminEmail = req.user?.email || 'admin@gmail.com';
+      const adminName = req.user?.name || 'Admin';
       const timestamp = getFormattedTimestamp();
 
       await run(
@@ -326,7 +317,7 @@ router.put(
         storeName: finalStoreName,
       });
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Update user error', { errorMessage: error.message, requestId: req.requestId });
 
       return res.status(500).json({ error: 'Internal server error' });
@@ -373,7 +364,7 @@ router.delete('/:email', async (req: AuthenticatedRequest, res: Response<DeleteU
 
     return res.json({ ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Delete user error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -383,7 +374,7 @@ router.delete('/:email', async (req: AuthenticatedRequest, res: Response<DeleteU
 router.put(
   '/:email/status',
   async (
-    req: Request<{ email: string }, UpdateStatusResponseBody, UpdateStatusBody>,
+    req: AuthenticatedRequest<{ email: string }, UpdateStatusResponseBody, UpdateStatusBody>,
     res: Response<UpdateStatusResponseBody>
   ) => {
     try {
@@ -404,9 +395,8 @@ router.put(
 
       await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', [status, email]);
 
-      const adminReq = req as unknown as AuthenticatedRequest;
-      const adminEmail = adminReq.user?.email || 'admin@gmail.com';
-      const adminName = adminReq.user?.name || 'Admin';
+      const adminEmail = req.user?.email || 'admin@gmail.com';
+      const adminName = req.user?.name || 'Admin';
       const timestamp = getFormattedTimestamp();
 
       await run(
@@ -431,7 +421,7 @@ router.put(
 
       return res.json({ email: existing.email, status });
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Update user status error', { errorMessage: error.message, requestId: req.requestId });
 
       return res.status(500).json({ error: 'Internal server error' });
@@ -439,10 +429,6 @@ router.put(
   }
 );
 
-// activeTokenSig is only cleared on explicit logout, so a session that simply
-// times out never pushes a status change on its own. Sweep periodically and
-// broadcast USER_UPDATED for anyone whose session has just gone stale, so
-// clients see the "Available" status flip live instead of on next refetch.
 setInterval(async () => {
   try {
     const cutoff = new Date(Date.now() - SESSION_IDLE_MS).toISOString();
@@ -463,7 +449,9 @@ setInterval(async () => {
       });
     }
   } catch (err) {
-    logger.error('Session expiry sweep failed', { errorMessage: (err as Error).message });
+    logger.error('Session expiry sweep failed', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
   }
 }, 60 * 1000);
 

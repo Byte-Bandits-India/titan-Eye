@@ -59,15 +59,11 @@ type OptometristUsersVariant = {
   variant: 'optometrist-users';
 };
 
-// ─── OptometristCard Component ──────────────────────────────────────────────────────
-
 export function OptometristCard(props: OptometristCardProps) {
-  // ── variant="metrics" ──────────────────────────────────────────────────────
   if (props.variant === 'metrics') {
     return <MetricCardGrid tabCounts={props.tabCounts} />;
   }
 
-  // ── variant="optometrist-users" ──────────────────────────────────────────────────
   if (props.variant === 'optometrist-users') {
     const activeCount = props.data.filter((d) => d.avail.statusLabel !== 'Offline').length;
 

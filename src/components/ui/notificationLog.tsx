@@ -16,7 +16,6 @@ export function NotificationLogProvider({ children }: { children: React.ReactNod
 
   const addLogNotification = React.useCallback((notification: Omit<LogNotification, 'id' | 'timestamp'>) => {
     setLogNotifications((prev) => {
-      // Deduplicate: skip if the same title+description is still sitting undismissed
       const isDuplicate = prev.some(
         (n) => n.title === notification.title && n.description === notification.description
       );

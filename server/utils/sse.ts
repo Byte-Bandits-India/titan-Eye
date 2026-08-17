@@ -18,7 +18,7 @@ export function broadcastEvent<T>(type: string, data: T) {
     try {
       client.res.write(`data: ${JSON.stringify({ data, type })}\n\n`);
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       logger.error('Failed to write to SSE client', { clientId: client.id, errorMessage: error.message });
     }
   });

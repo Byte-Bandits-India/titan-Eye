@@ -41,7 +41,6 @@ function TeamsCallModalComponent({
       return;
     }
 
-    // Don't initiate drag if clicking buttons inside header
     if ((e.target as HTMLElement).closest('button')) {
       return;
     }
@@ -216,8 +215,6 @@ function TeamsCallModalComponent({
     return null;
   }
 
-  // Embedded: fills its container (e.g. a panel inside a drawer) — no fixed
-  // positioning, drag, minimize, or fullscreen toggle since the host owns that.
   if (variant === 'embedded') {
     return (
       <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900">
@@ -253,7 +250,6 @@ function TeamsCallModalComponent({
     );
   }
 
-  // Minimized Compact Floating Bar (MS Teams Call Widget Style)
   if (mode === 'minimized') {
     return (
       <>
@@ -313,7 +309,6 @@ function TeamsCallModalComponent({
     );
   }
 
-  // Normal or Fullscreen Modal
   return (
     <div
       className={
@@ -393,8 +388,4 @@ function TeamsCallModalComponent({
   );
 }
 
-// Wraps a live ACS video call (CallComposite) — memoized so hosts that also
-// hold fast-changing unrelated state (e.g. a form next to an embedded call)
-// don't force it to re-render on every keystroke. Callers must pass a
-// stable `onClose` (e.g. via useCallback) for this to be effective.
 export const TeamsCallModal = React.memo(TeamsCallModalComponent);

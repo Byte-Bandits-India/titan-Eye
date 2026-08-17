@@ -13,16 +13,15 @@ export const loginAction = (email: string, password: string) => async (dispatch:
     const response = await apiClient.post<LoginResponse>('/login', { email, password });
     dispatch(loginSuccess(response.data));
   } catch (e) {
-    const err = e as Error;
     let message = 'An error occurred during login.';
 
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as { error?: string };
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const data = e.response.data as { error?: string };
       message = data.error || message;
     }
 
     dispatch(loginFailure(message));
-    throw err;
+    throw e instanceof Error ? e : new Error(message);
   }
 };
 

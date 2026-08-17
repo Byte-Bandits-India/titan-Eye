@@ -5,7 +5,14 @@ import { db } from '../db/database.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { isRevoked } from '../utils/tokenBlacklist.js';
 
-export interface AuthenticatedRequest extends Request {
+import { ParamsDictionary, Query } from 'express-serve-static-core';
+
+export interface AuthenticatedRequest<
+  P = ParamsDictionary,
+  ResBody = object | string | number | boolean | null,
+  ReqBody = object | string | number | boolean | null,
+  ReqQuery = Query,
+> extends Request<P, ResBody, ReqBody, ReqQuery> {
   user?: UserPayload;
 }
 
@@ -49,9 +56,6 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
       return res.status(401).json({ error: 'This account has been deactivated' });
     }
 
-    // Store accounts may be logged in on multiple devices at once (e.g. a kiosk
-    // screen alongside the main register), so they're exempt from the
-    // single-active-session check that applies to optometrist/admin accounts.
     if (user.role !== 'store') {
       if (row.activeTokenSig !== null && row.activeTokenSig !== tokenSig) {
         logSecurityEvent('SESSION_SUPERSEDED', { email: user.email, ip: req.ip, requestId: req.requestId });
@@ -71,7 +75,7 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
     }
   } catch (e) {
     logger.error('[auth middleware] user session verification check failed', {
-      errorMessage: (e as Error).message,
+      errorMessage: e instanceof Error ? e.message : String(e),
       requestId: req.requestId,
     });
   }

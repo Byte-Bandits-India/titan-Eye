@@ -9,7 +9,8 @@ export function renderCallDuration(cust: Customer) {
   if (cust.callActive && optometristCallStartTime) {
     const startMs = parseTimestamp(cust.callStartTime);
     const optometristMs = parseTimestamp(optometristCallStartTime);
-    const waitSecs = startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
+    const waitSecs =
+      startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
     const maxCallSecs = Math.max(0, 3540 - waitSecs);
 
     return <CallTimer active={true} maxDurationSeconds={maxCallSecs} startTime={optometristCallStartTime} />;
@@ -48,7 +49,9 @@ export function renderTimeStarted(cust: AuditLog | Customer) {
       const waitSecs = Math.floor((optometristMs - startMs) / 1000);
 
       return (
-        <span className="font-mono font-medium text-foreground">{formatSeconds(Math.min(waitSecs, 3540))}</span>
+        <span className="font-mono font-medium text-foreground">
+          {formatSeconds(Math.min(waitSecs, 3540))}
+        </span>
       );
     }
   }
@@ -61,7 +64,9 @@ export function renderTimeStarted(cust: AuditLog | Customer) {
       const waitSecs = endMs >= startMs ? Math.floor((endMs - startMs) / 1000) : 0;
 
       return (
-        <span className="font-mono font-medium text-foreground">{formatSeconds(Math.min(waitSecs, 3540))}</span>
+        <span className="font-mono font-medium text-foreground">
+          {formatSeconds(Math.min(waitSecs, 3540))}
+        </span>
       );
     }
   }

@@ -41,9 +41,7 @@ interface DataGridColumnHeaderProps<TData extends object, TValue> extends HTMLAt
   column: Column<DataGridFeatures, TData, TValue>;
   filter?: ReactNode;
   icon?: ReactNode;
-  /** Reserved; pin controls are gated by tableLayout.columnsPinnable + column.getCanPin(). */
   pinnable?: boolean;
-  /** When omitted, uses `column.columnDef.meta.headerTitle`, then a string `columnDef.header`, then `column.id`. */
   title?: string;
   visibility?: boolean;
 }
@@ -59,8 +57,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
   const { isLoading, props, table } = useDataGrid();
   const resolvedTitle = title ?? getColumnHeaderLabel(column);
 
-  // TanStack's columnOrder defaults to [] until a consumer seeds it; fall
-  // back to the definition order so Move Left/Right work out of the box.
   const columnOrderState = table.state.columnOrder;
   const columnOrder =
     columnOrderState.length > 0
@@ -118,7 +114,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
     const items: ReactNode[] = [];
     let hasPreviousSection = false;
 
-    // Filter section
     if (filter) {
       items.push(
         <DropdownMenuGroup key="group-filter">
@@ -128,7 +123,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
       hasPreviousSection = true;
     }
 
-    // Sort section
     if (canSort) {
       if (hasPreviousSection) {
         items.push(<DropdownMenuSeparator key="sep-sort" />);
@@ -169,7 +163,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
       hasPreviousSection = true;
     }
 
-    // Pin section
     if (props.tableLayout?.columnsPinnable && canPin) {
       if (hasPreviousSection) {
         items.push(<DropdownMenuSeparator key="sep-pin" />);
@@ -190,7 +183,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
       hasPreviousSection = true;
     }
 
-    // Move section
     if (props.tableLayout?.columnsMovable) {
       if (hasPreviousSection) {
         items.push(<DropdownMenuSeparator key="sep-move" />);
@@ -239,7 +231,6 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
       hasPreviousSection = true;
     }
 
-    // Visibility section
     if (props.tableLayout?.columnsVisibility && visibility) {
       if (hasPreviousSection) {
         items.push(<DropdownMenuSeparator key="sep-visibility" />);
@@ -345,22 +336,10 @@ function DataGridColumnHeaderInner<TData extends object, TValue>({
 
 const DataGridColumnHeaderMemo = memo(DataGridColumnHeaderInner) as <TData extends object, TValue>(
   props: DataGridColumnHeaderProps<TData, TValue> & {
-    /** Internal: the state slices the header re-renders on. Not part of the public API. */
-    subscribedState?: unknown;
+    subscribedState?: object;
   }
 ) => ReactNode;
 
-/**
- * Sort and pin state reaches this header through builder calls on `column`
- * (`getIsSorted()`, `getIsPinned()`), and `column` is a stable reference. That
- * combination is the one v9's fresh-table-per-state-change does NOT cover:
- * React Compiler is free to memoize against the stable column and never
- * re-evaluate those reads, which shows up as frozen sort arrows and pin
- * controls. The `Subscribe` below turns the slices this header actually reads
- * into a real reactive dependency, and threading the selection through as a
- * prop is what lets it past the `memo` - which would otherwise see unchanged
- * props and skip the render anyway.
- */
 function DataGridColumnHeader<TData extends object, TValue>(props: DataGridColumnHeaderProps<TData, TValue>) {
   const { table } = useDataGrid();
 

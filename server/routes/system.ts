@@ -205,7 +205,7 @@ router.get('/me/presence', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json({ data: presence, success: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Graph presence error', { errorMessage: error.message, requestId: req.requestId });
 
     return res
@@ -223,16 +223,12 @@ router.get('/me/photo', async (req: AuthenticatedRequest, res: Response) => {
     const entraId = await resolveEntraUserId(req.user.email);
 
     if (!entraId) {
-      // No linked Microsoft account is a normal, expected state here too.
       return res.status(204).end();
     }
 
     const photo = await getUserPhoto(entraId);
 
     if (!photo) {
-      // Not having set a profile photo is a normal, expected state (not an
-      // error) — 204 keeps the client's fetch from surfacing as a failed
-      // request in the browser console.
       return res.status(204).end();
     }
 
@@ -241,7 +237,7 @@ router.get('/me/photo', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.send(photo.buffer);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Graph photo error', { errorMessage: error.message, requestId: req.requestId });
 
     return res
@@ -250,9 +246,6 @@ router.get('/me/photo', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-// Fetch another registered app user's photo (e.g. an optometrist's avatar shown to
-// store staff). Scoped to emails that already exist in our own users table —
-// never accepts an arbitrary Entra ID, so it can't be used to probe the tenant.
 router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Authentication required' });
@@ -269,16 +262,12 @@ router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Respons
     const entraId = await resolveEntraUserId(targetUser.email);
 
     if (!entraId) {
-      // No linked Microsoft account is a normal, expected state here too.
       return res.status(204).end();
     }
 
     const photo = await getUserPhoto(entraId);
 
     if (!photo) {
-      // Not having set a profile photo is a normal, expected state (not an
-      // error) — 204 keeps the client's fetch from surfacing as a failed
-      // request in the browser console.
       return res.status(204).end();
     }
 
@@ -287,7 +276,7 @@ router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Respons
 
     return res.send(photo.buffer);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Graph photo error', { errorMessage: error.message, requestId: req.requestId });
 
     return res

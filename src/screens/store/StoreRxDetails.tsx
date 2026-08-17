@@ -200,7 +200,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
       });
       onBack();
     } catch (err) {
-      const error = err as Error;
+      const error = err instanceof Error ? err : new Error(String(err));
       toast({
         description: error.message || 'Failed to update prescription data.',
         title: 'Error Saving Rx',

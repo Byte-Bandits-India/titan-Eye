@@ -1,12 +1,20 @@
 import type { OptometristRxValues, RxValues } from '../types';
 
 export const rxFields: (keyof RxValues)[] = ['sph', 'cyl', 'axis', 'pd', 'prism', 'base', 'add'];
-export const optometristFields: (keyof OptometristRxValues)[] = ['sph', 'cyl', 'axis', 'prism', 'base', 'va', 'add'];
+export const optometristFields: (keyof OptometristRxValues)[] = [
+  'sph',
+  'cyl',
+  'axis',
+  'prism',
+  'base',
+  'va',
+  'add',
+];
 
 export const rxHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'PD', 'Prism', 'Base', 'ADD'];
 export const optometristHeaders: string[] = ['Sph', 'Cyl', 'Axis', 'Prism', 'Base', 'VA', 'ADD'];
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export const PAGINATION = {
   OPTOMETRIST_PAGE_SIZE: 6,
@@ -136,5 +144,4 @@ export const emptyOptometristRxValues: OptometristRxValues = {
   va: '',
 };
 
-/** @deprecated Use POWER_OPTIONS directly */
 export { POWER_OPTIONS as SPH_OPTIONS };

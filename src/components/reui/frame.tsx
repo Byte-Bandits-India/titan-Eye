@@ -3,40 +3,13 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
-/**
- * CSS variable architecture for FramePanel theming:
- *
- * The Frame parent sets --frame-panel-bg and --frame-panel-border-color.
- * FramePanel consumes them directly via bg-[var(--frame-panel-bg)] and
- * border-[var(--frame-panel-border-color)]. This means:
- *
- *   - variant="inverse" overrides those vars on Frame → all panels pick it up
- *   - <FramePanel className="bg-blue-50"> adds a direct utility on the element
- *     which wins over bg-[var(--frame-panel-bg)] by Tailwind source order —
- *     no :not() or !important needed
- *
- * Ported from the upstream (Tailwind v4) reui registry component to Tailwind
- * v3 syntax: `<utility>-(--var)` shorthand and the `--spacing()` function are
- * v4-only, so they're rewritten here as `<utility>-[var(--var)]` and literal
- * rem values (1 spacing unit = 0.25rem) respectively. `--radius-xl` etc. from
- * v4's default theme don't exist in this project's token set, so radius
- * falls back to this app's own `rounded-md` (`var(--radius)`) scale instead.
- */
 const frameVariants = cva(
   [
     'bg-muted/50 relative flex flex-col gap-[var(--frame-gap)] rounded-[var(--frame-radius)] px-[var(--frame-px)] py-[var(--frame-py)]',
     '[--frame-gap:0.1875rem] [--frame-panel-footer-gap:0.25rem] [--frame-panel-header-gap:0rem] [--frame-px:0.1875rem] [--frame-py:0.1875rem] [--frame-radius:var(--radius)]',
     '[--frame-panel-footer-px-adjust:0px] [--frame-panel-footer-py-adjust:0px] [--frame-panel-header-px-adjust:0px] [--frame-panel-header-py-adjust:0px] [--frame-panel-px-adjust:0px] [--frame-panel-py-adjust:0px]',
     '[--frame-panel-footer-px:calc(var(--frame-panel-footer-px-base)_+_var(--frame-panel-footer-px-adjust))] [--frame-panel-footer-py:calc(var(--frame-panel-footer-py-base)_+_var(--frame-panel-footer-py-adjust))] [--frame-panel-header-px:calc(var(--frame-panel-header-px-base)_+_var(--frame-panel-header-px-adjust))] [--frame-panel-header-py:calc(var(--frame-panel-header-py-base)_+_var(--frame-panel-header-py-adjust))] [--frame-panel-px:calc(var(--frame-panel-px-base)_+_var(--frame-panel-px-adjust))] [--frame-panel-py:calc(var(--frame-panel-py-base)_+_var(--frame-panel-py-adjust))]',
-    // Default panel token values — overridden per-variant below
     '[--frame-border-color:var(--border)] [--frame-panel-bg:var(--card)] [--frame-panel-border-color:var(--border)]',
-    // Concentric inner radius: the panel corner nests smoothly inside the frame
-    // corner instead of matching it. The panel sits inset from the frame's outer
-    // edge by the frame's 1px border + --frame-px padding, so its radius is
-    // reduced by that same gap (radius − gap keeps the two arcs parallel). This
-    // base value assumes the bordered default/inverse frame; `ghost` drops the
-    // 1px border term and `dense` pins it back to the frame radius (its panels
-    // are pulled flush to the edge).
     '[--frame-panel-radius:calc(var(--frame-radius)_-_var(--frame-px)_-_1px)]',
   ],
   {
@@ -49,18 +22,8 @@ const frameVariants = cva(
     variants: {
       dense: {
         false: '',
-        // Positional rules must stay as parent selectors — cannot be expressed via CSS vars.
-        // Padding is 0 and panels are pulled flush to the frame edge (-mx-px), so
-        // their corners align with the frame radius rather than nesting inside it.
         true: 'gap-0 border-[var(--frame-border-color)] p-0 [--frame-panel-radius:var(--frame-radius)] [&:not(:has([data-slot=frame-panel-header]))_[data-slot=frame-panel]:is(:first-child)]:-mt-px [&_[data-slot=frame-panel]:last-child]:-mb-px [&_[data-slot=frame-panel]]:-mx-px [&_[data-slot=frame-panel]]:before:hidden',
       },
-      // Header/footer vertical rhythm is tighter than the panel body's, and
-      // the gap widens as the frame grows: the bars read as chrome rather than
-      // as another content block. py ladder is 0.5 / 1.5 / 2 / 2.5 against a
-      // body py of 2 / 3.5 / 4 / 5. `px` is deliberately left level with the
-      // body so header, content and footer stay left-aligned. `xs` holds at
-      // 0.5 (2px): it is the practical floor, since anything lower stops
-      // reading as padding.
       spacing: {
         default:
           '[--frame-panel-footer-px-base:1rem] [--frame-panel-footer-py-base:0.5rem] [--frame-panel-header-px-base:1rem] [--frame-panel-header-py-base:0.5rem] [--frame-panel-px-base:1rem] [--frame-panel-py-base:1rem]',
@@ -83,7 +46,6 @@ const frameVariants = cva(
       },
       variant: {
         default: 'border border-[var(--frame-border-color)] bg-clip-padding',
-        // No frame border, so the panel is inset by --frame-px padding only.
         ghost: '[--frame-panel-radius:calc(var(--frame-radius)_-_var(--frame-px))]',
         inverse:
           'border border-[var(--frame-border-color)] bg-background bg-clip-padding [--frame-panel-bg:color-mix(in_oklch,var(--muted)_40%,transparent)]',
@@ -150,12 +112,7 @@ function FramePanel({ className, fit, ...props }: React.ComponentProps<'div'> & 
   return (
     <div
       className={cn(
-        // bg-[var(--frame-panel-bg)] and border-[var(--frame-panel-border-color)]
-        // consume the CSS vars set by the Frame parent. Any explicit bg-* or
-        // border-* class passed via className overrides these by Tailwind
-        // source order — no ! needed.
         'shadow-xs relative overflow-hidden rounded-[var(--frame-panel-radius)] border border-[var(--frame-panel-border-color)] bg-[var(--frame-panel-bg)] bg-clip-padding',
-        // `fit` sizes the panel to its content; otherwise it grows to fill the frame.
         !fit && 'grow',
         'before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--frame-panel-radius)_-_1px)] before:shadow-black/5',
         'dark:bg-clip-border dark:before:shadow-white/5',

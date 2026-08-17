@@ -27,11 +27,6 @@ async function findValidToken(token: string): Promise<FeedbackTokenRow | null> {
   return row;
 }
 
-// Public - the patient scans a QR code on their own device with no account
-// or session of any kind, so this route intentionally sits outside the
-// authenticateToken middleware (see server/index.ts). The token is a random
-// 24-byte value scoped to one customer and expires/self-invalidates after
-// first use, so it can't be used to browse or edit other records.
 router.get('/:token', async (req: Request, res: Response) => {
   try {
     const token = String(req.params.token);
@@ -52,7 +47,7 @@ router.get('/:token', async (req: Request, res: Response) => {
 
     return res.json({ customerName: customer.name, storeName: customer.storeName });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch feedback link error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -79,7 +74,7 @@ router.post('/:token', async (req: Request, res: Response) => {
 
     return res.json({ ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Submit feedback error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });

@@ -78,7 +78,7 @@ export function CustomerDirectoryBody({
         </TabsList>
       </Tabs>
 
-      <div className="w-full min-h-0 flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 w-full flex-1 overflow-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>

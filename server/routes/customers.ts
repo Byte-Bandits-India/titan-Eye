@@ -15,8 +15,6 @@ const router = Router();
 async function findNextAvailableOptometrist(
   excludeEmails: string[]
 ): Promise<null | { email: string; name: string }> {
-  // activeTokenSig is only cleared on explicit logout, not on token expiry, so also
-  // require lastLogin to be within the token's lifetime to exclude stale sessions.
   const sessionCutoff = new Date(Date.now() - SESSION_IDLE_MS).toISOString();
   const optometristUsers = await all<{ email: string; name: string }>(
     `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastLogin >= ? ORDER BY name ASC`,
@@ -28,8 +26,6 @@ async function findNextAvailableOptometrist(
   );
   const busyLower = new Set(busyRows.map((r) => (r.callTakenBy || '').toLowerCase()));
 
-  // Route to whoever has completed the fewest calls so far, so load balances
-  // across optometrists instead of always favoring the alphabetically-first one.
   const callCountRows = await all<{ callCount: number; callTakenBy: null | string }>(
     `SELECT callTakenBy, COUNT(*) as callCount FROM customers WHERE status = 'Completed' AND callTakenBy IS NOT NULL GROUP BY callTakenBy`
   );
@@ -70,13 +66,6 @@ async function findNextAvailableOptometrist(
   return null;
 }
 
-/**
- * Advances a pending offer to the next available Optometrist (excluding everyone
- * already offered/declined so far), or releases the customer back to the
- * general queue when nobody is left to try. Shared by the manual "Ignore"
- * route and the automatic per-Optometrist response timeout below, so both paths
- * exhaust the same rotation instead of drifting apart.
- */
 async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise<CustomerRow | null> {
   const timestamp = new Date().toLocaleString('en-US', {
     day: 'numeric',
@@ -164,16 +153,10 @@ function parseTimestampValue(val: null | string | undefined): number {
   return isNaN(dateMs) ? 0 : dateMs;
 }
 
-/**
- * Ranks every customer, system-wide, that has actually had an Optometrist request
- * raised for it — either still 'Initiated', or fallen back to the open 'Created'
- * queue after every Optometrist declined. A brand-new 'Created' customer that the
- * store hasn't requested yet (no callStartTime) has no queue position at all.
- * Customers dropped mid-testing (isPriority) rank first, ordered by drop time;
- * everyone else follows in the order they were originally requested.
- */
 async function computeQueuePositions(): Promise<Map<string, number>> {
-  const rows = await all<Pick<CustomerRow, 'callStartTime' | 'createdOn' | 'id' | 'isPriority' | 'lastUpdatedOn'>>(
+  const rows = await all<
+    Pick<CustomerRow, 'callStartTime' | 'createdOn' | 'id' | 'isPriority' | 'lastUpdatedOn'>
+  >(
     `SELECT id, createdOn, callStartTime, lastUpdatedOn, isPriority FROM customers
      WHERE status = 'Initiated' OR (status = 'Created' AND callStartTime IS NOT NULL AND callStartTime != '')`
   );
@@ -270,7 +253,9 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
         return true;
       }
 
-      return optometristUsersList.some((u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower);
+      return optometristUsersList.some(
+        (u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower
+      );
     };
 
     const isAdminActor = (takenBy?: null | string) => {
@@ -366,7 +351,7 @@ router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json(combinedLogs);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch all audit logs error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -401,7 +386,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json(customers);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch customers error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -410,7 +395,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
 
 router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const c: CustomerInput = req.body;
+    const c = req.body as CustomerInput;
 
     if (req.user && req.user.role === 'store') {
       c.storeName = req.user.storeName ?? undefined;
@@ -491,7 +476,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.status(201).json({ id: finalId, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Create customer error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -501,7 +486,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
 router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
-    const c: CustomerInput = req.body;
+    const c = req.body as CustomerInput;
 
     const existing = await get<CustomerRow>(
       `SELECT id, name, age, gender, mobile, customerType, storeName,
@@ -630,7 +615,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Update customer error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -678,9 +663,6 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
 
       const isOptometristRequester = requesterRole === 'optometrist';
 
-      // The store cannot manually retry while a request is still in rotation -
-      // the background timeout below cycles through Optometrists automatically and
-      // only releases the customer back to 'Created' once everyone has been tried.
       if (!(isStoreHolder && isOptometristRequester)) {
         return res
           .status(409)
@@ -718,7 +700,9 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
           storeName: customer.storeName,
         });
 
-        return res.status(409).json({ error: 'No Optometrist doctors are currently available to take this call.' });
+        return res
+          .status(409)
+          .json({ error: 'No Optometrist doctors are currently available to take this call.' });
       }
 
       await run(
@@ -767,7 +751,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Initiate call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -806,7 +790,7 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Reject call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -849,7 +833,6 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
       .map((e) => e.trim())
       .filter(Boolean);
 
-    // Add current optometrist to declined list
     const currentEmail = req.user!.email;
     if (!declinedList.some((e) => e.toLowerCase() === currentEmail.toLowerCase())) {
       declinedList.push(currentEmail);
@@ -915,7 +898,7 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Drop call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -966,7 +949,7 @@ router.post('/:id/cancel-call', async (req: AuthenticatedRequest, res: Response)
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Cancel call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -1003,13 +986,6 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
-    // Ending the call no longer marks the customer Completed - only the store
-    // can do that (via POST /:id/complete), after they've confirmed the visit
-    // is actually done. Status is left as-is (still 'Accepted'), and so is
-    // callTakenBy - hanging up doesn't release the optometrist's ownership of
-    // this consultation, otherwise a later Complete/Drop click 409s with
-    // "not currently active with you" since the assignment was cleared out
-    // from under a still-Accepted record.
     await run(
       `
       UPDATE customers SET
@@ -1036,7 +1012,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 
     return res.json({ customer: updatedCustomer, ok: true });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('End call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -1106,7 +1082,7 @@ router.post('/:id/complete', async (req: AuthenticatedRequest, res: Response) =>
 
     return res.json({ customer: updatedCustomer, ok: true, token });
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Complete call error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -1144,7 +1120,7 @@ router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
 
     return res.json(logs);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch customer logs error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
@@ -1199,16 +1175,14 @@ setInterval(async () => {
       }
     }
   } catch (err) {
-    logger.error('Server auto-close timeout error', { errorMessage: (err as Error).message });
+    logger.error('Server auto-close timeout error', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
   }
 }, 5000);
 
 const OPTOMETRIST_RESPONSE_TIMEOUT_MS = 60000;
 
-// If the Optometrist currently offered a call doesn't respond in time, automatically
-// rotate the offer to the next available Optometrist (or release it back to the
-// queue once everyone has been tried) instead of leaving the store stuck
-// waiting on a single unresponsive Optometrist.
 setInterval(async () => {
   try {
     const nowMs = Date.now();
@@ -1254,7 +1228,9 @@ setInterval(async () => {
       }
     }
   } catch (err) {
-    logger.error('Optometrist auto-rotation error', { errorMessage: (err as Error).message });
+    logger.error('Optometrist auto-rotation error', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
   }
 }, 3000);
 

@@ -42,7 +42,8 @@ function statusInfo(row: OptometristUserRow): { classes: string; label: string }
 
   if (row.avail.statusLabel.startsWith('In call')) {
     return {
-      classes: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+      classes:
+        'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
       label: 'In Call',
     };
   }
@@ -108,9 +109,7 @@ export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
           </div>
         ),
         enableSorting: false,
-        header: () => (
-          <span className="text-sm font-medium text-muted-foreground">Optometrist</span>
-        ),
+        header: () => <span className="text-sm font-medium text-muted-foreground">Optometrist</span>,
         id: 'name',
         meta: { cellClassName: 'py-2.5' },
         size: 260,
@@ -121,10 +120,7 @@ export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
 
           return (
             <span
-              className={cn(
-                'inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-medium',
-                classes
-              )}
+              className={cn('inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-medium', classes)}
             >
               {label}
             </span>

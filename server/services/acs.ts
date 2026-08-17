@@ -8,7 +8,7 @@ export function isAcsConfigured(): boolean {
 }
 
 export function getAcsEndpoint(): string {
-  return process.env.ACS_ENDPOINT || 'https://communication.azure.com';
+  return process.env.ACS_ENDPOINT ?? '';
 }
 
 export interface AcsUserTokenResult {
@@ -55,7 +55,7 @@ export async function createTeamsOnlineMeeting(
 
   const token = await getMicrosoftGraphToken();
   const now = new Date();
-  const end = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour duration
+  const end = new Date(now.getTime() + 60 * 60 * 1000);
 
   const response = await fetch(
     `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(upn)}/onlineMeetings`,

@@ -11,27 +11,53 @@ export interface RxScrollPickerProps {
   value: string;
 }
 
-export function RxScrollPicker({ defaultValue = '0.00', hasError, onChange, options, value }: RxScrollPickerProps) {
+export function RxScrollPicker({
+  defaultValue = '0.00',
+  hasError,
+  onChange,
+  options,
+  value,
+}: RxScrollPickerProps) {
   const contentRef = React.useRef<HTMLDivElement>(null);
 
-  // Radix auto-scrolls the opened list to the currently selected item, which can
-  // land far into negative values. Override it so the list always opens showing
-  // the "0" option (or the top of the list, for option sets with no zero).
+  const focusAndCenterZero = () => {
+    const contentEl = contentRef.current;
+
+    if (!contentEl) {
+      return;
+    }
+
+    const items = contentEl.querySelectorAll<HTMLElement>('[data-slot="select-item"]');
+
+    if (!items || items.length === 0) {
+      return;
+    }
+
+    let targetIndex = value ? options.findIndex((opt) => opt === value) : -1;
+
+    if (targetIndex < 0) {
+      targetIndex = options.findIndex((opt) => opt === '0.00' || opt === '0');
+    }
+
+    if (targetIndex < 0) {
+      targetIndex = 0;
+    }
+
+    const target = items[targetIndex] as HTMLElement | undefined;
+
+    if (target) {
+      target.focus();
+      target.scrollIntoView({ block: 'center' });
+    }
+  };
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       return;
     }
 
     requestAnimationFrame(() => {
-      const items = contentRef.current?.querySelectorAll('[data-slot="select-item"]');
-
-      if (!items || items.length === 0) {
-        return;
-      }
-
-      const zeroIndex = options.findIndex((opt) => opt === '0.00' || opt === '0');
-      const target = items[zeroIndex >= 0 ? zeroIndex : 0] as HTMLElement | undefined;
-      target?.scrollIntoView({ block: 'start' });
+      focusAndCenterZero();
     });
   };
 

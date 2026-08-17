@@ -162,7 +162,7 @@ export function StorePatientDetailsPage({ onBack, selectedCustomer }: StorePatie
           <CardFrame className="p-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-t border-border bg-muted/40">
+                <tr className="bg-muted/40 border-t border-border">
                   <th className="px-3 py-2 text-left font-medium text-foreground">R X</th>
                   {optometristHeaders.map((header) => (
                     <th className="px-3 py-2 text-center font-medium text-foreground" key={header}>

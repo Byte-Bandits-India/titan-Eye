@@ -14,8 +14,13 @@ import { broadcastEvent } from '../utils/sse.js';
 
 const router = Router();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL ?? '';
 const STATE_COOKIE = 'sso_state';
+
+interface SsoCookieState {
+  state: string;
+  verifier: string;
+}
 
 router.get('/login', async (req: Request, res: Response) => {
   if (!isSsoConfigured || !msalClient) {
@@ -43,7 +48,7 @@ router.get('/login', async (req: Request, res: Response) => {
 
     return res.redirect(authUrl);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logger.error('SSO login error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
@@ -63,7 +68,16 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
     }
 
-    const { state: expectedState, verifier } = JSON.parse(raw) as { state: string; verifier: string };
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      typeof parsed.state !== 'string' ||
+      typeof parsed.verifier !== 'string'
+    ) {
+      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+    }
+    const { state: expectedState, verifier } = parsed as SsoCookieState;
 
     const { code, state: returnedState } = req.query;
 
@@ -162,7 +176,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     return res.redirect(`${FRONTEND_URL}/sso/callback`);
   } catch (err) {
-    const error = err as Error;
+    const error = err instanceof Error ? err : new Error(String(err));
     logSecurityEvent('SSO_LOGIN_FAILED', {
       errorMessage: error.message,
       ip: req.ip,

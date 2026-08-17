@@ -1,17 +1,17 @@
 import * as XLSX from 'xlsx';
 
-import type { Customer } from '../types';
+import type { Customer, OptometristRxValues, RxValues } from '../types';
 
 function buildCustomerRow(cust: Customer) {
   const rx = cust.rxData;
   const opt = cust.optometristRxData;
 
-  const autoRe = rx.autoRefRe || {};
-  const autoLe = rx.autoRefLe || {};
-  const pgpRe = rx.pgpRe || {};
-  const pgpLe = rx.pgpLe || {};
-  const finalRe = opt.re || {};
-  const finalLe = opt.le || {};
+  const autoRe: Partial<RxValues> = rx?.autoRefRe || {};
+  const autoLe: Partial<RxValues> = rx?.autoRefLe || {};
+  const pgpRe: Partial<RxValues> = rx?.pgpRe || {};
+  const pgpLe: Partial<RxValues> = rx?.pgpLe || {};
+  const finalRe: Partial<OptometristRxValues> = opt?.re || {};
+  const finalLe: Partial<OptometristRxValues> = opt?.le || {};
 
   return [
     cust.lastUpdatedOn ? String(cust.lastUpdatedOn).split(',')[0] : new Date().toLocaleDateString(),
@@ -33,14 +33,12 @@ function buildCustomerRow(cust: Customer) {
     cust.storeFeedback || '',
     cust.optometristFeedback || '',
 
-    // Auto Ref - Right Eye (RE)
     autoRe.sph || '0.00',
     autoRe.cyl || '0.00',
     autoRe.axis || '0',
     autoRe.prism || '0.00',
     autoRe.base || '0',
     autoRe.add || '0.00',
-    // Auto Ref - Left Eye (LE)
     autoLe.sph || '0.00',
     autoLe.cyl || '0.00',
     autoLe.axis || '0',
@@ -48,14 +46,12 @@ function buildCustomerRow(cust: Customer) {
     autoLe.base || '0',
     autoLe.add || '0.00',
 
-    // PGP - Right Eye (RE)
     pgpRe.sph || '0.00',
     pgpRe.cyl || '0.00',
     pgpRe.axis || '0',
     pgpRe.prism || '0.00',
     pgpRe.base || '0',
     pgpRe.add || '0.00',
-    // PGP - Left Eye (LE)
     pgpLe.sph || '0.00',
     pgpLe.cyl || '0.00',
     pgpLe.axis || '0',
@@ -63,14 +59,12 @@ function buildCustomerRow(cust: Customer) {
     pgpLe.base || '0',
     pgpLe.add || '0.00',
 
-    // Final RX - Right Eye (RE)
     finalRe.sph || '0.00',
     finalRe.cyl || '0.00',
     finalRe.axis || '0',
     finalRe.prism || '0.00',
     finalRe.base || '0',
     finalRe.add || '0.00',
-    // Final RX - Left Eye (LE)
     finalLe.sph || '0.00',
     finalLe.cyl || '0.00',
     finalLe.axis || '0',
@@ -204,7 +198,6 @@ const COLUMN_HEADER_ROW = [
   'Final Ticket Status',
   'Store comment',
   'Optometrist comment',
-  // Auto Ref
   'SPH-R',
   'CYL-R',
   'Axis-R',
@@ -217,7 +210,6 @@ const COLUMN_HEADER_ROW = [
   'Prism',
   'Base',
   'ADD',
-  // PGP
   'SPH-R',
   'CYL-R',
   'Axis-R',
@@ -230,7 +222,6 @@ const COLUMN_HEADER_ROW = [
   'Prism',
   'Base',
   'ADD',
-  // Final RX
   'SPH-R',
   'CYL-R',
   'Axis-R',

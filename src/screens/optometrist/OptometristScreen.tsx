@@ -59,7 +59,6 @@ export function OptometristScreen() {
   const users = useAppSelector((state) => state.users.users);
   const dispatch = useAppDispatch();
 
-  // ── Local UI State ──────────────────────────────────────────────────
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0484');
   const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [dateRange, setDateRange] = React.useState<DateFilterRange>('all');
@@ -96,7 +95,6 @@ export function OptometristScreen() {
     return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [dispatch]);
 
-  // ── Call Timeout Checks ─────────────────────────────────────────────
   const handleCloseCall = React.useCallback(
     async (customerId: string) => {
       try {
@@ -154,7 +152,6 @@ export function OptometristScreen() {
     return () => clearInterval(interval);
   }, [customers, handleCloseCall]);
 
-  // ── Derived State & Memos ───────────────────────────────────────────
   const selectedCustomer = React.useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
     [customers, selectedCustomerId]
@@ -184,9 +181,6 @@ export function OptometristScreen() {
   const dateFilteredCustomers = React.useMemo(
     () =>
       filterCustomersByDate(
-        // A 'Created' customer without a callStartTime has never actually been
-        // requested by the store yet - it shouldn't be visible to Optometrists
-        // until the store raises the request.
         customers.filter((c) => c.status !== 'Closed' && !(c.status === 'Created' && !c.callStartTime)),
         dateRange
       ),
@@ -208,8 +202,6 @@ export function OptometristScreen() {
   const pendingPriorityMap = React.useMemo(() => {
     const pending = dateFilteredCustomers.filter((c) => c.status === 'Created');
 
-    // Customers dropped mid-testing are flagged isPriority and jump ahead of
-    // the normal queue, ordered by when they were dropped.
     const priorityCustomers = [...pending.filter((c) => c.isPriority)].sort(
       (a, b) => parseTimestamp(a.lastUpdatedOn) - parseTimestamp(b.lastUpdatedOn)
     );
@@ -223,7 +215,9 @@ export function OptometristScreen() {
 
     const map = new Map<string, { label: string; rank: number }>();
 
-    priorityCustomers.forEach((c, idx) => map.set(c.id, { label: `High Priority ${idx + 1}`, rank: idx + 1 }));
+    priorityCustomers.forEach((c, idx) =>
+      map.set(c.id, { label: `High Priority ${idx + 1}`, rank: idx + 1 })
+    );
     normalCustomers.forEach((c, idx) =>
       map.set(c.id, { label: `Priority ${idx + 1}`, rank: priorityCustomers.length + idx + 1 })
     );
@@ -337,7 +331,6 @@ export function OptometristScreen() {
     [users, customers]
   );
 
-  // ── Pagination ──────────────────────────────────────────────────────
   const {
     currentPage,
     nextPage,
@@ -348,7 +341,6 @@ export function OptometristScreen() {
     totalPages,
   } = usePagination(filteredRequests, pageSize);
 
-  // ── Column Control Handlers ─────────────────────────────────────────
   const handleToggleColumn = React.useCallback((columnId: string) => {
     setColumnVisibility((prev) => ({
       ...prev,
@@ -377,12 +369,11 @@ export function OptometristScreen() {
   const visibleColumnIds = React.useMemo(
     () =>
       currentTabColumns
-        .filter((col) => col.isMandatory || columnVisibility[col.id] !== false)
+        .filter((col) => col.isMandatory || columnVisibility?.[col.id] !== false)
         .map((col) => col.id),
     [columnVisibility, currentTabColumns]
   );
 
-  // ── DataGrid Column Definitions ─────────────────────────────────────
   const requestColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(() => {
     const allColumns: ColumnDef<DataGridFeatures, Customer>[] = [
       {
@@ -558,7 +549,9 @@ export function OptometristScreen() {
                 : 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300';
 
           return (
-            <span className={cn('inline-flex rounded-md border px-2.5 py-0.5 text-sm font-normal', badgeClass)}>
+            <span
+              className={cn('inline-flex rounded-md border px-2.5 py-0.5 text-sm font-normal', badgeClass)}
+            >
               {label}
             </span>
           );
@@ -594,7 +587,9 @@ export function OptometristScreen() {
     ];
 
     if (statusTab === 'Pending') {
-      return allColumns.filter((col) => col.id !== 'callDuration' && col.id !== 'optom' && col.id !== 'status');
+      return allColumns.filter(
+        (col) => col.id !== 'callDuration' && col.id !== 'optom' && col.id !== 'status'
+      );
     }
 
     if (statusTab === 'all') {

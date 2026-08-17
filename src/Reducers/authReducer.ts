@@ -4,25 +4,46 @@ import type { AuthState, User } from '../types';
 
 import { STORAGE_KEYS } from '../options/Option';
 
+interface StoredUserPayload {
+  email?: string;
+  microsoftUpn?: string | null;
+  mobile?: string | null;
+  name?: string;
+  role?: string;
+  storeName?: string | null;
+}
+
+function isUser(obj: StoredUserPayload | object | null | undefined): obj is User {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  const candidate = obj as StoredUserPayload;
+
+  return (
+    typeof candidate.email === 'string' &&
+    typeof candidate.name === 'string' &&
+    (candidate.role === 'admin' || candidate.role === 'optometrist' || candidate.role === 'store')
+  );
+}
+
 const getInitialState = (): AuthState => {
   try {
     const stored = localStorage.getItem(STORAGE_KEYS.USER);
 
     if (stored) {
-      const user = JSON.parse(stored) as User;
+      const parsed = JSON.parse(stored);
 
-      // Validate that the stored object has the required identity fields
-      if (user && user.email && user.role) {
+      if (isUser(parsed)) {
         return {
           error: null,
           isAuthenticated: true,
           loading: false,
-          user,
+          user: parsed,
         };
       }
     }
   } catch {
-    // corrupted storage — clear it
     localStorage.removeItem(STORAGE_KEYS.USER);
   }
 

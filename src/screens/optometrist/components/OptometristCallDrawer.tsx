@@ -74,8 +74,6 @@ export function OptometristCallDrawer({
   const [isStartingCall, setIsStartingCall] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
 
-  // Stable reference: the embedded call is memoized so unrelated Rx-form
-  // state changes elsewhere in this drawer don't re-render the live video.
   const handleEmbeddedCallClose = React.useCallback(() => setCallActive(false), []);
 
   const handleStartCall = async () => {
@@ -88,7 +86,7 @@ export function OptometristCallDrawer({
       setCallSession(data);
       setCallActive(true);
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message || 'Failed to reach the store.',
         title: 'Call Failed',
@@ -119,12 +117,6 @@ export function OptometristCallDrawer({
     }
   }, [callActive, callSession]);
 
-  // Closing the drawer (X / Escape) no longer discards anything it just
-  // minimizes it (the "Start Consultation" button on the page becomes
-  // "Resume Consultation") — the entered Rx values and notes stay in this
-  // component's state (it stays mounted) until the doctor restores it or
-  // explicitly completes and saves. Any live call is hung up first since the
-  // video panel unmounts while minimized.
   const handleMinimize = async () => {
     await endCallIfActive();
     onMinimize();
@@ -181,8 +173,6 @@ export function OptometristCallDrawer({
       const updatedCustomer: Customer = {
         ...customer,
         callActive: false,
-        // callTakenBy is intentionally kept (not nulled) - Completed is a
-        // terminal state, and the store needs to see who handled it.
         lastUpdatedOn: buildTimestamp(),
         optometristFeedback: notes,
         optometristRxData: { le, re },
@@ -197,7 +187,7 @@ export function OptometristCallDrawer({
       });
       onClose();
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message || 'Failed to save prescription data.',
         title: 'Error Saving',

@@ -249,7 +249,7 @@ export function AdminScreen() {
       setAuditLogs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       toast({
-        description: (err as Error).message,
+        description: (err instanceof Error ? err : new Error(String(err))).message,
         title: 'Failed to fetch audit logs',
         type: 'error',
       });
@@ -410,7 +410,10 @@ export function AdminScreen() {
     [users]
   );
 
-  const totalOptometrists = React.useMemo(() => users.filter((u) => u.role === 'optometrist').length, [users]);
+  const totalOptometrists = React.useMemo(
+    () => users.filter((u) => u.role === 'optometrist').length,
+    [users]
+  );
   const totalStores = React.useMemo(() => users.filter((u) => u.role === 'store').length, [users]);
 
   const closeForm = () => {
@@ -477,7 +480,7 @@ export function AdminScreen() {
     try {
       await dispatch(toggleUserStatusAction(email, nextStatus));
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message,
         title: 'Failed to Update Status',
@@ -503,7 +506,7 @@ export function AdminScreen() {
         closeForm();
       }
     } catch (e) {
-      const err = e as Error;
+      const err = e instanceof Error ? e : new Error(String(e));
       toast({
         description: err.message,
         title: 'Failed to Delete User',

@@ -42,7 +42,7 @@ export const fetchUsersAction = () => async (dispatch: AppDispatch) => {
     const response = await apiClient.get<ManagedUser[]>('/users');
     dispatch(fetchUsersSuccess(response.data));
   } catch (e) {
-    const err = e as Error;
+    const err = e instanceof Error ? e : new Error(String(e));
     const msg = handleApiError(err, dispatch, 'Failed to fetch users.');
     dispatch(fetchUsersFailure(msg));
   }
@@ -53,11 +53,10 @@ export const createUserAction = (payload: CreateUserPayload) => async (dispatch:
     const response = await apiClient.post<ManagedUser>('/users', payload);
     dispatch(userCreated(response.data));
   } catch (e) {
-    const err = e as Error;
     let message = 'Failed to create user.';
 
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as { error?: string };
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const data = e.response.data as { error?: string };
       message = data.error || message;
     }
 
@@ -71,11 +70,10 @@ export const toggleUserStatusAction =
       await apiClient.put(`/users/${encodeURIComponent(email)}/status`, { status });
       dispatch(userStatusUpdated({ email, status }));
     } catch (e) {
-      const err = e as Error;
       let message = 'Failed to update user status.';
 
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as { error?: string };
+      if (axios.isAxiosError(e) && e.response?.data) {
+        const data = e.response.data as { error?: string };
         message = data.error || message;
       }
 
@@ -89,11 +87,10 @@ export const updateUserAction =
       const response = await apiClient.put<ManagedUser>(`/users/${encodeURIComponent(email)}`, payload);
       dispatch(userUpdated(response.data));
     } catch (e) {
-      const err = e as Error;
       let message = 'Failed to update user.';
 
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as { error?: string };
+      if (axios.isAxiosError(e) && e.response?.data) {
+        const data = e.response.data as { error?: string };
         message = data.error || message;
       }
 
@@ -106,11 +103,10 @@ export const deleteUserAction = (email: string) => async (dispatch: AppDispatch)
     await apiClient.delete(`/users/${encodeURIComponent(email)}`);
     dispatch(userDeleted({ email }));
   } catch (e) {
-    const err = e as Error;
     let message = 'Failed to delete user.';
 
-    if (axios.isAxiosError(err) && err.response?.data) {
-      const data = err.response.data as { error?: string };
+    if (axios.isAxiosError(e) && e.response?.data) {
+      const data = e.response.data as { error?: string };
       message = data.error || message;
     }
 

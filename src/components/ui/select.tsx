@@ -88,7 +88,6 @@ const SelectItem = React.forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-// Backward compatible Select component for simple option arrays
 const LegacySelect = React.forwardRef<HTMLSelectElement, LegacySelectProps>(
   ({ className, containerClassName, options, ...props }, ref) => (
     <div className={cn('relative w-full', containerClassName)}>

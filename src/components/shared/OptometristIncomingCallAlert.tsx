@@ -277,9 +277,7 @@ export function OptometristIncomingCallAlert({ onSelectCustomer }: OptometristIn
           <div className="flex items-center justify-between border-t border-slate-200/60 pt-1 text-xs text-slate-600">
             <div className="flex min-w-0 items-center gap-1.5">
               <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-              <span className="truncate font-medium text-slate-700">
-                {currentCall.storeName || 'Store'}
-              </span>
+              <span className="truncate font-medium text-slate-700">{currentCall.storeName || 'Store'}</span>
             </div>
             <span className="shrink-0 rounded border border-slate-300/50 bg-slate-200/60 px-2 py-0.5 text-[11px] font-medium text-slate-700">
               {currentCall.preferredLanguage}

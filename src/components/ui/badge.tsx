@@ -18,7 +18,8 @@ const badgeVariants = cva(
           'border-transparent bg-emerald-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-emerald-700',
         admin:
           'border-transparent bg-violet-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-violet-700',
-        Closed: 'border-transparent bg-gray-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-gray-500',
+        Closed:
+          'border-transparent bg-gray-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-gray-500',
         Completed:
           'border-transparent bg-emerald-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-emerald-600',
         Created:
@@ -30,14 +31,16 @@ const badgeVariants = cva(
           'border-transparent bg-rose-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-rose-700',
         Initiated:
           'border-transparent bg-indigo-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-indigo-600',
-        optometrist: 'border-transparent bg-teal-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-teal-700',
+        optometrist:
+          'border-transparent bg-teal-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-teal-700',
         outline: 'border-gray-300 text-gray-900',
         Pending:
           'border-transparent bg-amber-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-amber-600',
         Rejected:
           'border-transparent bg-rose-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-rose-600',
         secondary: 'border-transparent bg-gray-100 text-gray-900 hover:bg-gray-200',
-        store: 'border-transparent bg-blue-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-blue-700',
+        store:
+          'border-transparent bg-blue-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-blue-700',
         USER_CREATED:
           'border-transparent bg-purple-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-purple-700',
         USER_DELETED:

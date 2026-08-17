@@ -143,9 +143,6 @@ export function KioskScreen() {
     }
 
     attemptedAutoFullscreen.current = true;
-    // Best-effort: browsers only allow requestFullscreen() inside a direct user
-    // gesture, so this silently no-ops on a normal page load. It's here for
-    // kiosk-mode browsers / PWA display modes that do permit it.
     document.documentElement.requestFullscreen?.().catch(() => {
       // Blocked without a user gesture — the "Enter Kiosk Mode" button handles it.
     });

@@ -20,7 +20,8 @@ export function renderCallDuration(cust: Customer) {
   if (cust.callActive && optometristCallStartTime) {
     const startMs = parseTimestamp(cust.callStartTime);
     const optometristMs = parseTimestamp(optometristCallStartTime);
-    const waitSecs = startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
+    const waitSecs =
+      startMs > 0 && optometristMs >= startMs ? Math.floor((optometristMs - startMs) / 1000) : 0;
     const maxCallSecs = Math.max(0, 3540 - waitSecs);
 
     return <CallTimer active={true} maxDurationSeconds={maxCallSecs} startTime={optometristCallStartTime} />;

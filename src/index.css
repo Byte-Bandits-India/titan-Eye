@@ -115,7 +115,6 @@ body {
   flex-direction: column;
 }
 
-/* Hide scrollbars globally on all tables and scroll containers */
 .no-scrollbar::-webkit-scrollbar,
 div:has(> table)::-webkit-scrollbar,
 table::-webkit-scrollbar {

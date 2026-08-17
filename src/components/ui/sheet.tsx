@@ -41,11 +41,12 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Co
           'fixed z-[9999] flex flex-col bg-card shadow-2xl outline-none',
           'data-[state=open]:duration-300 data-[state=open]:animate-in',
           'data-[state=closed]:duration-300 data-[state=closed]:animate-out',
-          side === 'bottom' && 'inset-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+          side === 'bottom' &&
+            'inset-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
           side === 'right' &&
-            'inset-y-0 right-0 w-full border-l border-border sm:max-w-lg data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
+            'inset-y-0 right-0 w-full border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-lg',
           side === 'left' &&
-            'inset-y-0 left-0 w-full border-r border-border sm:max-w-lg data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left',
+            'inset-y-0 left-0 w-full border-r border-border data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-lg',
           className
         )}
         ref={ref}
