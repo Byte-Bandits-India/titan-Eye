@@ -25,11 +25,8 @@ jobs:
         run: |
           echo "VITE_API_BASE_URL=/api" > .env.production
 
-      - name: 🏗 Build Vite App
+      - name: 🏗 Build App
         run: npm run build
-
-      - name: 🏗 Build Server App
-        run: npx tsc -p tsconfig.server.json
 
       - name: 📦 Create Deployment Package
         run: |
@@ -45,25 +42,16 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          echo "${{ secrets.SSH_HOST_KEY }}" | while read -r line || [ -n "$line" ]; do
-            # Skip empty lines
-            [ -z "$line" ] && continue
-            WORD_COUNT=$(echo "$line" | wc -w)
-            if [ "$WORD_COUNT" -eq 2 ]; then
-              echo "${{ secrets.SERVER_IP }} $line" >> ~/.ssh/known_hosts
-            elif [ "$WORD_COUNT" -gt 2 ]; then
-              KEY_DATA=$(echo "$line" | cut -d' ' -f2-)
-              echo "${{ secrets.SERVER_IP }} $KEY_DATA" >> ~/.ssh/known_hosts
-            fi
-          done
+          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 644 ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: 📤 Upload to Server (SCP)
         run: |
-          scp -v -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
+          scp -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa deploy.tar.gz ec2-user@${{ secrets.SERVER_IP }}:/tmp/
 
       - name: 🚀 Deploy on Server (SSH)
         run: |
-          ssh -v -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa ec2-user@${{ secrets.SERVER_IP }} << 'EOF'
             echo "🚀 Starting deployment..."
             echo "📦 PRODUCTION DEPLOY"
 
@@ -97,8 +85,8 @@ jobs:
             echo "📦 Installing production dependencies..."
             npm install --omit=dev
 
-            echo "🔧 Rebuilding native sqlite3 addon for this OS (GLIBC compatibility)..."
-            npm rebuild sqlite3 --build-from-source
+            echo "🔧 Rebuilding native better-sqlite3 addon for this OS..."
+            npm rebuild better-sqlite3 --build-from-source || npm rebuild
 
             echo "🧹 Stopping and cleaning up redundant titan-prod static process..."
             pm2 delete titan-prod > /dev/null 2>&1 || true
