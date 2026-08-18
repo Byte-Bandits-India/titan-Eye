@@ -83,7 +83,7 @@ jobs:
             rm -f /tmp/deploy.tar.gz
 
             echo "📦 Installing production dependencies..."
-            npm install --omit=dev
+            npm install --omit=dev --legacy-peer-deps
 
             echo "🔧 Rebuilding native better-sqlite3 addon for this OS..."
             npm rebuild better-sqlite3 --build-from-source || npm rebuild
