@@ -33,6 +33,13 @@
     "teamviewer",
     "TKOR",
     "windowmove",
-    "windowstate"
+    "windowstate",
+    "playsinline",
+    "ntvs",
+    "njsproj",
+    "flightproxy",
+    "trouter",
+    "youtu",
+    "ciphertext"
   ]
 }

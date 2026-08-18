@@ -1,5 +1,4 @@
-const YOUTUBE_ID_PATTERN =
-  /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/i;
+const YOUTUBE_ID_PATTERN = /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/i;
 
 export function getYoutubeVideoId(url: string): null | string {
   const match = YOUTUBE_ID_PATTERN.exec(url);
@@ -7,7 +6,10 @@ export function getYoutubeVideoId(url: string): null | string {
   return match?.[1] ?? null;
 }
 
-export function getYoutubeEmbedUrl(url: string, options: { autoplay?: boolean; loop?: boolean; mute?: boolean } = {}): null | string {
+export function getYoutubeEmbedUrl(
+  url: string,
+  options: { autoplay?: boolean; loop?: boolean; mute?: boolean } = {}
+): null | string {
   const id = getYoutubeVideoId(url);
 
   if (!id) {

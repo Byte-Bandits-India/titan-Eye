@@ -1,7 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 
 import { logger } from '../utils/logger.js';
-import { decryptPayload, EncryptedEnvelope, verifyServerPayloadSignature } from '../utils/payloadEncryption.js';
+import {
+  decryptPayload,
+  EncryptedEnvelope,
+  verifyServerPayloadSignature,
+} from '../utils/payloadEncryption.js';
 
 export interface InterServerRequest extends Request {
   decryptedBody?: object;
@@ -36,7 +40,13 @@ export function requireInterServerEncryption(req: InterServerRequest, res: Respo
       return res.status(401).json({ error: 'Unauthorized: Invalid inter-server signature.' });
     }
 
-    if (req.body && typeof req.body === 'object' && 'ciphertext' in req.body && 'iv' in req.body && 'tag' in req.body) {
+    if (
+      req.body &&
+      typeof req.body === 'object' &&
+      'ciphertext' in req.body &&
+      'iv' in req.body &&
+      'tag' in req.body
+    ) {
       const envelope = req.body as EncryptedEnvelope;
       const decrypted = decryptPayload<object>(envelope);
       req.decryptedBody = decrypted;

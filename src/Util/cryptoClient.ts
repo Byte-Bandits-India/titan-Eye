@@ -49,13 +49,10 @@ async function getClientCryptoKey(): Promise<CryptoKey> {
   const secretBytes = encoder.encode(E2EE_SECRET);
   const hashBuffer = await window.crypto.subtle.digest('SHA-256', secretBytes);
 
-  _cachedKey = await window.crypto.subtle.importKey(
-    'raw',
-    hashBuffer,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt']
-  );
+  _cachedKey = await window.crypto.subtle.importKey('raw', hashBuffer, { name: 'AES-GCM' }, false, [
+    'encrypt',
+    'decrypt',
+  ]);
 
   return _cachedKey;
 }

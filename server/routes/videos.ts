@@ -217,7 +217,11 @@ router.post(
       );
       broadcastEvent('ADMIN_LOG_CREATED', { action: 'VIDEO_UPLOADED', target: title });
       broadcastEvent('VIDEO_UPLOADED', { id: video.id, title });
-      logSecurityEvent('ADMIN_VIDEO_UPLOADED', { adminEmail: uploadedBy, requestId: req.requestId, target: title });
+      logSecurityEvent('ADMIN_VIDEO_UPLOADED', {
+        adminEmail: uploadedBy,
+        requestId: req.requestId,
+        target: title,
+      });
 
       return res.status(201).json(video);
     } catch (err) {
@@ -256,10 +260,10 @@ router.put(
         }
       }
 
-      await run('INSERT INTO kiosk_settings (id, activeVideoId) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET activeVideoId = ?', [
-        videoId,
-        videoId,
-      ]);
+      await run(
+        'INSERT INTO kiosk_settings (id, activeVideoId) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET activeVideoId = ?',
+        [videoId, videoId]
+      );
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
       const adminName = req.user?.name || 'Admin';
@@ -276,7 +280,11 @@ router.put(
         ]
       );
       broadcastEvent('KIOSK_VIDEO_CHANGED', { videoId });
-      logSecurityEvent('ADMIN_KIOSK_VIDEO_SET', { adminEmail, requestId: req.requestId, target: String(videoId) });
+      logSecurityEvent('ADMIN_KIOSK_VIDEO_SET', {
+        adminEmail,
+        requestId: req.requestId,
+        target: String(videoId),
+      });
 
       return res.json({ activeVideoId: videoId, id: 1 });
     } catch (err) {

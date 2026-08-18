@@ -6,12 +6,7 @@ import type { ManagedVideo } from '../../../types';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '../../../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { API_BASE_URL } from '../../../options/Option';
 import { formatBytes } from '../../../hooks/use-file-upload';
@@ -51,9 +46,9 @@ export function VideoDirectoryBody({
       <div className="relative min-h-0 flex-1 overflow-auto">
         {videos.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <FilmIcon className="text-muted-foreground size-8" />
+            <FilmIcon className="size-8 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">No videos added yet</p>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-xs text-muted-foreground">
               Upload a file or paste a YouTube link to make it available in the admin console.
             </p>
           </div>
@@ -65,7 +60,9 @@ export function VideoDirectoryBody({
                 <TableHead className="text-sm font-medium text-muted-foreground">Source</TableHead>
                 <TableHead className="text-sm font-medium text-muted-foreground">Uploaded By</TableHead>
                 <TableHead className="text-sm font-medium text-muted-foreground">Uploaded On</TableHead>
-                <TableHead className="w-32 text-right text-sm font-medium text-muted-foreground">Actions</TableHead>
+                <TableHead className="w-32 text-right text-sm font-medium text-muted-foreground">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,7 +90,12 @@ export function VideoDirectoryBody({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button onClick={() => setPreviewVideo(video)} size="icon-sm" title="Play" variant="ghost">
+                        <Button
+                          onClick={() => setPreviewVideo(video)}
+                          size="icon-sm"
+                          title="Play"
+                          variant="ghost"
+                        >
                           <PlayIcon size={14} />
                         </Button>
                         <Button

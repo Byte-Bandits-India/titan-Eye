@@ -28,7 +28,16 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
 
   const [
     { files, isDragging, errors },
-    { removeFile, clearFiles, handleDragEnter, handleDragLeave, handleDragOver, handleDrop, openFileDialog, getInputProps },
+    {
+      removeFile,
+      clearFiles,
+      handleDragEnter,
+      handleDragLeave,
+      handleDragOver,
+      handleDrop,
+      openFileDialog,
+      getInputProps,
+    },
   ] = useFileUpload({
     accept: 'video/*',
     maxSize: MAX_VIDEO_SIZE,
@@ -78,7 +87,9 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
           <div
             className={cn(
               'relative rounded-lg border border-dashed p-6 text-center transition-colors',
-              isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+              isDragging
+                ? 'bg-primary/5 border-primary'
+                : 'border-muted-foreground/25 hover:border-muted-foreground/50'
             )}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -90,10 +101,10 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
             {selectedFile ? (
               <div className="flex items-center justify-between gap-2 text-left">
                 <div className="flex min-w-0 items-center gap-2">
-                  <FilmIcon className="text-muted-foreground size-5 shrink-0" />
+                  <FilmIcon className="size-5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{selectedFile.name}</p>
-                    <p className="text-muted-foreground text-xs">{formatBytes(selectedFile.size)}</p>
+                    <p className="text-xs text-muted-foreground">{formatBytes(selectedFile.size)}</p>
                   </div>
                 </div>
                 <Button
@@ -107,9 +118,9 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <UploadIcon className="text-muted-foreground size-5" />
+                <UploadIcon className="size-5 text-muted-foreground" />
                 <p className="text-sm font-medium">Drag and drop a video here</p>
-                <p className="text-muted-foreground text-xs">or click below to browse</p>
+                <p className="text-xs text-muted-foreground">or click below to browse</p>
                 <Button className="mt-1" onClick={openFileDialog} size="sm" type="button" variant="outline">
                   Select video
                 </Button>

@@ -101,10 +101,7 @@ export function signServerPayload(payloadString: string, timestamp: number, secr
     throw new Error('E2EE_SECRET / INTER_SERVER_SECRET is not configured for signing.');
   }
 
-  return crypto
-    .createHmac('sha256', key)
-    .update(`${timestamp}.${payloadString}`)
-    .digest('hex');
+  return crypto.createHmac('sha256', key).update(`${timestamp}.${payloadString}`).digest('hex');
 }
 
 /**

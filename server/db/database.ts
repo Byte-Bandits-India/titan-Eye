@@ -389,7 +389,9 @@ export async function initializeDatabase(): Promise<void> {
       await run(`DROP TABLE videos_legacy`);
     }
   } catch (e) {
-    logger.error('Videos table migration failed', { errorMessage: e instanceof Error ? e.message : String(e) });
+    logger.error('Videos table migration failed', {
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
   }
 
   await run(`
@@ -436,7 +438,9 @@ export async function initializeDatabase(): Promise<void> {
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (adminEmail && adminPassword) {
-    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
+    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [
+      adminEmail,
+    ]);
 
     if (!existingAdmin) {
       await run(
