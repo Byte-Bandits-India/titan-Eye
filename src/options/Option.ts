@@ -49,6 +49,7 @@ export const APP_CONFIG = {
 } as const;
 
 export const NAME_REGEX = /^[A-Za-z\s]{3,50}$/;
+export const CUSTOMER_NAME_REGEX = /^[A-Za-z\s]{3,20}$/;
 export const AGE_REGEX = /^(?:[1-9][0-9]?|1[0-1][0-9]|120)$/;
 export const MOBILE_REGEX = /^[1-9]\d{9}$/;
 export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;

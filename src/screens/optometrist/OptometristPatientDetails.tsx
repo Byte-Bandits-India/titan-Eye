@@ -7,7 +7,12 @@ import { dropCallAction, initiateCallAction, updateCustomerAction } from '../../
 import { CardFrame } from '../../components/shared/CardFrame';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/toast';
-import { isOptometristRxComplete, optometristFields, optometristHeaders } from '../../options/Option';
+import {
+  API_BASE_URL,
+  isOptometristRxComplete,
+  optometristFields,
+  optometristHeaders,
+} from '../../options/Option';
 import { useAppDispatch } from '../../store';
 import { OptometristCallDrawer } from './components/OptometristCallDrawer';
 
@@ -318,12 +323,30 @@ export function OptometristPatientDetails({
 
         <CardFrame className="p-5">
           {selectedCustomer?.storeFeedback ? (
-            <div
-              className="text-sm leading-relaxed text-foreground"
-              dangerouslySetInnerHTML={{ __html: selectedCustomer.storeFeedback }}
-            />
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
+              {selectedCustomer.storeFeedback}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">No store action or feedback recorded yet.</p>
+          )}
+
+          {(selectedCustomer?.storeFeedbackImage1 || selectedCustomer?.storeFeedbackImage2) && (
+            <div className="mt-4 flex gap-3">
+              {selectedCustomer?.storeFeedbackImage1 && (
+                <img
+                  alt="Store feedback attachment 1"
+                  className="h-24 w-24 rounded-md border border-border object-cover"
+                  src={`${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/1`}
+                />
+              )}
+              {selectedCustomer?.storeFeedbackImage2 && (
+                <img
+                  alt="Store feedback attachment 2"
+                  className="h-24 w-24 rounded-md border border-border object-cover"
+                  src={`${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/2`}
+                />
+              )}
+            </div>
           )}
         </CardFrame>
       </div>

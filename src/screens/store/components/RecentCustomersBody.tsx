@@ -12,6 +12,7 @@ type RecentCustomersBodyProps = {
   columns?: ColumnOption[];
   currentPage?: number;
   customersTable: Table<DataGridFeatures, Customer>;
+  hideStatusTabs?: boolean;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
   onPrevPage?: () => void;
@@ -31,6 +32,7 @@ export function RecentCustomersBody({
   columns,
   currentPage = 1,
   customersTable,
+  hideStatusTabs,
   onNextPage,
   onPageSizeChange,
   onPrevPage,
@@ -46,7 +48,9 @@ export function RecentCustomersBody({
 }: RecentCustomersBodyProps) {
   return (
     <>
-      <StatusTabs hideCompleted onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+      {!hideStatusTabs && (
+        <StatusTabs hideCompleted onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+      )}
 
       <div className="border-b border-gray-200" />
 

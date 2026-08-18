@@ -38,6 +38,7 @@ type RecentCustomersVariant = {
   customersTable: Table<DataGridFeatures, Customer>;
   data: Customer[];
   dateRange: DateFilterRange;
+  hideStatusTabs?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
@@ -88,6 +89,7 @@ export function StoreCard(props: StoreCardProps) {
     customersTable,
     data,
     dateRange,
+    hideStatusTabs,
     onDateRangeChange,
     onNextPage,
     onPageSizeChange,
@@ -138,6 +140,7 @@ export function StoreCard(props: StoreCardProps) {
         columns={columns}
         currentPage={currentPage}
         customersTable={customersTable}
+        hideStatusTabs={hideStatusTabs}
         onNextPage={onNextPage}
         onPageSizeChange={onPageSizeChange}
         onPrevPage={onPrevPage}

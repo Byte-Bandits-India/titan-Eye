@@ -5,9 +5,9 @@ import type { Customer, RxValues, StoreRxDetailsProps } from '../../types';
 
 import { updateCustomerAction } from '../../Actions/customerActions';
 import { CardFrame } from '../../components/shared/CardFrame';
+import { CustomerFeedbackImageBox } from '../../components/shared/CustomerFeedbackImageBox';
 import { RxScrollPicker } from '../../components/shared/RxScrollPicker';
 import { Button } from '../../components/ui/button';
-import { RichTextEditor } from '../../components/ui/RichTextEditor';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
@@ -434,15 +434,40 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-              Store Action / Feedback
-            </label>
-            <RichTextEditor
-              onChange={setStoreFeedback}
-              placeholder="Enter store action, clinical notes, or remarks..."
-              value={storeFeedback}
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
+            <div className="space-y-1.5 sm:col-span-3">
+              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
+                Store Action / Feedback
+              </label>
+              <textarea
+                className="h-[176px] w-full resize-none rounded-md border border-input bg-background p-3 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                onChange={(e) => setStoreFeedback(e.target.value)}
+                placeholder="Enter store action, clinical notes, or remarks..."
+                value={storeFeedback}
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-1">
+              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
+                Attachment 1
+              </label>
+              <CustomerFeedbackImageBox
+                customerId={selectedCustomer?.id ?? ''}
+                hasImage={!!selectedCustomer?.storeFeedbackImage1}
+                slot={1}
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-1">
+              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
+                Attachment 2
+              </label>
+              <CustomerFeedbackImageBox
+                customerId={selectedCustomer?.id ?? ''}
+                hasImage={!!selectedCustomer?.storeFeedbackImage2}
+                slot={2}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col-reverse items-center justify-end gap-3 border-t border-border pt-4 sm:flex-row">

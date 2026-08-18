@@ -1,5 +1,5 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
-import { Plus, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Plus, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
 import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
@@ -8,7 +8,6 @@ import {
   completeCallAction,
   dropCustomerAction,
   fetchCustomersAction,
-  initiateCallAction,
   updateCustomerAction,
 } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
@@ -24,13 +23,14 @@ import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from './components/cells';
-import { CustomerActionsCell, CustomerStatusBadge } from './components/CustomerActionsCell';
+import { ConversionStatusBadge, CustomerActionsCell } from './components/CustomerActionsCell';
 import { CancelRequestDialog } from './components/CancelRequestDialog';
 import { parseTimestamp } from './components/formatters';
 import { StoreCard } from './components/StoreCard';
+import { StoreCustomerTestPage } from './StoreCustomerTestPage';
 import { StorePatientDetails } from './StorePatientDetails';
-import { StorePatientDetailsPage } from './StorePatientDetailsPage';
 import { StoreRxDetails } from './StoreRxDetails';
+import { StoreUpdateStatusPage } from './StoreUpdateStatusPage';
 
 export function StoreScreen() {
   const user = useAppSelector((state) => state.auth.user);
@@ -45,9 +45,10 @@ export function StoreScreen() {
   const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
-  const [isViewingDetails, setIsViewingDetails] = React.useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+  const [isCreatingTest, setIsCreatingTest] = React.useState(false);
+  const [isViewingSalesConversion, setIsViewingSalesConversion] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
-  const [loadingCallId, setLoadingCallId] = React.useState<null | string>(null);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
   const [completeCallModalData, setCompleteCallModalData] = React.useState<null | {
     customerName: string;
@@ -360,45 +361,6 @@ export function StoreScreen() {
     totalPages,
   } = usePagination(filteredCustomers, pageSize);
 
-  const handleInitiateCall = async (customerId: string) => {
-    setLoadingCallId(customerId);
-
-    try {
-      await dispatch(initiateCallAction(customerId));
-      toast({
-        description: 'Your request has been sent to the available Optometrist doctor.',
-        title: 'Optometrist Requested',
-        type: 'success',
-      });
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-
-      if (err.message?.includes('No Optometrists are currently available')) {
-        toast({
-          description: 'All Optometrists are currently busy.',
-          title: 'Optometrist Unavailable',
-          type: 'error',
-        });
-      } else if (err.message?.includes('already has a pending Optometrist request')) {
-        toast({ description: err.message, title: 'Request Already Pending', type: 'error' });
-      } else if (err.message?.includes('409') || err.message?.includes('already taken')) {
-        toast({
-          description: err.message || 'This call is already taken by another agent.',
-          title: 'Call Collision',
-          type: 'error',
-        });
-      } else {
-        toast({
-          description: err.message || 'Failed to connect to the server to initiate call.',
-          title: 'System Error',
-          type: 'error',
-        });
-      }
-    } finally {
-      setLoadingCallId(null);
-    }
-  };
-
   const [cancelRequestTarget, setCancelRequestTarget] = React.useState<Customer | null>(null);
   const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
 
@@ -458,6 +420,9 @@ export function StoreScreen() {
     setIsAddingNew(true);
     setIsEditing(false);
     setIsEditingRx(false);
+    setIsCreatingTest(false);
+    setIsViewingSalesConversion(false);
+    setIsUpdatingStatus(false);
     setSelectedCustomerId(null);
     setStatusTab('Pending');
     resetPage();
@@ -467,23 +432,50 @@ export function StoreScreen() {
     setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
+    setIsCreatingTest(false);
+    setIsViewingSalesConversion(false);
+    setIsUpdatingStatus(false);
     setSelectedCustomerId(id);
   };
 
-  const handleViewDetails = (id: string) => {
+  const handleOpenUpdateStatus = (id: string) => {
     setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
+    setIsCreatingTest(false);
     setSelectedCustomerId(id);
-    setIsViewingDetails(true);
+    setIsUpdatingStatus(true);
   };
 
   const handleOpenRxFromNotification = (id: string) => {
     setIsAddingNew(false);
     setIsEditing(false);
-    setIsViewingDetails(false);
+    setIsUpdatingStatus(false);
+    setIsCreatingTest(false);
+    setIsViewingSalesConversion(false);
     setSelectedCustomerId(id);
     setIsEditingRx(true);
+  };
+
+  const handleOpenCreateTest = (id: string) => {
+    setIsAddingNew(false);
+    setIsEditing(false);
+    setIsEditingRx(false);
+    setIsUpdatingStatus(false);
+    setIsViewingSalesConversion(false);
+    setSelectedCustomerId(id);
+    setIsCreatingTest(true);
+  };
+
+  const handleOpenSalesConversion = () => {
+    setIsAddingNew(false);
+    setIsEditing(false);
+    setIsEditingRx(false);
+    setIsCreatingTest(false);
+    setIsUpdatingStatus(false);
+    setStatusTab('all');
+    resetPage();
+    setIsViewingSalesConversion(true);
   };
 
   const customerColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
@@ -613,7 +605,7 @@ export function StoreScreen() {
         ? [
             {
               cell: ({ row }: { row: { original: Customer } }) => (
-                <CustomerStatusBadge status={row.original.status} />
+                <ConversionStatusBadge status={row.original.status} />
               ),
               enableSorting: false,
               header: () => (
@@ -621,7 +613,7 @@ export function StoreScreen() {
               ),
               id: 'status',
               meta: { cellClassName: 'py-3' },
-              size: 110,
+              size: 130,
             } satisfies ColumnDef<DataGridFeatures, Customer>,
           ]
         : []),
@@ -631,14 +623,13 @@ export function StoreScreen() {
             completingCallId={completingCallId}
             cust={row.original}
             disableRequest={hasActiveRequest}
-            loadingCallId={loadingCallId}
             onCancelCall={handleOpenCancelDialog}
             onCompleteCall={handleCompleteCall}
-            onInitiateCall={handleInitiateCall}
+            onCreateTest={handleOpenCreateTest}
             onSelectCustomer={handleSelectCustomer}
             onSetEditing={setIsEditing}
             onSetEditingRx={setIsEditingRx}
-            onViewDetails={handleViewDetails}
+            onUpdateStatus={handleOpenUpdateStatus}
             statusTab={statusTab}
             user={user}
           />
@@ -655,7 +646,7 @@ export function StoreScreen() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadingCallId, completingCallId, user, statusTab, hasActiveRequest]
+    [completingCallId, user, statusTab, hasActiveRequest]
   );
 
   const customersTable = useTable({
@@ -679,15 +670,78 @@ export function StoreScreen() {
     return null;
   }
 
+  const renderRecentCustomersCard = (hideStatusTabs?: boolean) => (
+    <StoreCard
+      columns={STORE_CUSTOMER_COLUMNS}
+      currentPage={currentPage}
+      customersTable={customersTable}
+      data={paginatedCustomers}
+      dateRange={customerDateRange}
+      hideStatusTabs={hideStatusTabs}
+      onDateRangeChange={setCustomerDateRange}
+      onNextPage={nextPage}
+      onPageSizeChange={(newSize) => {
+        setPageSize(newSize);
+        resetPage();
+      }}
+      onPrevPage={prevPage}
+      onResetColumns={handleResetColumns}
+      onSearchChange={setCustomerSearchTerm}
+      onStatusTabChange={(tab) => {
+        setStatusTab(tab);
+        resetPage();
+      }}
+      onToggleColumn={handleToggleColumn}
+      pageSize={pageSize}
+      searchValue={customerSearchTerm}
+      statusTab={statusTab}
+      tabCounts={tabCounts}
+      totalItems={totalItems}
+      totalPages={totalPages}
+      variant="recent-customers"
+      visibleColumns={visibleColumnIds}
+    />
+  );
+
   return (
     <AppLayout onSelectCustomer={handleOpenRxFromNotification}>
-      {isEditingRx ? (
+      {isCreatingTest ? (
+        <StoreCustomerTestPage onBack={() => setIsCreatingTest(false)} selectedCustomer={selectedCustomer} />
+      ) : isEditingRx ? (
         <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
-      ) : isViewingDetails ? (
-        <StorePatientDetailsPage
-          onBack={() => setIsViewingDetails(false)}
+      ) : isUpdatingStatus ? (
+        <StoreUpdateStatusPage
+          onBack={() => setIsUpdatingStatus(false)}
           selectedCustomer={selectedCustomer}
         />
+      ) : isViewingSalesConversion ? (
+        <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-md">
+                <TrendingUp className="text-white" size={20} />
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">Sales Conversion</h1>
+                <p className="truncate text-xs font-medium text-muted-foreground">
+                  All recent customers for {user.name}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
+              onClick={() => setIsViewingSalesConversion(false)}
+              type="button"
+              variant="outline"
+            >
+              <ChevronLeft size={16} />
+              Back
+            </Button>
+          </div>
+
+          {renderRecentCustomersCard(true)}
+        </main>
       ) : (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -696,7 +750,11 @@ export function StoreScreen() {
               <p className="mt-0.5 text-sm font-normal text-muted-foreground">{user.name}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <Button className="h-10 gap-2 px-4 py-4 text-sm font-medium" variant="outline">
+              <Button
+                className="h-10 gap-2 px-4 py-4 text-sm font-medium"
+                onClick={handleOpenSalesConversion}
+                variant="outline"
+              >
                 <TrendingUp size={16} />
                 Sales Conversion
               </Button>
@@ -716,35 +774,7 @@ export function StoreScreen() {
             <StoreCard data={optometristUsersWithStatus} variant="optometrist-users" />
           </div>
 
-          <StoreCard
-            columns={STORE_CUSTOMER_COLUMNS}
-            currentPage={currentPage}
-            customersTable={customersTable}
-            data={paginatedCustomers}
-            dateRange={customerDateRange}
-            onDateRangeChange={setCustomerDateRange}
-            onNextPage={nextPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              resetPage();
-            }}
-            onPrevPage={prevPage}
-            onResetColumns={handleResetColumns}
-            onSearchChange={setCustomerSearchTerm}
-            onStatusTabChange={(tab) => {
-              setStatusTab(tab);
-              resetPage();
-            }}
-            onToggleColumn={handleToggleColumn}
-            pageSize={pageSize}
-            searchValue={customerSearchTerm}
-            statusTab={statusTab}
-            tabCounts={tabCounts}
-            totalItems={totalItems}
-            totalPages={totalPages}
-            variant="recent-customers"
-            visibleColumns={visibleColumnIds}
-          />
+          {renderRecentCustomersCard()}
         </main>
       )}
 

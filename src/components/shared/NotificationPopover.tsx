@@ -63,6 +63,7 @@ export function NotificationPopover({
   const handleCallModalClose = React.useCallback(() => setCallSession(null), []);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const wantsPlayingRef = React.useRef(false);
+  const genericAudioRef = React.useRef<HTMLAudioElement | null>(null);
 
   React.useEffect(() => {
     const handleStartOptometristCall = (e: Event) => {
@@ -102,6 +103,19 @@ export function NotificationPopover({
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
+  }, []);
+
+  const playGenericNotificationSound = React.useCallback(() => {
+    if (!genericAudioRef.current) {
+      genericAudioRef.current = new Audio('/store-notification.mp3');
+    }
+
+    const el = genericAudioRef.current;
+
+    el.currentTime = 0;
+    el.play().catch((e) => {
+      console.warn('Notification sound playback error:', e);
+    });
   }, []);
 
   React.useEffect(() => {
@@ -313,6 +327,14 @@ export function NotificationPopover({
     return [];
   }, [user, customers, dismissedIds, isTakenByOptometristUser, now]);
 
+  const nonCallNotificationIds = React.useMemo(
+    () => [
+      ...notifications.filter((n) => n.type !== 'incoming_call').map((n) => n.id),
+      ...logNotifications.map((n) => n.id),
+    ],
+    [notifications, logNotifications]
+  );
+
   const currentNotificationIds = React.useMemo(
     () => [...notifications.map((n) => n.id), ...logNotifications.map((n) => n.id)].join(','),
     [notifications, logNotifications]
@@ -338,10 +360,16 @@ export function NotificationPopover({
 
     if (hasNewNotification && currentIds.length > 0) {
       setOpen(true);
+
+      const hasNewNonCallNotification = nonCallNotificationIds.some((id) => !prevIds.has(id));
+
+      if (hasNewNonCallNotification && !isMuted) {
+        playGenericNotificationSound();
+      }
     }
 
     prevNotificationIdsRef.current = currentNotificationIds;
-  }, [currentNotificationIds, autoOpen]);
+  }, [currentNotificationIds, nonCallNotificationIds, autoOpen, isMuted, playGenericNotificationSound]);
 
   React.useEffect(() => {
     const handleOpenNotificationDrawer = () => {

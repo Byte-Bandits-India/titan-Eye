@@ -10,7 +10,7 @@ import { LegacySelect as Select } from '../../components/ui/select';
 import { SheetBody, SheetFooter } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
-import { AGE_REGEX, emptyRxValues, LANGUAGES, MOBILE_REGEX, NAME_REGEX } from '../../options/Option';
+import { AGE_REGEX, CUSTOMER_NAME_REGEX, emptyRxValues, LANGUAGES, MOBILE_REGEX } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 
 export function StorePatientDetails({
@@ -100,8 +100,8 @@ export function StorePatientDetails({
 
     if (!form.name.trim()) {
       newErrors.name = 'Name is required';
-    } else if (!NAME_REGEX.test(form.name.trim())) {
-      newErrors.name = 'Name must be between 3 and 50 characters and contain only letters and spaces';
+    } else if (!CUSTOMER_NAME_REGEX.test(form.name.trim())) {
+      newErrors.name = 'Name must be between 3 and 20 characters and contain only letters and spaces';
     }
 
     if (!form.age) {
@@ -272,7 +272,7 @@ export function StorePatientDetails({
             className={cn('rounded-none', errors.name && 'border-red-500 focus-visible:ring-red-500')}
             icon={User}
             onChange={(e) => {
-              const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 50);
+              const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
               setField('name')(cleanVal);
             }}
             placeholder="Enter full name"

@@ -1,5 +1,8 @@
 import crypto from 'crypto';
 import { Response, Router } from 'express';
+import fs from 'fs';
+import multer from 'multer';
+import path from 'path';
 
 import type { CustomerInput } from '../types.js';
 
@@ -11,6 +14,34 @@ import { broadcastEvent } from '../utils/sse.js';
 import { validateCustomerData } from '../utils/validation.js';
 
 const router = Router();
+
+const IMAGE_UPLOADS_DIR = path.resolve(
+  process.env.STORE_FEEDBACK_IMAGE_UPLOADS_DIR || 'uploads/store-feedback-images'
+);
+
+fs.mkdirSync(IMAGE_UPLOADS_DIR, { recursive: true });
+
+const MAX_FEEDBACK_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+const feedbackImageStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, IMAGE_UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).slice(0, 10);
+    cb(null, `${crypto.randomUUID()}${ext}`);
+  },
+});
+
+const feedbackImageUpload = multer({
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      cb(new Error('Only image files are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: MAX_FEEDBACK_IMAGE_SIZE },
+  storage: feedbackImageStorage,
+});
 
 async function findNextAvailableOptometrist(
   excludeEmails: string[]
@@ -187,8 +218,8 @@ async function verifyCustomerAccess(
 ): Promise<CustomerRow | null> {
   const customer = await get<CustomerRow>(
     `SELECT id, name, age, gender, mobile, customerType, storeName,
-            preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
-            status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
+            preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2,
+            optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
             callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime,
             offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason
      FROM customers WHERE id = ?`,
@@ -492,7 +523,8 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       `SELECT id, name, age, gender, mobile, customerType, storeName,
               preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
               status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
-              callStartTime, callActive, callTakenBy, callDuration, optometristCallStartTime
+              callStartTime, callActive, callTakenBy, callDuration, optometristCallStartTime,
+              conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment
        FROM customers WHERE id = ?`,
       [id]
     );
@@ -558,6 +590,26 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.optometristCallStartTime = existing.optometristCallStartTime;
     }
 
+    if (c.conversionStatus === undefined) {
+      c.conversionStatus = existing.conversionStatus;
+    }
+
+    if (c.salesOrderNumber === undefined) {
+      c.salesOrderNumber = existing.salesOrderNumber;
+    }
+
+    if (c.orderDate === undefined) {
+      c.orderDate = existing.orderDate;
+    }
+
+    if (c.nonConversionReason === undefined) {
+      c.nonConversionReason = existing.nonConversionReason;
+    }
+
+    if (c.nonConversionComment === undefined) {
+      c.nonConversionComment = existing.nonConversionComment;
+    }
+
     const validation = validateCustomerData(c, true);
 
     if (!validation.valid) {
@@ -576,7 +628,8 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
         name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
         preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optometristFeedback = ?,
         status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optometristRxData = ?,
-        callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?, optometristCallStartTime = ?
+        callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?, optometristCallStartTime = ?,
+        conversionStatus = ?, salesOrderNumber = ?, orderDate = ?, nonConversionReason = ?, nonConversionComment = ?
       WHERE id = ?
     `,
       [
@@ -600,6 +653,11 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
         sanitized.callTakenBy ?? null,
         sanitized.callDuration ?? 0,
         optometristCallStartVal,
+        sanitized.conversionStatus ?? null,
+        sanitized.salesOrderNumber ?? null,
+        sanitized.orderDate ?? null,
+        sanitized.nonConversionReason ?? null,
+        sanitized.nonConversionComment ?? null,
         id,
       ]
     );
@@ -1135,6 +1193,187 @@ router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Fetch customer logs error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+function feedbackImageColumn(slot: string): 'storeFeedbackImage1' | 'storeFeedbackImage2' | null {
+  if (slot === '1') {
+    return 'storeFeedbackImage1';
+  }
+
+  if (slot === '2') {
+    return 'storeFeedbackImage2';
+  }
+
+  return null;
+}
+
+router.post(
+  '/:id/feedback-image/:slot',
+  (req: AuthenticatedRequest, res: Response, next) => {
+    feedbackImageUpload.single('image')(req, res, (err: unknown) => {
+      if (err) {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+
+        return res.status(400).json({ error: message });
+      }
+
+      next();
+    });
+  },
+  async (req: AuthenticatedRequest, res: Response) => {
+    const file = req.file;
+
+    try {
+      const id = String(req.params.id);
+      const column = feedbackImageColumn(String(req.params.slot));
+
+      if (!column) {
+        if (file) {
+          fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
+        }
+
+        return res.status(400).json({ error: 'Invalid image slot' });
+      }
+
+      if (req.user?.role === 'optometrist') {
+        if (file) {
+          fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
+        }
+
+        return res.status(403).json({ error: 'Optometrist users cannot upload store feedback images' });
+      }
+
+      if (!file) {
+        return res.status(400).json({ error: 'An image file is required' });
+      }
+
+      const customer = await verifyCustomerAccess(req, res, id);
+
+      if (!customer) {
+        fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
+
+        return;
+      }
+
+      const previous = customer[column];
+
+      await run(`UPDATE customers SET ${column} = ? WHERE id = ?`, [file.filename, id]);
+
+      if (previous) {
+        fs.unlink(path.join(IMAGE_UPLOADS_DIR, previous), () => {});
+      }
+
+      const row = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+
+      if (!row) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      const updatedCustomer = toApiCustomer(row);
+      broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+      return res.status(201).json({ customer: updatedCustomer, ok: true });
+    } catch (err) {
+      if (file) {
+        fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
+      }
+
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error('Upload store feedback image error', {
+        errorMessage: error.message,
+        requestId: req.requestId,
+      });
+
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const column = feedbackImageColumn(String(req.params.slot));
+
+    if (!column) {
+      return res.status(400).json({ error: 'Invalid image slot' });
+    }
+
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    const filename = customer[column];
+
+    if (!filename) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    const filePath = path.join(IMAGE_UPLOADS_DIR, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Image file missing on server' });
+    }
+
+    return res.sendFile(filePath);
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Fetch store feedback image error', {
+      errorMessage: error.message,
+      requestId: req.requestId,
+    });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const column = feedbackImageColumn(String(req.params.slot));
+
+    if (!column) {
+      return res.status(400).json({ error: 'Invalid image slot' });
+    }
+
+    if (req.user?.role === 'optometrist') {
+      return res.status(403).json({ error: 'Optometrist users cannot remove store feedback images' });
+    }
+
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    const filename = customer[column];
+
+    await run(`UPDATE customers SET ${column} = NULL WHERE id = ?`, [id]);
+
+    if (filename) {
+      fs.unlink(path.join(IMAGE_UPLOADS_DIR, filename), () => {});
+    }
+
+    const row = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+
+    if (!row) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    const updatedCustomer = toApiCustomer(row);
+    broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+    return res.json({ customer: updatedCustomer, ok: true });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Delete store feedback image error', {
+      errorMessage: error.message,
+      requestId: req.requestId,
+    });
 
     return res.status(500).json({ error: 'Internal server error' });
   }

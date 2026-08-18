@@ -28,6 +28,7 @@ const router = Router();
 const onlineEmails = new Set<string>();
 
 const VALID_ROLES = ['store', 'optometrist', 'admin'];
+const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {
   city?: string;
@@ -213,6 +214,10 @@ router.post(
         return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
       }
 
+      if (role === 'store' && (!storeName || !STORE_CODE_REGEX.test(storeName.trim()))) {
+        return res.status(400).json({ error: 'Store code must be at most 4 letters/digits' });
+      }
+
       const normalizedEmail = email.trim().toLowerCase();
       const existing = await get<{ email: string }>('SELECT email FROM users WHERE LOWER(email) = ?', [
         normalizedEmail,
@@ -308,6 +313,10 @@ router.put(
 
       if (!role || !VALID_ROLES.includes(role)) {
         return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(', ')}` });
+      }
+
+      if (role === 'store' && (!storeName || !STORE_CODE_REGEX.test(storeName.trim()))) {
+        return res.status(400).json({ error: 'Store code must be at most 4 letters/digits' });
       }
 
       if (

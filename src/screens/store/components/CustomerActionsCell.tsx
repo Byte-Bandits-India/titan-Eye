@@ -1,4 +1,4 @@
-import { CheckCircle2, FileText, MoreHorizontal, PhoneCall, UserPen, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardPlus, FileText, MoreHorizontal, UserPen, XCircle } from 'lucide-react';
 
 import type { Customer, StatusTab, User } from '../../../types';
 
@@ -72,18 +72,43 @@ export function CustomerStatusBadge({ status }: { status: Customer['status'] }) 
   );
 }
 
+export function ConversionStatusBadge({ status }: { status: Customer['status'] }) {
+  if (!status) {
+    return <span className="text-sm font-medium text-muted-foreground">---</span>;
+  }
+
+  if (status === 'Completed') {
+    return (
+      <Badge
+        className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-sm font-medium tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+        variant="Completed"
+      >
+        Converted
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-sm font-medium tracking-wide text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300"
+      variant="Closed"
+    >
+      Non-Converted
+    </Badge>
+  );
+}
+
 type CustomerActionsCellProps = {
   completingCallId: null | string;
   cust: Customer;
   disableRequest?: boolean;
-  loadingCallId: null | string;
   onCancelCall?: (id: string) => void;
   onCompleteCall: (id: string, name: string) => void;
-  onInitiateCall: (id: string) => void;
+  onCreateTest: (id: string) => void;
   onSelectCustomer: (id: string) => void;
   onSetEditing: (v: boolean) => void;
   onSetEditingRx: (v: boolean) => void;
-  onViewDetails: (id: string) => void;
+  onUpdateStatus: (id: string) => void;
   statusTab?: StatusTab;
   user: null | User;
 };
@@ -92,26 +117,25 @@ export function CustomerActionsCell({
   completingCallId,
   cust,
   disableRequest,
-  loadingCallId,
   onCancelCall,
   onCompleteCall,
-  onInitiateCall,
+  onCreateTest,
   onSelectCustomer,
   onSetEditing,
   onSetEditingRx,
-  onViewDetails,
+  onUpdateStatus,
   statusTab,
 }: CustomerActionsCellProps) {
   if (statusTab === 'all') {
     return (
       <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
         <Button
-          className="h-8 gap-1.5 px-3 text-sm font-medium"
-          onClick={() => onViewDetails(cust.id)}
+          className="h-8 gap-1.5 px-3 text-sm font-medium text-white shadow-sm"
+          onClick={() => onUpdateStatus(cust.id)}
           size="sm"
-          variant="outline"
+          variant="gradient"
         >
-          View
+          Update Status
         </Button>
       </div>
     );
@@ -171,107 +195,112 @@ export function CustomerActionsCell({
     return (
       <Button
         className="flex h-8 cursor-pointer items-center gap-1.5 px-4 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={loadingCallId === cust.id || disableRequest}
-        onClick={() => onInitiateCall(cust.id)}
+        disabled={disableRequest}
+        onClick={() => onCreateTest(cust.id)}
         title={
           disableRequest
             ? 'You already have an active Optometrist request. Only one request is allowed at a time.'
-            : 'Request an Optometrist doctor for this call'
+            : 'Create a test for this customer'
         }
         variant="gradient"
       >
-        {loadingCallId === cust.id ? (
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        ) : (
-          <PhoneCall size={14} />
-        )}
-        Request
+        <ClipboardPlus size={14} />
+        Create Test
       </Button>
     );
   })();
+
+  const isCreateTestState = !(
+    cust.status === 'Accepted' ||
+    cust.status === 'Initiated' ||
+    cust.status === 'Completed' ||
+    cust.status === 'Closed'
+  );
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            className="rounded-xs flex h-8 w-8 cursor-pointer items-center justify-center border-border p-0 shadow-sm transition-all hover:bg-muted active:scale-95"
-            size="icon"
-            title="Actions Menu"
-            variant="outline"
+      {!isCreateTestState && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              className="rounded-xs flex h-8 w-8 cursor-pointer items-center justify-center border-border p-0 shadow-sm transition-all hover:bg-muted active:scale-95"
+              size="icon"
+              title="Actions Menu"
+              variant="outline"
+            >
+              <MoreHorizontal className="text-muted-foreground" size={16} />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent
+            align="end"
+            className="z-50 w-48 space-y-1 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+            sideOffset={6}
           >
-            <MoreHorizontal className="text-muted-foreground" size={16} />
-          </Button>
-        </PopoverTrigger>
+            {/* Edit Customer */}
+            <button
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              onClick={() => {
+                onSelectCustomer(cust.id);
+                onSetEditing(true);
+                onSetEditingRx(false);
+              }}
+              type="button"
+            >
+              <UserPen className="shrink-0 text-blue-600 dark:text-blue-400" size={14} />
+              <span>Edit Customer</span>
+            </button>
 
-        <PopoverContent
-          align="end"
-          className="z-50 w-48 space-y-1 rounded-xl border border-border bg-card p-1.5 shadow-xl"
-          sideOffset={6}
-        >
-          {/* Edit Customer */}
-          <button
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            onClick={() => {
-              onSelectCustomer(cust.id);
-              onSetEditing(true);
-              onSetEditingRx(false);
-            }}
-            type="button"
-          >
-            <UserPen className="shrink-0 text-blue-600 dark:text-blue-400" size={14} />
-            <span>Edit Customer</span>
-          </button>
+            {/* Store Rx */}
+            <button
+              className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              onClick={() => {
+                onSelectCustomer(cust.id);
+                onSetEditingRx(true);
+                onSetEditing(false);
+              }}
+              type="button"
+            >
+              <FileText className="shrink-0 text-emerald-600 dark:text-emerald-400" size={14} />
+              <span>Store Rx</span>
+            </button>
 
-          {/* Store Rx */}
-          <button
-            className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            onClick={() => {
-              onSelectCustomer(cust.id);
-              onSetEditingRx(true);
-              onSetEditing(false);
-            }}
-            type="button"
-          >
-            <FileText className="shrink-0 text-emerald-600 dark:text-emerald-400" size={14} />
-            <span>Store Rx</span>
-          </button>
+            {/* Cancel — only available from the Queue tab, while the request is still pending */}
+            {statusTab === 'Pending' && cust.status === 'Initiated' && onCancelCall && (
+              <>
+                <div className="my-1 h-px bg-border" />
+                <button
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                  onClick={() => onCancelCall(cust.id)}
+                  type="button"
+                >
+                  <XCircle className="shrink-0 text-red-600 dark:text-red-400" size={14} />
+                  <span>Cancel Request</span>
+                </button>
+              </>
+            )}
 
-          {/* Cancel — only available from the Queue tab, while the request is still pending */}
-          {statusTab === 'Pending' && cust.status === 'Initiated' && onCancelCall && (
-            <>
-              <div className="my-1 h-px bg-border" />
-              <button
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                onClick={() => onCancelCall(cust.id)}
-                type="button"
-              >
-                <XCircle className="shrink-0 text-red-600 dark:text-red-400" size={14} />
-                <span>Cancel Request</span>
-              </button>
-            </>
-          )}
-
-          {/* Complete Call — only when call is Accepted but not actively live */}
-          {cust.status === 'Accepted' && !cust.callActive && (
-            <>
-              <div className="my-1 h-px bg-border" />
-              <button
-                className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={completingCallId === cust.id}
-                onClick={() => onCompleteCall(cust.id, cust.name)}
-                type="button"
-              >
-                <CheckCircle2 className="shrink-0 text-indigo-600 dark:text-indigo-400" size={14} />
-                <span>{completingCallId === cust.id ? 'Completing…' : 'Complete Call'}</span>
-              </button>
-            </>
-          )}
-        </PopoverContent>
-      </Popover>
+            {/* Complete Call — only when call is Accepted but not actively live */}
+            {cust.status === 'Accepted' && !cust.callActive && (
+              <>
+                <div className="my-1 h-px bg-border" />
+                <button
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={completingCallId === cust.id}
+                  onClick={() => onCompleteCall(cust.id, cust.name)}
+                  type="button"
+                >
+                  <CheckCircle2 className="shrink-0 text-indigo-600 dark:text-indigo-400" size={14} />
+                  <span>{completingCallId === cust.id ? 'Completing…' : 'Complete Call'}</span>
+                </button>
+              </>
+            )}
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }

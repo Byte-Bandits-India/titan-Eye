@@ -112,6 +112,7 @@ export type Customer = {
   callStartTime?: null | string;
   callTakenBy?: null | string;
   cancellationReason?: null | string;
+  conversionStatus?: null | string;
   createdOn?: null | string;
   customerType: string;
   gender: string;
@@ -120,6 +121,8 @@ export type Customer = {
   lastUpdatedOn?: string;
   mobile: string;
   name: string;
+  nonConversionComment?: null | string;
+  nonConversionReason?: null | string;
   offeredToOptometristEmail?: null | string;
   optometristCallStartTime?: null | string;
   optometristFeedback?: string;
@@ -127,6 +130,7 @@ export type Customer = {
     le: OptometristRxValues;
     re: OptometristRxValues;
   };
+  orderDate?: null | string;
   patientFeedback?: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
@@ -137,9 +141,12 @@ export type Customer = {
     pgpLe: RxValues;
     pgpRe: RxValues;
   };
+  salesOrderNumber?: null | string;
   status: CustomerStatus;
   storeContactEmail?: null | string;
   storeFeedback: string;
+  storeFeedbackImage1?: null | string;
+  storeFeedbackImage2?: null | string;
   storeName: string;
 };
 
@@ -328,12 +335,17 @@ export type StorePatientDetailsProps = {
   setSelectedCustomerId: (id: null | string) => void;
 };
 
-export type StorePatientDetailsPageProps = {
+export type StoreRxDetailsProps = {
   onBack: () => void;
   selectedCustomer: Customer | null;
 };
 
-export type StoreRxDetailsProps = {
+export type StoreCustomerTestPageProps = {
+  onBack: () => void;
+  selectedCustomer: Customer | null;
+};
+
+export type StoreUpdateStatusPageProps = {
   onBack: () => void;
   selectedCustomer: Customer | null;
 };

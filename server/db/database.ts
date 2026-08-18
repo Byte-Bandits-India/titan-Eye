@@ -24,6 +24,7 @@ export interface CustomerRow {
   callStartTime: null | string;
   callTakenBy: null | string;
   cancellationReason: null | string;
+  conversionStatus: null | string;
   createdOn: null | string;
   customerType: string;
   declinedByOptometristEmails: null | string;
@@ -33,17 +34,23 @@ export interface CustomerRow {
   lastUpdatedOn: null | string;
   mobile: string;
   name: string;
+  nonConversionComment: null | string;
+  nonConversionReason: null | string;
   offeredToOptometristEmail: null | string;
   optometristCallStartTime: null | string;
   optometristFeedback: string;
   optometristRxData: null | string;
+  orderDate: null | string;
   patientFeedback: null | string;
   preferredLanguage: string;
   preferredLanguage2: string;
   rxData: null | string;
+  salesOrderNumber: null | string;
   status: string;
   storeContactEmail: null | string;
   storeFeedback: string;
+  storeFeedbackImage1: null | string;
+  storeFeedbackImage2: null | string;
   storeName: string;
 }
 
@@ -270,6 +277,34 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE customers ADD COLUMN cancellationReason TEXT`);
   } catch {}
 
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN storeFeedbackImage1 TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN storeFeedbackImage2 TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN conversionStatus TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN salesOrderNumber TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN orderDate TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN nonConversionReason TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN nonConversionComment TEXT`);
+  } catch {}
+
   await run(
     `UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`
   );
@@ -428,7 +463,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment
     FROM customers
   `);
 
