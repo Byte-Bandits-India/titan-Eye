@@ -83,7 +83,16 @@ const authSlice = createSlice({
       state.loading = true;
       state.error = null;
     },
-    loginSuccess(state, action: PayloadAction<{ rememberMe?: boolean; user: User }>) {
+    loginSuccess(state, action: PayloadAction<{ rememberMe?: boolean; user?: User }>) {
+      if (!action.payload?.user) {
+        state.loading = false;
+        state.error = 'Failed to process user authentication data.';
+        state.isAuthenticated = false;
+        state.user = null;
+
+        return;
+      }
+
       state.authChecked = true;
       state.loading = false;
       state.user = action.payload.user;
