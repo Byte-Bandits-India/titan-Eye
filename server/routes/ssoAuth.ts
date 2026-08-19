@@ -161,7 +161,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     res.cookie('token', token, {
       httpOnly: true,
       maxAge: JWT_TTL_MS,
-      sameSite: 'strict',
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
     });
 
