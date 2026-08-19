@@ -231,7 +231,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(
   cors({
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-e2ee-client', 'x-request-id'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     origin: (origin, callback) => {

@@ -96,10 +96,17 @@ router.post(
           role: user.role,
         });
 
+        const isSecure =
+          process.env.NODE_ENV === 'production' ||
+          req.secure ||
+          req.headers['x-forwarded-proto'] === 'https' ||
+          Boolean(req.headers.host && !req.headers.host.includes('localhost'));
+
         res.cookie('token', token, {
           httpOnly: true,
+          path: '/',
           sameSite: 'strict',
-          secure: process.env.NODE_ENV === 'production',
+          secure: isSecure,
           // Omitting maxAge makes this a session cookie, cleared when the browser closes,
           // so login is required again next time unless the user opted into "Remember me".
           ...(rememberMe ? { maxAge: JWT_TTL_MS } : {}),
@@ -223,10 +230,17 @@ router.post('/logout', (req: Request, res: Response<LogoutResponseBody>) => {
     }
   }
 
+  const isSecure =
+    process.env.NODE_ENV === 'production' ||
+    req.secure ||
+    req.headers['x-forwarded-proto'] === 'https' ||
+    Boolean(req.headers.host && !req.headers.host.includes('localhost'));
+
   res.clearCookie('token', {
     httpOnly: true,
+    path: '/',
     sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
   });
 
   return res.json({ message: 'Logged out successfully', ok: true });

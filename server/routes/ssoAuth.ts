@@ -13,8 +13,6 @@ import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 
 const router = Router();
-
-const FRONTEND_URL = process.env.FRONTEND_URL ?? '';
 const STATE_COOKIE = 'sso_state';
 
 interface SsoCookieState {
@@ -22,9 +20,27 @@ interface SsoCookieState {
   verifier: string;
 }
 
+function getFrontendRedirectUrl(req: Request, targetPath: string): string {
+  const configuredUrl = (process.env.FRONTEND_URL || '').trim().replace(/\/+$/, '');
+  const host = req.headers.host || '';
+  if (!configuredUrl || (!host.includes('localhost') && configuredUrl.includes('localhost'))) {
+    return targetPath;
+  }
+  return `${configuredUrl}${targetPath}`;
+}
+
+function isConnectionSecure(req: Request): boolean {
+  return (
+    process.env.NODE_ENV === 'production' ||
+    req.secure ||
+    req.headers['x-forwarded-proto'] === 'https' ||
+    Boolean(req.headers.host && !req.headers.host.includes('localhost'))
+  );
+}
+
 router.get('/login', async (req: Request, res: Response) => {
   if (!isSsoConfigured || !msalClient) {
-    return res.redirect(`${FRONTEND_URL}/login?error=sso_disabled`);
+    return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_disabled'));
   }
 
   try {
@@ -34,8 +50,9 @@ router.get('/login', async (req: Request, res: Response) => {
     res.cookie(STATE_COOKIE, JSON.stringify({ state, verifier }), {
       httpOnly: true,
       maxAge: 5 * 60 * 1000,
+      path: '/',
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: isConnectionSecure(req),
     });
 
     const authUrl = await msalClient.getAuthCodeUrl({
@@ -51,21 +68,21 @@ router.get('/login', async (req: Request, res: Response) => {
     const error = err instanceof Error ? err : new Error(String(err));
     logger.error('SSO login error', { errorMessage: error.message, requestId: req.requestId });
 
-    return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+    return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
   }
 });
 
 router.get('/callback', async (req: Request, res: Response) => {
   if (!isSsoConfigured || !msalClient) {
-    return res.redirect(`${FRONTEND_URL}/login?error=sso_disabled`);
+    return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_disabled'));
   }
 
   try {
     const raw = req.cookies?.[STATE_COOKIE];
-    res.clearCookie(STATE_COOKIE);
+    res.clearCookie(STATE_COOKIE, { path: '/' });
 
     if (!raw) {
-      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
 
     const parsed = JSON.parse(raw);
@@ -75,14 +92,14 @@ router.get('/callback', async (req: Request, res: Response) => {
       typeof parsed.state !== 'string' ||
       typeof parsed.verifier !== 'string'
     ) {
-      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
     const { state: expectedState, verifier } = parsed as SsoCookieState;
 
     const { code, state: returnedState } = req.query;
 
     if (!code || typeof code !== 'string' || returnedState !== expectedState) {
-      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
 
     const result = await msalClient.acquireTokenByCode({
@@ -98,14 +115,21 @@ router.get('/callback', async (req: Request, res: Response) => {
     const idClaims = (result.idTokenClaims || {}) as Record<string, unknown>;
     const candidateEmails = Array.from(
       new Set(
-        [email, upn, idClaims['email'], idClaims['preferred_username'], idClaims['upn']]
+        [
+          email,
+          upn,
+          idClaims['email'],
+          idClaims['preferred_username'],
+          idClaims['upn'],
+          idClaims['unique_name'],
+        ]
           .filter((e): e is string => typeof e === 'string' && e.includes('@'))
           .map((e) => e.toLowerCase())
       )
     );
 
     if (candidateEmails.length === 0) {
-      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
 
     let user: UserRow | undefined;
@@ -126,7 +150,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         requestId: req.requestId,
       });
 
-      return res.redirect(`${FRONTEND_URL}/login?error=not_provisioned`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=not_provisioned'));
     }
 
     if (user.status === 'inactive') {
@@ -136,28 +160,27 @@ router.get('/callback', async (req: Request, res: Response) => {
         requestId: req.requestId,
       });
 
-      return res.redirect(`${FRONTEND_URL}/login?error=inactive`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=inactive'));
     }
 
-    await run('UPDATE users SET azureObjectId = ?, microsoftUpn = ?, lastLogin = ? WHERE email = ?', [
-      azureObjectId || null,
-      upn || null,
-      new Date().toISOString(),
-      user.email,
-    ]);
+    await run(
+      'UPDATE users SET azureObjectId = ?, microsoftUpn = ?, lastLogin = ? WHERE LOWER(email) = LOWER(?)',
+      [azureObjectId || null, upn || null, new Date().toISOString(), user.email]
+    );
 
-    const fullUser = await get<UserRow>('SELECT email, name, role, storeName FROM users WHERE email = ?', [
-      user.email,
-    ]);
+    const fullUser = await get<UserRow>(
+      'SELECT email, name, role, storeName, status FROM users WHERE LOWER(email) = LOWER(?)',
+      [user.email]
+    );
 
     if (!fullUser) {
-      return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+      return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
 
     const token = generateToken(
       {
         email: fullUser.email,
-        name: fullUser.name,
+        name: fullUser.name || fullUser.email.split('@')[0],
         role: fullUser.role,
         storeName: fullUser.storeName ?? undefined,
       },
@@ -166,7 +189,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     const newTokenSig = token.split('.')[2];
     await run(
-      `UPDATE users SET lastLogin = ?, failedLoginAttempts = 0, lockedUntil = NULL, activeTokenSig = ? WHERE email = ?`,
+      `UPDATE users SET lastLogin = ?, failedLoginAttempts = 0, lockedUntil = NULL, activeTokenSig = ? WHERE LOWER(email) = LOWER(?)`,
       [new Date().toISOString(), newTokenSig, fullUser.email]
     );
 
@@ -182,8 +205,9 @@ router.get('/callback', async (req: Request, res: Response) => {
     res.cookie('token', token, {
       httpOnly: true,
       maxAge: JWT_TTL_MS,
+      path: '/',
       sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
+      secure: isConnectionSecure(req),
     });
 
     logSecurityEvent('SSO_LOGIN_SUCCESS', {
@@ -193,7 +217,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       role: fullUser.role,
     });
 
-    return res.redirect(`${FRONTEND_URL}/sso/callback`);
+    return res.redirect(getFrontendRedirectUrl(req, '/sso/callback'));
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logSecurityEvent('SSO_LOGIN_FAILED', {
@@ -203,7 +227,7 @@ router.get('/callback', async (req: Request, res: Response) => {
     });
     logger.error('SSO callback error', { errorMessage: error.message, requestId: req.requestId });
 
-    return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
+    return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
   }
 });
 
