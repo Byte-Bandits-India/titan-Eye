@@ -52,7 +52,11 @@ jobs:
 
       - name: 📤 Upload to Windows Server (SCP)
         run: |
-          scp -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz
+          echo "Uploading deployment package..."
+          if ! scp -O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz; then
+            echo "SCP failed, fallback to direct SSH byte stream..."
+            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }} 'powershell -NoProfile -Command "$in = [System.Console]::OpenStandardInput(); $out = [System.IO.File]::Create(\"C:\Windows\Temp\deploy.tar.gz\"); $in.CopyTo($out); $out.Close()"' < deploy.tar.gz
+          fi
 
       - name: 🚀 Deploy on Windows IIS Server (SSH & PowerShell)
         run: |
