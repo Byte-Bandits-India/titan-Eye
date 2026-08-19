@@ -49,13 +49,42 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          cat << 'SSHEOF' > ~/.ssh/config
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            PubkeyAcceptedKeyTypes +ssh-rsa,rsa-sha2-256,rsa-sha2-512,ssh-ed25519
+            HostKeyAlgorithms +ssh-rsa,rsa-sha2-256,rsa-sha2-512,ssh-ed25519
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+            ConnectTimeout 30
+            TCPKeepAlive yes
+          SSHEOF
+          chmod 600 ~/.ssh/config
 
-      - name: 📤 Upload to Windows Server (SCP)
+      - name: 📤 Upload to Windows Server (SCP with Retries)
         run: |
-          echo "Uploading deployment package..."
-          if ! scp -O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz; then
-            echo "SCP failed, fallback to direct SSH byte stream..."
-            ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }} 'powershell -NoProfile -Command "$in = [System.Console]::OpenStandardInput(); $out = [System.IO.File]::Create(\"C:\Windows\Temp\deploy.tar.gz\"); $in.CopyTo($out); $out.Close()"' < deploy.tar.gz
+          echo "Uploading deployment package with retry logic..."
+          UPLOAD_SUCCESS=false
+          for i in 1 2 3 4; do
+            echo "--- Upload attempt $i of 4 ---"
+            if scp -O -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz; then
+              echo "✅ SCP upload succeeded!"
+              UPLOAD_SUCCESS=true
+              break
+            fi
+            echo "⚠️ SCP attempt $i failed. Trying direct SSH stream fallback..."
+            if ssh -i ~/.ssh/id_rsa ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }} 'powershell -NoProfile -Command "$in = [System.Console]::OpenStandardInput(); $out = [System.IO.File]::Create(\"C:\Windows\Temp\deploy.tar.gz\"); $in.CopyTo($out); $out.Close()"' < deploy.tar.gz; then
+              echo "✅ SSH byte stream upload succeeded!"
+              UPLOAD_SUCCESS=true
+              break
+            fi
+            echo "Waiting 5 seconds before retrying..."
+            sleep 5
+          done
+          if [ "$UPLOAD_SUCCESS" != "true" ]; then
+            echo "❌ All upload attempts failed."
+            exit 1
           fi
 
       - name: 🚀 Deploy on Windows IIS Server (SSH & PowerShell)
