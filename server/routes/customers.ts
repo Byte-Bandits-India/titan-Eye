@@ -558,6 +558,46 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.storeFeedback = existing.storeFeedback;
     }
 
+    if (c.name === undefined) {
+      c.name = existing.name;
+    }
+
+    if (c.age === undefined) {
+      c.age = existing.age;
+    }
+
+    if (c.gender === undefined) {
+      c.gender = existing.gender;
+    }
+
+    if (c.mobile === undefined) {
+      c.mobile = existing.mobile;
+    }
+
+    if (c.customerType === undefined) {
+      c.customerType = existing.customerType;
+    }
+
+    if (c.storeName === undefined) {
+      c.storeName = existing.storeName;
+    }
+
+    if (c.preferredLanguage === undefined) {
+      c.preferredLanguage = existing.preferredLanguage;
+    }
+
+    if (c.preferredLanguage2 === undefined) {
+      c.preferredLanguage2 = existing.preferredLanguage2;
+    }
+
+    if (c.status === undefined) {
+      c.status = existing.status;
+    }
+
+    if (c.activeProfile === undefined) {
+      c.activeProfile = existing.activeProfile === 1;
+    }
+
     if (c.rxData === undefined) {
       c.rxData = existing.rxData ? JSON.parse(existing.rxData) : null;
     }

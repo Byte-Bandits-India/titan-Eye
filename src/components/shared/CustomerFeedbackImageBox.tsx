@@ -95,7 +95,9 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
     <div
       className={cn(
         'relative flex h-[176px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed p-2 text-center transition-colors',
-        isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+        isDragging
+          ? 'bg-primary/5 border-primary'
+          : 'border-muted-foreground/25 hover:border-muted-foreground/50'
       )}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
