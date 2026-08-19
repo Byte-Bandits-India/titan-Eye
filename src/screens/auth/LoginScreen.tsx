@@ -7,6 +7,7 @@ import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
 import { API_BASE_URL, STORAGE_KEYS } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
+import { apiClient } from '../../Util/apiClient';
 
 const SSO_ERROR_MESSAGES: Record<string, string> = {
   inactive: 'This account has been deactivated.',
@@ -40,8 +41,20 @@ export function LoginScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleMicrosoftSignIn = () => {
-    window.location.href = `${API_BASE_URL}/auth/microsoft/login`;
+  const handleMicrosoftSignIn = async () => {
+    try {
+      const res = await apiClient.get<{ authUrl?: string }>('/auth/microsoft/url');
+
+      if (res.data?.authUrl) {
+        window.location.href = res.data.authUrl;
+
+        return;
+      }
+
+      window.location.href = `${API_BASE_URL}/auth/microsoft/login`;
+    } catch {
+      window.location.href = `${API_BASE_URL}/auth/microsoft/login`;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

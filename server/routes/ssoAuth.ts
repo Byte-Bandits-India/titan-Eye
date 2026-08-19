@@ -38,6 +38,40 @@ function isConnectionSecure(req: Request): boolean {
   );
 }
 
+router.get('/url', async (req: Request, res: Response) => {
+  if (!isSsoConfigured || !msalClient) {
+    return res.status(400).json({ error: 'SSO is not configured' });
+  }
+
+  try {
+    const state = cryptoProvider.createNewGuid();
+    const { challenge, verifier } = await cryptoProvider.generatePkceCodes();
+
+    res.cookie(STATE_COOKIE, JSON.stringify({ state, verifier }), {
+      httpOnly: true,
+      maxAge: 5 * 60 * 1000,
+      path: '/',
+      sameSite: 'lax',
+      secure: isConnectionSecure(req),
+    });
+
+    const authUrl = await msalClient.getAuthCodeUrl({
+      codeChallenge: challenge,
+      codeChallengeMethod: 'S256',
+      redirectUri: ENTRA_REDIRECT_URI,
+      scopes: ENTRA_SCOPES,
+      state,
+    });
+
+    return res.json({ authUrl });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('SSO getAuthCodeUrl error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Failed to generate Microsoft login URL' });
+  }
+});
+
 router.get('/login', async (req: Request, res: Response) => {
   if (!isSsoConfigured || !msalClient) {
     return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_disabled'));
@@ -63,7 +97,20 @@ router.get('/login', async (req: Request, res: Response) => {
       state,
     });
 
-    return res.redirect(authUrl);
+    const sanitizedUrl = JSON.stringify(authUrl);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url=${authUrl}">
+  <title>Redirecting to Microsoft Sign-in...</title>
+</head>
+<body>
+  <script>window.location.replace(${sanitizedUrl});</script>
+  <noscript><p>Redirecting to Microsoft Sign-in... <a href="${authUrl}">Click here if not redirected</a>.</p></noscript>
+</body>
+</html>`);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logger.error('SSO login error', { errorMessage: error.message, requestId: req.requestId });

@@ -137,10 +137,15 @@ jobs:
               Get-Service TitanService -ErrorAction SilentlyContinue | Start-Service
             }
 
-            # 10. Recycle IIS Application Pools
+            # 10. Recycle IIS Application Pools & ensure ARR preserves external redirect locations
             Write-Host "🔄 Recycling IIS Application Pools..."
             $appcmd = "$env:SystemRoot\system32\inetsrv\appcmd.exe"
             if (Test-Path $appcmd) {
+              try {
+                & $appcmd set config -section:system.webServer/proxy /reverseRewriteHostInResponseHeaders:"False" /commit:apphost
+              } catch {
+                Write-Host "ARR proxy configuration check finished."
+              }
               try {
                 & $appcmd list apppools /text:name | ForEach-Object {
                   Write-Host "Recycling AppPool: $_"
