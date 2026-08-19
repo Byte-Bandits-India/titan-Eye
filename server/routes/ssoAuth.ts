@@ -95,15 +95,36 @@ router.get('/callback', async (req: Request, res: Response) => {
     const email = result.account?.username;
     const azureObjectId = result.account?.localAccountId;
     const upn = result.account?.upn || result.account?.username;
+    const idClaims = (result.idTokenClaims || {}) as Record<string, unknown>;
+    const candidateEmails = Array.from(
+      new Set(
+        [email, upn, idClaims['email'], idClaims['preferred_username'], idClaims['upn']]
+          .filter((e): e is string => typeof e === 'string' && e.includes('@'))
+          .map((e) => e.toLowerCase())
+      )
+    );
 
-    if (!email) {
+    if (candidateEmails.length === 0) {
       return res.redirect(`${FRONTEND_URL}/login?error=sso_failed`);
     }
 
-    const user = await get<UserRow>('SELECT email, status FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+    let user: UserRow | undefined;
+    for (const candidateEmail of candidateEmails) {
+      user = await get<UserRow>(
+        'SELECT email, status FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(microsoftUpn) = LOWER(?)',
+        [candidateEmail, candidateEmail]
+      );
+      if (user) {
+        break;
+      }
+    }
 
     if (!user) {
-      logSecurityEvent('SSO_LOGIN_NOT_PROVISIONED', { email, ip: req.ip, requestId: req.requestId });
+      logSecurityEvent('SSO_LOGIN_NOT_PROVISIONED', {
+        email: email || candidateEmails[0],
+        ip: req.ip,
+        requestId: req.requestId,
+      });
 
       return res.redirect(`${FRONTEND_URL}/login?error=not_provisioned`);
     }
