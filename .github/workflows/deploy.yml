@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -47,45 +51,14 @@ jobs:
       - name: 🔑 Configure SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          cat << 'SSHEOF' > ~/.ssh/config
-          Host *
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-            PubkeyAcceptedKeyTypes +ssh-rsa,rsa-sha2-256,rsa-sha2-512,ssh-ed25519
-            HostKeyAlgorithms +ssh-rsa,rsa-sha2-256,rsa-sha2-512,ssh-ed25519
-            ServerAliveInterval 15
-            ServerAliveCountMax 4
-            ConnectTimeout 30
-            TCPKeepAlive yes
-          SSHEOF
-          chmod 600 ~/.ssh/config
 
-      - name: 📤 Upload to Windows Server (SCP with Retries)
+      - name: 📤 Upload to Windows Server (SCP)
         run: |
-          echo "Uploading deployment package with retry logic..."
-          UPLOAD_SUCCESS=false
-          for i in 1 2 3 4; do
-            echo "--- Upload attempt $i of 4 ---"
-            if scp -O -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz; then
-              echo "✅ SCP upload succeeded!"
-              UPLOAD_SUCCESS=true
-              break
-            fi
-            echo "⚠️ SCP attempt $i failed. Trying direct SSH stream fallback..."
-            if ssh -i ~/.ssh/id_rsa ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }} 'powershell -NoProfile -Command "$in = [System.Console]::OpenStandardInput(); $out = [System.IO.File]::Create(\"C:\Windows\Temp\deploy.tar.gz\"); $in.CopyTo($out); $out.Close()"' < deploy.tar.gz; then
-              echo "✅ SSH byte stream upload succeeded!"
-              UPLOAD_SUCCESS=true
-              break
-            fi
-            echo "Waiting 5 seconds before retrying..."
-            sleep 5
-          done
-          if [ "$UPLOAD_SUCCESS" != "true" ]; then
-            echo "❌ All upload attempts failed."
-            exit 1
-          fi
+          echo "Uploading deployment package..."
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -o ServerAliveInterval=15 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz || \
+          scp -O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:deploy.tar.gz
 
       - name: 🚀 Deploy on Windows IIS Server (SSH & PowerShell)
         run: |
@@ -148,8 +121,16 @@ jobs:
 
             # 6. Extract new build package
             Write-Host "📦 Extracting new build to $APP_DIR ..."
-            tar -xzf "C:\Windows\Temp\deploy.tar.gz" -C $APP_DIR
-            Remove-Item -Force "C:\Windows\Temp\deploy.tar.gz" -ErrorAction SilentlyContinue
+            if (Test-Path "C:\Windows\Temp\deploy.tar.gz") {
+              tar -xzf "C:\Windows\Temp\deploy.tar.gz" -C $APP_DIR
+              Remove-Item -Force "C:\Windows\Temp\deploy.tar.gz" -ErrorAction SilentlyContinue
+            } elseif (Test-Path "$HOME\deploy.tar.gz") {
+              tar -xzf "$HOME\deploy.tar.gz" -C $APP_DIR
+              Remove-Item -Force "$HOME\deploy.tar.gz" -ErrorAction SilentlyContinue
+            } elseif (Test-Path "deploy.tar.gz") {
+              tar -xzf "deploy.tar.gz" -C $APP_DIR
+              Remove-Item -Force "deploy.tar.gz" -ErrorAction SilentlyContinue
+            }
 
             # 7. Ensure web.config is inside dist directory for IIS
             if (Test-Path "$APP_DIR\web.config") {
