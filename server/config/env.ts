@@ -1,11 +1,28 @@
 import fs from 'fs';
 
-const mode = process.env.NODE_ENV || 'development';
+// Load base .env if present
+if (fs.existsSync('.env')) {
+  try {
+    process.loadEnvFile('.env');
+  } catch (e) {
+    console.warn('Could not load .env:', e);
+  }
+}
 
-if (mode === 'production' && fs.existsSync('.env.production')) {
-  process.loadEnvFile('.env.production');
-} else if (fs.existsSync('.env.local')) {
-  process.loadEnvFile('.env.local');
-} else if (fs.existsSync('.env')) {
-  process.loadEnvFile('.env');
+// Load .env.local if present (local development overrides)
+if (fs.existsSync('.env.local')) {
+  try {
+    process.loadEnvFile('.env.local');
+  } catch (e) {
+    console.warn('Could not load .env.local:', e);
+  }
+}
+
+// Load .env.production if present (production overrides)
+if (fs.existsSync('.env.production')) {
+  try {
+    process.loadEnvFile('.env.production');
+  } catch (e) {
+    console.warn('Could not load .env.production:', e);
+  }
 }
