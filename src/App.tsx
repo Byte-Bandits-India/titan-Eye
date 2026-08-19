@@ -41,8 +41,7 @@ function SessionGuard() {
       .then((res) => {
         dispatch(loginSuccess({ user: res.data.user }));
       })
-      .catch((err) => {
-        console.warn('Session verification failed on mount:', err);
+      .catch(() => {
         dispatch(authCheckFailed());
       });
   }, [isAuthenticated, authChecked, dispatch]);
