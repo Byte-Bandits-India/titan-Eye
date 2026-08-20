@@ -142,11 +142,7 @@ export function LoginScreen() {
         <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl">
           <div className="flex flex-col px-9 py-10 sm:px-11 sm:py-12">
             <BrandHeader />
-
-            <p className="text-center text-base font-medium text-gray-500 sm:text-lg">
-              Enter Your Email Address to sign in to your Account
-            </p>
-
+            <p className="text-center text-base font-medium text-gray-500 sm:text-lg">Enter Email Address</p>
             <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
               <input
                 autoComplete="email"
