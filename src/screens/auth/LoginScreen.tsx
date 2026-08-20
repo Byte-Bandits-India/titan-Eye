@@ -15,7 +15,28 @@ const SSO_ERROR_MESSAGES: Record<string, string> = {
   sso_failed: 'Microsoft sign-in failed. Please try again.',
 };
 
+const BrandHeader = () => (
+  <div className="mb-7 flex flex-col items-center text-center">
+    <p className="mb-2 text-sm text-gray-500">Welcome to</p>
+    <img alt="TITAN EYE+" className="h-auto w-36" src="/images/logo-black.png" />
+    <p className="mt-2 text-xs font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
+    <div className="mt-3 h-0.5 w-10 rounded-full bg-teal-600" />
+  </div>
+);
+
+const MicrosoftLogo = () => (
+  <svg aria-hidden="true" height="18" viewBox="0 0 21 21" width="18">
+    <rect fill="#f25022" height="9" width="9" x="1" y="1" />
+    <rect fill="#7fba00" height="9" width="9" x="11" y="1" />
+    <rect fill="#00a4ef" height="9" width="9" x="1" y="11" />
+    <rect fill="#ffb900" height="9" width="9" x="11" y="11" />
+  </svg>
+);
+
 export function LoginScreen() {
+  const [isTabletShortcut] = React.useState(
+    () => new URLSearchParams(window.location.search).get('src') === 'tablet-shortcut'
+  );
   const rememberedEmail = React.useMemo(() => localStorage.getItem(STORAGE_KEYS.REMEMBERED_EMAIL) ?? '', []);
   const [email, setEmail] = React.useState(rememberedEmail);
   const [password, setPassword] = React.useState('');
@@ -39,7 +60,7 @@ export function LoginScreen() {
       window.history.replaceState({}, '', window.location.pathname);
     }
 
-    if (params.get('src') === 'tablet-shortcut') {
+    if (isTabletShortcut) {
       document.documentElement.requestFullscreen?.().catch(() => {
         // Blocked without a user gesture — the app just loads normally, not fullscreen.
       });
@@ -109,6 +130,82 @@ export function LoginScreen() {
     }
   };
 
+  if (isTabletShortcut) {
+    const inputClasses = cn(
+      'h-14 w-full border border-black bg-white px-4 text-base text-gray-900',
+      'outline-none transition-colors placeholder:text-gray-400',
+      'focus:ring-2 focus:ring-teal-500/30'
+    );
+
+    return (
+      <div className="animated-gradient-bg flex min-h-screen w-full items-center justify-center p-6">
+        <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl">
+          <div className="flex flex-col px-9 py-10 sm:px-11 sm:py-12">
+            <BrandHeader />
+
+            <p className="text-center text-base font-medium text-gray-500 sm:text-lg">
+              Enter Your Email Address to sign in to your Account
+            </p>
+
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+              <input
+                autoComplete="email"
+                className={inputClasses}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                required
+                type="email"
+                value={email}
+              />
+
+              <input
+                autoComplete="current-password"
+                className={inputClasses}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                required
+                type="password"
+                value={password}
+              />
+
+              <button
+                className="mt-2 flex h-14 w-full items-center justify-center bg-teal-600 text-lg font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isLoading}
+                type="submit"
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Signing In...
+                  </span>
+                ) : (
+                  'Login'
+                )}
+              </button>
+            </form>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-gray-300" />
+              <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
+                or continue with
+              </span>
+              <div className="h-px flex-1 bg-gray-300" />
+            </div>
+
+            <button
+              className="flex h-14 w-full items-center justify-center gap-3 border border-black bg-white text-base font-medium text-gray-800 transition-colors hover:bg-gray-50"
+              onClick={handleMicrosoftSignIn}
+              type="button"
+            >
+              <MicrosoftLogo />
+              Microsoft SSO
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const inputClasses = cn(
     'h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-3 text-sm text-gray-900',
     'outline-none transition-colors placeholder:text-gray-400',
@@ -119,12 +216,7 @@ export function LoginScreen() {
     <div className="animated-gradient-bg flex min-h-screen w-full items-center justify-center p-6">
       <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
         <div className="flex flex-col justify-center px-7 py-8 sm:px-9 sm:py-10">
-          <div className="mb-7 flex flex-col items-center text-center">
-            <p className="mb-2 text-sm text-gray-500">Welcome to</p>
-            <img alt="TITAN EYE+" className="h-auto w-36" src="/images/logo-black.png" />
-            <p className="mt-2 text-xs font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
-            <div className="mt-3 h-0.5 w-10 rounded-full bg-teal-600" />
-          </div>
+          <BrandHeader />
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
@@ -217,12 +309,7 @@ export function LoginScreen() {
             onClick={handleMicrosoftSignIn}
             type="button"
           >
-            <svg aria-hidden="true" height="18" viewBox="0 0 21 21" width="18">
-              <rect fill="#f25022" height="9" width="9" x="1" y="1" />
-              <rect fill="#7fba00" height="9" width="9" x="11" y="1" />
-              <rect fill="#00a4ef" height="9" width="9" x="1" y="11" />
-              <rect fill="#ffb900" height="9" width="9" x="11" y="11" />
-            </svg>
+            <MicrosoftLogo />
             Microsoft SSO
           </button>
         </div>
