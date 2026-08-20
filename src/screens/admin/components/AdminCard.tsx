@@ -1,4 +1,4 @@
-import { Download, FileText, MessageSquare, Search, Stethoscope, Store, Users2 } from 'lucide-react';
+import { Download, FileText, MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
 
 import type {
   AuditLog,
@@ -11,11 +11,10 @@ import type {
   User,
 } from '../../../types';
 
+import { ActiveCountBadge } from '../../../components/shared/ActiveCountBadge';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
-import { ColumnVisibilityDropdown } from '../../../components/shared/ColumnVisibilityDropdown';
-import { DateFilter } from '../../../components/shared/DateFilter';
+import { TableToolbar } from '../../../components/shared/table/TableToolbar';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
 import { cn } from '../../../lib/utils';
 import { exportAllCustomersReport } from '../../../utils/excelExport';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
@@ -144,15 +143,6 @@ type UserManagementVariant = {
   visibleColumns: string[];
 };
 
-function ActiveCountBadge({ count }: { count: number }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-      {count} Active
-    </span>
-  );
-}
-
 export function AdminCard(props: AdminCardProps) {
   if (props.variant === 'metrics') {
     return <MetricCardGrid tabCounts={props.tabCounts} />;
@@ -215,22 +205,17 @@ export function AdminCard(props: AdminCardProps) {
     } = props;
 
     const headerControls = (
-      <>
-        <Input
-          className="h-9 w-72 border-border bg-card text-xs sm:w-80"
-          icon={Search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search users..."
-          value={searchTerm}
-        />
-        <DateFilter onChange={onDateRangeChange} value={dateRange} />
-        <ColumnVisibilityDropdown
-          columns={USER_TABLE_COLUMNS}
-          onResetColumns={onResetColumns}
-          onToggleColumn={onToggleColumn}
-          visibleColumns={visibleColumns}
-        />
-      </>
+      <TableToolbar
+        columns={USER_TABLE_COLUMNS}
+        dateRange={dateRange}
+        onDateRangeChange={onDateRangeChange}
+        onResetColumns={onResetColumns}
+        onSearchChange={onSearchChange}
+        onToggleColumn={onToggleColumn}
+        searchPlaceholder="Search users..."
+        searchValue={searchTerm}
+        visibleColumns={visibleColumns}
+      />
     );
 
     return (
@@ -285,31 +270,28 @@ export function AdminCard(props: AdminCardProps) {
     } = props;
 
     const headerControls = (
-      <>
-        <Input
-          className="h-9 w-72 border-border bg-card text-xs sm:w-80"
-          icon={Search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search patients..."
-          value={searchTerm}
-        />
-        <DateFilter onChange={onDateRangeChange} value={dateRange} />
-        <ColumnVisibilityDropdown
-          columns={CUSTOMER_TABLE_COLUMNS}
-          onResetColumns={onResetColumns}
-          onToggleColumn={onToggleColumn}
-          visibleColumns={visibleColumns}
-        />
-        <Button
-          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-medium shadow-sm transition-all"
-          onClick={() => exportAllCustomersReport(filteredCustomers)}
-          title="Download full Excel report for all patients"
-          variant="gradient"
-        >
-          <Download size={14} />
-          <span>Export All Excel Reports</span>
-        </Button>
-      </>
+      <TableToolbar
+        columns={CUSTOMER_TABLE_COLUMNS}
+        dateRange={dateRange}
+        extra={
+          <Button
+            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-medium shadow-sm transition-all"
+            onClick={() => exportAllCustomersReport(filteredCustomers)}
+            title="Download full Excel report for all patients"
+            variant="gradient"
+          >
+            <Download size={14} />
+            <span>Export All Excel Reports</span>
+          </Button>
+        }
+        onDateRangeChange={onDateRangeChange}
+        onResetColumns={onResetColumns}
+        onSearchChange={onSearchChange}
+        onToggleColumn={onToggleColumn}
+        searchPlaceholder="Search patients..."
+        searchValue={searchTerm}
+        visibleColumns={visibleColumns}
+      />
     );
 
     return (
@@ -358,22 +340,17 @@ export function AdminCard(props: AdminCardProps) {
     } = props;
 
     const headerControls = (
-      <>
-        <Input
-          className="h-9 w-72 border-border bg-card text-xs sm:w-80"
-          icon={Search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search patient feedback..."
-          value={searchTerm}
-        />
-        <DateFilter onChange={onDateRangeChange} value={dateRange} />
-        <ColumnVisibilityDropdown
-          columns={FEEDBACK_TABLE_COLUMNS}
-          onResetColumns={onResetColumns}
-          onToggleColumn={onToggleColumn}
-          visibleColumns={visibleColumns}
-        />
-      </>
+      <TableToolbar
+        columns={FEEDBACK_TABLE_COLUMNS}
+        dateRange={dateRange}
+        onDateRangeChange={onDateRangeChange}
+        onResetColumns={onResetColumns}
+        onSearchChange={onSearchChange}
+        onToggleColumn={onToggleColumn}
+        searchPlaceholder="Search patient feedback..."
+        searchValue={searchTerm}
+        visibleColumns={visibleColumns}
+      />
     );
 
     return (
@@ -419,22 +396,17 @@ export function AdminCard(props: AdminCardProps) {
   } = props;
 
   const headerControls = (
-    <>
-      <Input
-        className="h-9 w-72 border-border bg-card text-xs sm:w-80"
-        icon={Search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search audit logs..."
-        value={searchTerm}
-      />
-      <DateFilter onChange={onDateRangeChange} value={dateRange} />
-      <ColumnVisibilityDropdown
-        columns={AUDIT_LOG_TABLE_COLUMNS}
-        onResetColumns={onResetColumns}
-        onToggleColumn={onToggleColumn}
-        visibleColumns={visibleColumns}
-      />
-    </>
+    <TableToolbar
+      columns={AUDIT_LOG_TABLE_COLUMNS}
+      dateRange={dateRange}
+      onDateRangeChange={onDateRangeChange}
+      onResetColumns={onResetColumns}
+      onSearchChange={onSearchChange}
+      onToggleColumn={onToggleColumn}
+      searchPlaceholder="Search audit logs..."
+      searchValue={searchTerm}
+      visibleColumns={visibleColumns}
+    />
   );
 
   return (

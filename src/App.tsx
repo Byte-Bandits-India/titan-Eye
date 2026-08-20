@@ -26,10 +26,6 @@ function SessionGuard() {
       return;
     }
 
-    // Verify against the session cookie once on mount: either to refresh a cached session, or
-    // to resolve a fresh tab that hasn't confirmed auth state yet (e.g. TV Mode's kiosk tab,
-    // whose sessionStorage doesn't carry over from the opener) instead of bouncing it straight
-    // to /login before we know whether its cookie is actually valid.
     if (!isAuthenticated && authChecked) {
       return;
     }

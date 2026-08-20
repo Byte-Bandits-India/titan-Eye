@@ -10,9 +10,6 @@ import { hashPassword } from '../utils/hash.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 
-// "Online" is derived purely from the app sending recent presence pings, not just a live
-// session/token, so status drops to offline shortly after the app is closed rather than
-// staying "online" for the full session-idle window.
 function isPresenceOnline(u: Pick<UserRow, 'activeTokenSig' | 'lastPing'>): boolean {
   if (!u.activeTokenSig || !u.lastPing) {
     return false;
@@ -23,8 +20,6 @@ function isPresenceOnline(u: Pick<UserRow, 'activeTokenSig' | 'lastPing'>): bool
 
 const router = Router();
 
-// In-memory snapshot of which users were online at the last presence sweep, used to broadcast
-// USER_UPDATED only when a user's online state actually flips (not on every tick).
 const onlineEmails = new Set<string>();
 
 const VALID_ROLES = ['store', 'optometrist', 'admin'];
@@ -490,10 +485,6 @@ router.put(
   }
 );
 
-// Abandoned-session sweep: sessions are meant to last as long as the app stays open (pings keep
-// arriving), so this only invalidates a token once pings have stopped for a long grace period —
-// i.e. the tab was actually closed/crashed without the pagehide beacon firing — not on a fixed
-// clock from login time.
 setInterval(async () => {
   try {
     const cutoff = new Date(Date.now() - SESSION_ABANDONED_MS).toISOString();
@@ -520,9 +511,6 @@ setInterval(async () => {
   }
 }, 60 * 1000);
 
-// Presence sweep: recomputes who is online from recent ping activity and broadcasts
-// USER_UPDATED only for users whose online state flipped since the last tick, so closing
-// the app (no more pings) flips a user to offline shortly after, without needing a beacon.
 setInterval(async () => {
   try {
     const rows = await all<Pick<UserRow, 'activeTokenSig' | 'email' | 'lastPing'>>(

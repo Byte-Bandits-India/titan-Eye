@@ -13,18 +13,18 @@ import { formatBytes } from '../../../hooks/use-file-upload';
 import { getYoutubeEmbedUrl } from '../../../utils/youtube';
 
 export type VideoDirectoryBodyProps = {
-  kioskVideoId: null | number;
   onDelete: (video: ManagedVideo) => void;
-  onSetKioskVideo: (video: ManagedVideo) => void;
+  onSetTvModeVideo: (video: ManagedVideo) => void;
   onUploadClick: () => void;
+  tvModeVideoId: null | number;
   videos: ManagedVideo[];
 };
 
 export function VideoDirectoryBody({
-  kioskVideoId,
   onDelete,
-  onSetKioskVideo,
+  onSetTvModeVideo,
   onUploadClick,
+  tvModeVideoId,
   videos,
 }: VideoDirectoryBodyProps) {
   const [previewVideo, setPreviewVideo] = React.useState<ManagedVideo | null>(null);
@@ -67,16 +67,16 @@ export function VideoDirectoryBody({
             </TableHeader>
             <TableBody>
               {videos.map((video) => {
-                const isKioskVideo = kioskVideoId === video.id;
+                const isTvModeVideo = tvModeVideoId === video.id;
 
                 return (
                   <TableRow key={video.id}>
                     <TableCell className="max-w-[280px] text-sm font-medium">
                       <div className="flex items-center gap-2">
                         <span className="truncate">{video.title}</span>
-                        {isKioskVideo && (
+                        {isTvModeVideo && (
                           <Badge className="shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                            Kiosk
+                            TV Mode
                           </Badge>
                         )}
                       </div>
@@ -99,13 +99,13 @@ export function VideoDirectoryBody({
                           <PlayIcon size={14} />
                         </Button>
                         <Button
-                          disabled={isKioskVideo}
-                          onClick={() => onSetKioskVideo(video)}
+                          disabled={isTvModeVideo}
+                          onClick={() => onSetTvModeVideo(video)}
                           size="icon-sm"
-                          title={isKioskVideo ? 'Currently playing in kiosk mode' : 'Set as kiosk video'}
+                          title={isTvModeVideo ? 'Currently playing in TV Mode' : 'Set as TV Mode video'}
                           variant="ghost"
                         >
-                          <MonitorPlayIcon className={isKioskVideo ? 'text-emerald-600' : ''} size={14} />
+                          <MonitorPlayIcon className={isTvModeVideo ? 'text-emerald-600' : ''} size={14} />
                         </Button>
                         <Button onClick={() => onDelete(video)} size="icon-sm" title="Delete" variant="ghost">
                           <Trash2Icon className="text-red-500" size={14} />

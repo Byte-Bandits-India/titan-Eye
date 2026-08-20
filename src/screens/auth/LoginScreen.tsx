@@ -38,6 +38,12 @@ export function LoginScreen() {
       });
       window.history.replaceState({}, '', window.location.pathname);
     }
+
+    if (params.get('src') === 'tablet-shortcut') {
+      document.documentElement.requestFullscreen?.().catch(() => {
+        // Blocked without a user gesture — the app just loads normally, not fullscreen.
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

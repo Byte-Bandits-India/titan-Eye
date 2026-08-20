@@ -15,7 +15,9 @@
   "cSpell.words": [
     "apikey",
     "Bengaluru",
+    "ciphertext",
     "Cust",
+    "flightproxy",
     "getdisplaygeometry",
     "HORZ",
     "hsts",
@@ -24,22 +26,21 @@
     "LOCALAPPDATA",
     "Mbps",
     "MSAL",
+    "njsproj",
+    "ntvs",
     "nums",
     "Optometrists",
     "osascript",
     "Pkce",
+    "playsinline",
     "Reinitiate",
     "reui",
     "teamviewer",
     "TKOR",
+    "trouter",
+    "tvmode",
     "windowmove",
     "windowstate",
-    "playsinline",
-    "ntvs",
-    "njsproj",
-    "flightproxy",
-    "trouter",
-    "youtu",
-    "ciphertext"
+    "youtu"
   ]
 }

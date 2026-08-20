@@ -49,10 +49,6 @@ const getInitialState = (): AuthState => {
     sessionStorage.removeItem(STORAGE_KEYS.USER);
   }
 
-  // No cached copy in this tab (e.g. a freshly opened tab, such as TV Mode's kiosk tab, whose
-  // sessionStorage doesn't inherit from the opener). The session cookie may still be valid, so
-  // stay unauthenticated-but-unverified until SessionGuard's /me check confirms one way or the
-  // other, instead of bouncing straight to /login.
   return {
     authChecked: false,
     error: null,

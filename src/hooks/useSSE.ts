@@ -95,8 +95,8 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
-        } else if (type === 'KIOSK_VIDEO_CHANGED') {
-          window.dispatchEvent(new CustomEvent('titan:kiosk_video_changed', { detail: eventData }));
+        } else if (type === 'TVMODE_VIDEO_CHANGED') {
+          window.dispatchEvent(new CustomEvent('titan:tvmode_video_changed', { detail: eventData }));
         } else if (type === 'CALL_SESSION_READY' || type === 'CALL_SESSION_ENDED') {
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
           window.dispatchEvent(

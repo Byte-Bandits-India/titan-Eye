@@ -1,9 +1,10 @@
-import { Calendar, ChevronLeft, Hash, Phone, Stethoscope, User } from 'lucide-react';
+import { Calendar, Hash, Phone, Stethoscope, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, StoreUpdateStatusPageProps } from '../../types';
 
 import { updateCustomerAction } from '../../Actions/customerActions';
+import { BackButton } from '../../components/shared/BackButton';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -195,15 +196,7 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h1 className="text-lg font-bold text-foreground sm:text-xl">Update Status</h1>
 
-        <Button
-          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
-          onClick={onBack}
-          type="button"
-          variant="outline"
-        >
-          <ChevronLeft size={16} />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </div>
 
       <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2">

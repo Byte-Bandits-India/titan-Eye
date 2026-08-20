@@ -77,7 +77,7 @@ export interface VideoRow {
   youtubeUrl: null | string;
 }
 
-export interface KioskSettingRow {
+export interface TvModeSettingRow {
   activeVideoId: null | number;
   id: number;
 }
@@ -398,9 +398,6 @@ export async function initializeDatabase(): Promise<void> {
     const columns = db.prepare('PRAGMA table_info(videos)').all() as { name: string; notnull: number }[];
     const storedNameColumn = columns.find((c) => c.name === 'storedName');
 
-    // Older databases created the videos table before YouTube links were supported, with
-    // storedName/originalName/mimeType/size as NOT NULL. SQLite can't relax a column
-    // constraint via ALTER TABLE, so rebuild the table when that legacy schema is detected.
     if (storedNameColumn?.notnull) {
       await run(`ALTER TABLE videos RENAME TO videos_legacy`);
       await run(`
@@ -429,8 +426,23 @@ export async function initializeDatabase(): Promise<void> {
     });
   }
 
+  try {
+    const kioskSettingsColumns = db.prepare('PRAGMA table_info(kiosk_settings)').all() as { name: string }[];
+    const tvModeSettingsColumns = db.prepare('PRAGMA table_info(tvmode_settings)').all() as {
+      name: string;
+    }[];
+
+    if (kioskSettingsColumns.length > 0 && tvModeSettingsColumns.length === 0) {
+      await run(`ALTER TABLE kiosk_settings RENAME TO tvmode_settings`);
+    }
+  } catch (e) {
+    logger.error('Kiosk settings table rename migration failed', {
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   await run(`
-    CREATE TABLE IF NOT EXISTS kiosk_settings (
+    CREATE TABLE IF NOT EXISTS tvmode_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       activeVideoId INTEGER
     )

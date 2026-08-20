@@ -12,12 +12,12 @@ import { getYoutubeEmbedUrl } from '../../utils/youtube';
 
 const INCOMING_CALL_SPLASH_MS = 2200;
 
-function useKioskVideo(): ManagedVideo | null {
+function useTvModeVideo(): ManagedVideo | null {
   const [video, setVideo] = React.useState<ManagedVideo | null>(null);
 
-  const fetchKioskVideo = React.useCallback(async () => {
+  const fetchTvModeVideo = React.useCallback(async () => {
     try {
-      const res = await apiClient.get<{ video: ManagedVideo | null }>('/videos/kiosk-active');
+      const res = await apiClient.get<{ video: ManagedVideo | null }>('/videos/tvmode-active');
       setVideo(res.data.video ?? null);
     } catch {
       setVideo(null);
@@ -26,19 +26,19 @@ function useKioskVideo(): ManagedVideo | null {
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchKioskVideo();
+    void fetchTvModeVideo();
 
-    const handleKioskVideoChanged = () => void fetchKioskVideo();
+    const handleTvModeVideoChanged = () => void fetchTvModeVideo();
 
-    window.addEventListener('titan:kiosk_video_changed', handleKioskVideoChanged);
+    window.addEventListener('titan:tvmode_video_changed', handleTvModeVideoChanged);
 
-    return () => window.removeEventListener('titan:kiosk_video_changed', handleKioskVideoChanged);
-  }, [fetchKioskVideo]);
+    return () => window.removeEventListener('titan:tvmode_video_changed', handleTvModeVideoChanged);
+  }, [fetchTvModeVideo]);
 
   return video;
 }
 
-function KioskVideoBackground({ onError, video }: { onError: () => void; video: ManagedVideo }) {
+function TvModeVideoBackground({ onError, video }: { onError: () => void; video: ManagedVideo }) {
   if (video.sourceType === 'youtube' && video.youtubeUrl) {
     const embedUrl = getYoutubeEmbedUrl(video.youtubeUrl, { autoplay: true, loop: true, mute: true });
 
@@ -83,7 +83,7 @@ function useClock() {
   return now;
 }
 
-function KioskClock() {
+function TvModeClock() {
   const now = useClock();
 
   return (
@@ -142,26 +142,26 @@ function IncomingCallSplash({ session }: { session: CallSessionPayload }) {
   );
 }
 
-function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
+function Screensaver({ onEnterTvMode }: { onEnterTvMode: () => void }) {
   const [imageFailed, setImageFailed] = React.useState(false);
   const [videoFailed, setVideoFailed] = React.useState(false);
   const { isFullscreen } = useFullscreen();
-  const kioskVideo = useKioskVideo();
+  const tvModeVideo = useTvModeVideo();
 
-  const showVideo = Boolean(kioskVideo) && !videoFailed;
+  const showVideo = Boolean(tvModeVideo) && !videoFailed;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-slate-950">
-      {showVideo && kioskVideo && (
-        <KioskVideoBackground onError={() => setVideoFailed(true)} video={kioskVideo} />
+      {showVideo && tvModeVideo && (
+        <TvModeVideoBackground onError={() => setVideoFailed(true)} video={tvModeVideo} />
       )}
 
       {!showVideo && !imageFailed && (
         <img
           alt=""
-          className="animate-kiosk-kenburns absolute inset-0 h-full w-full object-cover"
+          className="animate-tvmode-kenburns absolute inset-0 h-full w-full object-cover"
           onError={() => setImageFailed(true)}
-          src="/images/kiosk-screensaver.jpg"
+          src="/images/tvmode-screensaver.jpg"
         />
       )}
 
@@ -172,7 +172,7 @@ function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/50" />
 
       <div className="absolute right-8 top-8 z-10 drop-shadow-lg">
-        <KioskClock />
+        <TvModeClock />
       </div>
 
       <div className="absolute bottom-8 left-8 z-10 flex flex-col items-start gap-3">
@@ -183,7 +183,7 @@ function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
       {!isFullscreen && (
         <button
           className="absolute bottom-8 right-8 z-20 flex items-center gap-2 rounded-lg border border-white/20 bg-black/60 px-4 py-2.5 text-sm font-medium text-white backdrop-blur-md transition-colors hover:bg-black/80"
-          onClick={onEnterKiosk}
+          onClick={onEnterTvMode}
           type="button"
         >
           <Maximize size={16} />
@@ -194,7 +194,7 @@ function Screensaver({ onEnterKiosk }: { onEnterKiosk: () => void }) {
   );
 }
 
-export function KioskScreen() {
+export function TvModeScreen() {
   const [callSession, setCallSession] = React.useState<CallSessionPayload | null>(null);
   const [showSplash, setShowSplash] = React.useState(false);
   const { toggleFullscreen } = useFullscreen();
@@ -208,7 +208,7 @@ export function KioskScreen() {
 
     attemptedAutoFullscreen.current = true;
     document.documentElement.requestFullscreen?.().catch(() => {
-      // Blocked without a user gesture — the "Enter Kiosk Mode" button handles it.
+      // Blocked without a user gesture — the "Enter full screen" button handles it.
     });
   }, []);
 
@@ -260,5 +260,5 @@ export function KioskScreen() {
     );
   }
 
-  return <Screensaver onEnterKiosk={toggleFullscreen} />;
+  return <Screensaver onEnterTvMode={toggleFullscreen} />;
 }

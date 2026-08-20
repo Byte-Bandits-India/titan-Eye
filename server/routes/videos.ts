@@ -7,7 +7,7 @@ import path from 'path';
 
 import type { ErrorResponse } from '../types.js';
 
-import { all, get, KioskSettingRow, run, VideoRow } from '../db/database.js';
+import { all, get, run, TvModeSettingRow, VideoRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
@@ -60,15 +60,11 @@ function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void
   next();
 }
 
-// Routes below are reachable by any authenticated role (store kiosk needs these to
-// know which video is active and to stream/embed it), everything after
-// `router.use(requireAdmin)` further down is admin-only management.
+type TvModeActiveResponseBody = { video: null | VideoRow };
 
-type KioskActiveResponseBody = { video: null | VideoRow };
-
-router.get('/kiosk-active', async (req: AuthenticatedRequest, res: Response<KioskActiveResponseBody>) => {
+router.get('/tvmode-active', async (req: AuthenticatedRequest, res: Response<TvModeActiveResponseBody>) => {
   try {
-    const setting = await get<KioskSettingRow>('SELECT * FROM kiosk_settings WHERE id = 1');
+    const setting = await get<TvModeSettingRow>('SELECT * FROM tvmode_settings WHERE id = 1');
 
     if (!setting?.activeVideoId) {
       return res.json({ video: null });
@@ -79,7 +75,10 @@ router.get('/kiosk-active', async (req: AuthenticatedRequest, res: Response<Kios
     return res.json({ video: video ?? null });
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    logger.error('Fetch kiosk active video error', { errorMessage: error.message, requestId: req.requestId });
+    logger.error('Fetch TV Mode active video error', {
+      errorMessage: error.message,
+      requestId: req.requestId,
+    });
 
     return res.status(500).json({ video: null });
   }
@@ -237,17 +236,17 @@ router.post(
   }
 );
 
-interface SetKioskActiveBody {
+interface SetTvModeActiveBody {
   videoId: null | number;
 }
 
-type SetKioskActiveResponseBody = ErrorResponse | KioskSettingRow;
+type SetTvModeActiveResponseBody = ErrorResponse | TvModeSettingRow;
 
 router.put(
-  '/kiosk-active',
+  '/tvmode-active',
   async (
-    req: AuthenticatedRequest<ParamsDictionary, SetKioskActiveResponseBody, SetKioskActiveBody>,
-    res: Response<SetKioskActiveResponseBody>
+    req: AuthenticatedRequest<ParamsDictionary, SetTvModeActiveResponseBody, SetTvModeActiveBody>,
+    res: Response<SetTvModeActiveResponseBody>
   ) => {
     try {
       const videoId = req.body?.videoId ?? null;
@@ -261,7 +260,7 @@ router.put(
       }
 
       await run(
-        'INSERT INTO kiosk_settings (id, activeVideoId) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET activeVideoId = ?',
+        'INSERT INTO tvmode_settings (id, activeVideoId) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET activeVideoId = ?',
         [videoId, videoId]
       );
 
@@ -273,14 +272,14 @@ router.put(
         [
           adminEmail,
           adminName,
-          'KIOSK_VIDEO_SET',
+          'TVMODE_VIDEO_SET',
           videoId ? String(videoId) : 'none',
-          videoId ? `Set kiosk video to video #${videoId}` : 'Cleared kiosk video',
+          videoId ? `Set TV Mode video to video #${videoId}` : 'Cleared TV Mode video',
           getFormattedTimestamp(),
         ]
       );
-      broadcastEvent('KIOSK_VIDEO_CHANGED', { videoId });
-      logSecurityEvent('ADMIN_KIOSK_VIDEO_SET', {
+      broadcastEvent('TVMODE_VIDEO_CHANGED', { videoId });
+      logSecurityEvent('ADMIN_TVMODE_VIDEO_SET', {
         adminEmail,
         requestId: req.requestId,
         target: String(videoId),
@@ -289,7 +288,10 @@ router.put(
       return res.json({ activeVideoId: videoId, id: 1 });
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error('Set kiosk active video error', { errorMessage: error.message, requestId: req.requestId });
+      logger.error('Set TV Mode active video error', {
+        errorMessage: error.message,
+        requestId: req.requestId,
+      });
 
       return res.status(500).json({ error: 'Internal server error' });
     }
@@ -313,11 +315,11 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response<DeleteVide
       fs.unlink(path.join(UPLOADS_DIR, video.storedName), () => {});
     }
 
-    const setting = await get<KioskSettingRow>('SELECT * FROM kiosk_settings WHERE id = 1');
+    const setting = await get<TvModeSettingRow>('SELECT * FROM tvmode_settings WHERE id = 1');
 
     if (setting?.activeVideoId === id) {
-      await run('UPDATE kiosk_settings SET activeVideoId = NULL WHERE id = 1');
-      broadcastEvent('KIOSK_VIDEO_CHANGED', { videoId: null });
+      await run('UPDATE tvmode_settings SET activeVideoId = NULL WHERE id = 1');
+      broadcastEvent('TVMODE_VIDEO_CHANGED', { videoId: null });
     }
 
     const adminEmail = req.user?.email || 'admin@gmail.com';

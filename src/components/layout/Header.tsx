@@ -62,8 +62,8 @@ export function Header({
     openTeamViewer();
   };
 
-  const handleOpenKiosk = () => {
-    navigate('/store/kiosk');
+  const handleOpenTvMode = () => {
+    navigate('/store/tvmode');
   };
 
   useEffect(() => {
@@ -310,7 +310,7 @@ export function Header({
           {user.role === 'store' && (
             <button
               className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-cyan-700"
-              onClick={handleOpenKiosk}
+              onClick={handleOpenTvMode}
               title="Open the TV call screen"
               type="button"
             >

@@ -1,9 +1,10 @@
-import { ChevronLeft, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, RxValues, StoreRxDetailsProps } from '../../types';
 
 import { updateCustomerAction } from '../../Actions/customerActions';
+import { BackButton } from '../../components/shared/BackButton';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { CustomerFeedbackImageBox } from '../../components/shared/CustomerFeedbackImageBox';
 import { RxScrollPicker } from '../../components/shared/RxScrollPicker';
@@ -227,15 +228,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
           </div>
         </div>
 
-        <Button
-          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
-          onClick={onBack}
-          type="button"
-          variant="outline"
-        >
-          <ChevronLeft size={16} />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </div>
 
       <CardFrame className="p-3 sm:p-6 md:p-8">

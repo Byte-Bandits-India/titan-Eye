@@ -138,7 +138,7 @@ table {
   color: #333333;
 }
 
-@keyframes kiosk-kenburns {
+@keyframes tvmode-kenburns {
   0% {
     transform: scale(1);
   }
@@ -148,8 +148,8 @@ table {
   }
 }
 
-.animate-kiosk-kenburns {
-  animation: kiosk-kenburns 20s ease-in-out infinite alternate;
+.animate-tvmode-kenburns {
+  animation: tvmode-kenburns 20s ease-in-out infinite alternate;
 }
 
 @keyframes animated-gradient {

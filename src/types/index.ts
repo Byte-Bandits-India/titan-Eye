@@ -65,18 +65,6 @@ export type CollisionData = {
   targetView?: 'info' | 'rx';
 };
 
-export type CollisionModalData = {
-  id: string;
-  name: string;
-  takenBy: string;
-};
-
-export type CollisionModalProps = {
-  onCancel: () => void;
-  onViewData: () => void;
-  takenBy: string;
-};
-
 export interface ColumnOption {
   id: string;
   isMandatory?: boolean;
@@ -319,11 +307,7 @@ export type SSEEventDetail =
   | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
   | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' }
-  | { data: { videoId: null | number }; type: 'KIOSK_VIDEO_CHANGED' };
-
-export type StatsGridProps = {
-  customers: Customer[];
-};
+  | { data: { videoId: null | number }; type: 'TVMODE_VIDEO_CHANGED' };
 
 export type StatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
 

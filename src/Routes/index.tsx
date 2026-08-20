@@ -9,8 +9,8 @@ import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
 import { OptometristScreen } from '../screens/optometrist/OptometristScreen';
 import { FeedbackScreen } from '../screens/public/FeedbackScreen';
-import { KioskScreen } from '../screens/store/KioskScreen';
 import { StoreScreen } from '../screens/store/StoreScreen';
+import { TvModeScreen } from '../screens/store/TvModeScreen';
 import { useAppSelector } from '../store';
 
 function AuthChecking() {
@@ -104,10 +104,10 @@ export const routes = [
   {
     element: (
       <ProtectedRoute allowedRole="store">
-        <KioskScreen />
+        <TvModeScreen />
       </ProtectedRoute>
     ),
-    path: '/store/kiosk',
+    path: '/store/tvmode',
   },
   {
     element: (

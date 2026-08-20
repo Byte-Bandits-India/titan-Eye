@@ -1,5 +1,5 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
-import { ChevronLeft, Plus, TrendingUp } from 'lucide-react';
+import { Plus, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
 import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
@@ -13,6 +13,7 @@ import {
 import { fetchUsersAction } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
+import { BackButton } from '../../components/shared/BackButton';
 import { CompleteCallModal } from '../../components/shared/CompleteCallModal';
 import { Button } from '../../components/ui/button';
 import { useNotificationLog } from '../../components/ui/notificationLog';
@@ -22,6 +23,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
+import { computeOptometristAvailability } from '../../utils/optometristAvailability';
 import { renderCallDuration, WaitingCell } from './components/cells';
 import { ConversionStatusBadge, CustomerActionsCell } from './components/CustomerActionsCell';
 import { CancelRequestDialog } from './components/CancelRequestDialog';
@@ -220,65 +222,7 @@ export function StoreScreen() {
   }, [customers, statusTab, customerDateRange, customerSearchTerm]);
 
   const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
-    () =>
-      users
-        .filter((u) => u.role === 'optometrist')
-        .map((optometristUser) => {
-          if (optometristUser.status === 'inactive' || !(optometristUser.isLoggedIn ?? false)) {
-            return {
-              ...optometristUser,
-              activeCall: null as Customer | null,
-              avail: {
-                badgeClass:
-                  'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700',
-                dotClass: 'bg-slate-400',
-                ping: false,
-                statusLabel: 'Offline',
-              },
-            };
-          }
-
-          const optometristNameLower = optometristUser.name.toLowerCase();
-          const optometristEmailLower = optometristUser.email.toLowerCase();
-
-          const activeCall = customers.find((c) => {
-            const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
-
-            if (!isCallActiveState || !c.callTakenBy) {
-              return false;
-            }
-
-            const takenByLower = c.callTakenBy.toLowerCase();
-
-            return takenByLower === optometristNameLower || takenByLower === optometristEmailLower;
-          });
-
-          if (activeCall) {
-            return {
-              ...optometristUser,
-              activeCall,
-              avail: {
-                badgeClass:
-                  'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-                dotClass: 'bg-amber-500',
-                ping: true,
-                statusLabel: 'In Call',
-              },
-            };
-          }
-
-          return {
-            ...optometristUser,
-            activeCall: null as Customer | null,
-            avail: {
-              badgeClass:
-                'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
-              dotClass: 'bg-emerald-500',
-              ping: true,
-              statusLabel: 'Available',
-            },
-          };
-        }),
+    () => computeOptometristAvailability(users, customers),
     [users, customers]
   );
 
@@ -729,15 +673,7 @@ export function StoreScreen() {
               </div>
             </div>
 
-            <Button
-              className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
-              onClick={() => setIsViewingSalesConversion(false)}
-              type="button"
-              variant="outline"
-            >
-              <ChevronLeft size={16} />
-              Back
-            </Button>
+            <BackButton onClick={() => setIsViewingSalesConversion(false)} />
           </div>
 
           {renderRecentCustomersCard(true)}

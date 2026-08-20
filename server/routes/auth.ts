@@ -107,8 +107,6 @@ router.post(
           path: '/',
           sameSite: 'strict',
           secure: isSecure,
-          // Omitting maxAge makes this a session cookie, cleared when the browser closes,
-          // so login is required again next time unless the user opted into "Remember me".
           ...(rememberMe ? { maxAge: JWT_TTL_MS } : {}),
         });
 

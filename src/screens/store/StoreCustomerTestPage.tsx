@@ -4,6 +4,7 @@ import * as React from 'react';
 import type { Customer, OptometristRxValues, RxValues, StoreCustomerTestPageProps } from '../../types';
 
 import { initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import { BackButton } from '../../components/shared/BackButton';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { CustomerFeedbackImageBox } from '../../components/shared/CustomerFeedbackImageBox';
 import { RxScrollPicker } from '../../components/shared/RxScrollPicker';
@@ -51,9 +52,6 @@ import {
 } from '../../options/Option';
 import { useAppDispatch } from '../../store';
 
-// TEMP DEBUG: logs every commit of the tagged component with a timestamp and the
-// gap since its previous commit, so we can see in the console which component is
-// re-rendering too often and how far apart those renders land. Remove once diagnosed.
 function useRenderLog(label: string) {
   const renderCount = React.useRef(0);
   const lastTime = React.useRef<null | number>(null);
@@ -873,15 +871,7 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
           </div>
         </div>
 
-        <Button
-          className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
-          onClick={onBack}
-          type="button"
-          variant="outline"
-        >
-          <ChevronLeft size={16} />
-          Back
-        </Button>
+        <BackButton onClick={onBack} />
       </div>
 
       <CardFrame className="p-3 sm:p-6 md:p-8">
@@ -977,7 +967,7 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
                     type="button"
                     variant="gradient"
                   >
-                    {isRequesting ? 'Requesting…' : 'Save and Request Optom'}
+                    {isRequesting ? 'Requesting…' : 'Save and Request'}
                   </Button>
                 </div>
               </div>

@@ -1,6 +1,5 @@
 import fs from 'fs';
 
-// Load base .env if present
 if (fs.existsSync('.env')) {
   try {
     process.loadEnvFile('.env');
@@ -9,7 +8,6 @@ if (fs.existsSync('.env')) {
   }
 }
 
-// Load .env.local if present (local development overrides)
 if (fs.existsSync('.env.local')) {
   try {
     process.loadEnvFile('.env.local');
@@ -18,7 +16,6 @@ if (fs.existsSync('.env.local')) {
   }
 }
 
-// Load .env.production if present (production overrides)
 if (fs.existsSync('.env.production')) {
   try {
     process.loadEnvFile('.env.production');

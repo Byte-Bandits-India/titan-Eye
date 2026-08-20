@@ -30,7 +30,7 @@ const OPTOMETRIST_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'age', label: 'Age' },
   { id: 'prefLang', label: 'Preferred Languages' },
   { id: 'priority', isMandatory: true, label: 'Priority' },
-  { id: 'optom', label: 'Optometrist' },
+  { id: 'optometrist', label: 'Optometrist' },
   { id: 'status', label: 'Status' },
   { id: 'actions', isMandatory: true, label: 'Action' },
 ];
@@ -385,7 +385,7 @@ export function OptometristScreen() {
   const currentTabColumns = React.useMemo(() => {
     if (statusTab === 'Pending') {
       return OPTOMETRIST_TABLE_COLUMNS.filter(
-        (col) => col.id !== 'callDuration' && col.id !== 'optom' && col.id !== 'status'
+        (col) => col.id !== 'callDuration' && col.id !== 'optometrist' && col.id !== 'status'
       );
     }
 
@@ -563,7 +563,7 @@ export function OptometristScreen() {
         header: () => (
           <span className="whitespace-nowrap text-sm font-normal text-muted-foreground">Optometrist</span>
         ),
-        id: 'optom',
+        id: 'optometrist',
         meta: { cellClassName: 'py-3' },
         size: 150,
       },
@@ -618,7 +618,7 @@ export function OptometristScreen() {
 
     if (statusTab === 'Pending') {
       return allColumns.filter(
-        (col) => col.id !== 'callDuration' && col.id !== 'optom' && col.id !== 'status'
+        (col) => col.id !== 'callDuration' && col.id !== 'optometrist' && col.id !== 'status'
       );
     }
 

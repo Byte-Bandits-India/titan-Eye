@@ -33,6 +33,7 @@ import {
   filterCustomersByDate,
   filterUsersByDate,
 } from '../../utils/dateFilter';
+import { computeOptometristAvailability, computeStoreAvailability } from '../../utils/optometristAvailability';
 import { AdminCard } from './components/AdminCard';
 import {
   DEFAULT_AUDIT_LOG_COLUMNS,
@@ -279,18 +280,18 @@ export function AdminScreen() {
   }, [activeTab, fetchAuditLogs]);
 
   const [videos, setVideos] = React.useState<ManagedVideo[]>([]);
-  const [kioskVideoId, setKioskVideoId] = React.useState<null | number>(null);
+  const [tvModeVideoId, setTvModeVideoId] = React.useState<null | number>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = React.useState(false);
 
   const fetchVideos = React.useCallback(async () => {
     try {
-      const [videosRes, kioskRes] = await Promise.all([
+      const [videosRes, tvModeRes] = await Promise.all([
         apiClient.get<ManagedVideo[]>('/videos'),
-        apiClient.get<{ video: ManagedVideo | null }>('/videos/kiosk-active'),
+        apiClient.get<{ video: ManagedVideo | null }>('/videos/tvmode-active'),
       ]);
       setVideos(Array.isArray(videosRes.data) ? videosRes.data : []);
-      setKioskVideoId(kioskRes.data.video?.id ?? null);
+      setTvModeVideoId(tvModeRes.data.video?.id ?? null);
     } catch (err) {
       toast({
         description: (err instanceof Error ? err : new Error(String(err))).message,
@@ -339,8 +340,8 @@ export function AdminScreen() {
       await apiClient.delete(`/videos/${video.id}`);
       setVideos((prev) => prev.filter((v) => v.id !== video.id));
 
-      if (kioskVideoId === video.id) {
-        setKioskVideoId(null);
+      if (tvModeVideoId === video.id) {
+        setTvModeVideoId(null);
       }
 
       toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
@@ -353,19 +354,19 @@ export function AdminScreen() {
     }
   };
 
-  const handleSetKioskVideo = async (video: ManagedVideo) => {
+  const handleSetTvModeVideo = async (video: ManagedVideo) => {
     try {
-      await apiClient.put('/videos/kiosk-active', { videoId: video.id });
-      setKioskVideoId(video.id);
+      await apiClient.put('/videos/tvmode-active', { videoId: video.id });
+      setTvModeVideoId(video.id);
       toast({
-        description: `${video.title} will now play in store kiosk mode.`,
-        title: 'Kiosk Video Updated',
+        description: `${video.title} will now play in TV Mode.`,
+        title: 'TV Mode Video Updated',
         type: 'success',
       });
     } catch (err) {
       toast({
         description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to set kiosk video',
+        title: 'Failed to set TV Mode video',
         type: 'error',
       });
     }
@@ -414,97 +415,11 @@ export function AdminScreen() {
   }, [searchTerm, dateRange, customerResetPage]);
 
   const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
-    () =>
-      users
-        .filter((u) => u.role === 'optometrist')
-        .map((optometristUser) => {
-          if (optometristUser.status === 'inactive' || !(optometristUser.isLoggedIn ?? false)) {
-            return {
-              ...optometristUser,
-              activeCall: null,
-              avail: {
-                badgeClass:
-                  'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700',
-                dotClass: 'bg-slate-400',
-                ping: false,
-                statusLabel: 'Offline',
-              },
-            };
-          }
-
-          const optometristNameLower = optometristUser.name.toLowerCase();
-          const optometristEmailLower = optometristUser.email.toLowerCase();
-
-          const activeCall = customers.find((c) => {
-            const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
-
-            if (!isCallActiveState || !c.callTakenBy) {
-              return false;
-            }
-
-            const takenByLower = c.callTakenBy.toLowerCase();
-
-            return takenByLower === optometristNameLower || takenByLower === optometristEmailLower;
-          });
-
-          if (activeCall) {
-            return {
-              ...optometristUser,
-              activeCall,
-              avail: {
-                badgeClass:
-                  'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800',
-                dotClass: 'bg-amber-500',
-                ping: false,
-                statusLabel: `In call (${activeCall.storeName || 'Store'})`,
-              },
-            };
-          }
-
-          return {
-            ...optometristUser,
-            activeCall: null,
-            avail: {
-              badgeClass:
-                'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-              dotClass: 'bg-emerald-500',
-              ping: true,
-              statusLabel: 'Available',
-            },
-          };
-        }),
+    () => computeOptometristAvailability(users, customers),
     [users, customers]
   );
 
-  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
-    () =>
-      users
-        .filter((u) => u.role === 'store')
-        .map((storeUser) => {
-          const isOnline = storeUser.status !== 'inactive' && (storeUser.isLoggedIn ?? false);
-
-          return {
-            ...storeUser,
-            activeCall: null,
-            avail: isOnline
-              ? {
-                  badgeClass:
-                    'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
-                  dotClass: 'bg-emerald-500',
-                  ping: true,
-                  statusLabel: 'Online',
-                }
-              : {
-                  badgeClass:
-                    'bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400 border-slate-200 dark:border-slate-700',
-                  dotClass: 'bg-slate-400',
-                  ping: false,
-                  statusLabel: 'Offline',
-                },
-          };
-        }),
-    [users]
-  );
+  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(() => computeStoreAvailability(users), [users]);
 
   const totalOptometrists = React.useMemo(
     () => users.filter((u) => u.role === 'optometrist').length,
@@ -773,10 +688,10 @@ export function AdminScreen() {
           />
         ) : activeTab === 'videos' ? (
           <VideoDirectoryBody
-            kioskVideoId={kioskVideoId}
             onDelete={handleDeleteVideo}
-            onSetKioskVideo={handleSetKioskVideo}
+            onSetTvModeVideo={handleSetTvModeVideo}
             onUploadClick={() => setIsUploadDialogOpen(true)}
+            tvModeVideoId={tvModeVideoId}
             videos={videos}
           />
         ) : (

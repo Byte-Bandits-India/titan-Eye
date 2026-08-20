@@ -1,6 +1,6 @@
 import type { Table } from '@tanstack/react-table';
 
-import { Radio, RefreshCw, Search, Stethoscope, Store } from 'lucide-react';
+import { Radio, RefreshCw, Stethoscope, Store } from 'lucide-react';
 import * as React from 'react';
 
 import type { DataGridFeatures } from '../../../components/reui/data-grid/data-grid';
@@ -13,11 +13,10 @@ import type {
   TabCounts,
 } from '../../../types';
 
+import { ActiveCountBadge } from '../../../components/shared/ActiveCountBadge';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
-import { ColumnVisibilityDropdown } from '../../../components/shared/ColumnVisibilityDropdown';
-import { DateFilter } from '../../../components/shared/DateFilter';
+import { TableToolbar } from '../../../components/shared/table/TableToolbar';
 import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
 import { cn } from '../../../lib/utils';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
 import { AvailableStoresBody } from '../../admin/components/AvailableStoresBody';
@@ -80,10 +79,7 @@ function AvailableDirectoryCard({
           </div>
         </div>
 
-        <span className="font-pro inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-normal text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          {activeCount} Active
-        </span>
+        <ActiveCountBadge count={activeCount} />
       </div>
 
       {view === 'optometrists' ? (
@@ -167,40 +163,30 @@ export function OptometristCard(props: OptometristCardProps) {
   } = props;
 
   const headerControls = (
-    <div className="flex items-center gap-2">
-      {onSearchChange && (
-        <Input
-          className="h-9 w-72 border-border bg-card sm:w-80"
-          icon={Search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search patients..."
-          value={searchValue ?? ''}
-        />
-      )}
-
-      {onSyncRefresh && (
-        <Button
-          className="h-8 w-8 cursor-pointer"
-          onClick={onSyncRefresh}
-          size="icon"
-          title="Force Refresh Feed"
-          variant="ghost"
-        >
-          <RefreshCw className={`text-muted-foreground ${isSyncing ? 'animate-spin' : ''}`} size={13} />
-        </Button>
-      )}
-
-      <DateFilter onChange={onDateRangeChange} value={dateRange} />
-
-      {columns && visibleColumns && onToggleColumn && (
-        <ColumnVisibilityDropdown
-          columns={columns}
-          onResetColumns={onResetColumns}
-          onToggleColumn={onToggleColumn}
-          visibleColumns={visibleColumns}
-        />
-      )}
-    </div>
+    <TableToolbar
+      columns={columns}
+      dateRange={dateRange}
+      extra={
+        onSyncRefresh && (
+          <Button
+            className="h-8 w-8 cursor-pointer"
+            onClick={onSyncRefresh}
+            size="icon"
+            title="Force Refresh Feed"
+            variant="ghost"
+          >
+            <RefreshCw className={`text-muted-foreground ${isSyncing ? 'animate-spin' : ''}`} size={13} />
+          </Button>
+        )
+      }
+      onDateRangeChange={onDateRangeChange}
+      onResetColumns={onResetColumns}
+      onSearchChange={onSearchChange ?? (() => undefined)}
+      onToggleColumn={onToggleColumn}
+      searchPlaceholder="Search patients..."
+      searchValue={searchValue ?? ''}
+      visibleColumns={visibleColumns}
+    />
   );
 
   return (

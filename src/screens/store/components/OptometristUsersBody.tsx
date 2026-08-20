@@ -14,52 +14,17 @@ import { PaginationBar } from '../../../components/shared/PaginationBar';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { usePagination } from '../../../hooks/usePagination';
 import { cn } from '../../../lib/utils';
+import { getOptometristStatusBadge, rankAvailability } from '../../../utils/optometristStatusBadge';
 
 type OptometristUsersBodyProps = {
   data: OptometristUserRow[];
 };
 
-function availabilityRank(row: OptometristUserRow): number {
-  if (row.avail.statusLabel === 'Available') {
-    return 0;
-  }
-
-  if (row.avail.statusLabel.startsWith('In call')) {
-    return 1;
-  }
-
-  return 2;
-}
-
-function statusInfo(row: OptometristUserRow): { classes: string; label: string } {
-  if (row.avail.statusLabel === 'Available') {
-    return {
-      classes:
-        'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-      label: 'Available',
-    };
-  }
-
-  if (row.avail.statusLabel.startsWith('In call')) {
-    return {
-      classes:
-        'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
-      label: 'In Call',
-    };
-  }
-
-  return {
-    classes:
-      'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700',
-    label: 'Offline',
-  };
-}
-
 export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
   const [pageSize, setPageSize] = React.useState<number>(5);
 
   const sortedData = React.useMemo(
-    () => [...data].sort((a, b) => availabilityRank(a) - availabilityRank(b)),
+    () => [...data].sort((a, b) => rankAvailability(a) - rankAvailability(b)),
     [data]
   );
 
@@ -116,7 +81,7 @@ export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
       },
       {
         cell: ({ row }) => {
-          const { classes, label } = statusInfo(row.original);
+          const { classes, label } = getOptometristStatusBadge(row.original);
 
           return (
             <span

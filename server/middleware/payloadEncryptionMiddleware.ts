@@ -12,12 +12,7 @@ export interface E2EERequest extends Request {
   isE2EE?: boolean;
 }
 
-/**
- * Express middleware that handles seamless End-to-End Application Payload Encryption.
- * Decrypts incoming request payloads and encrypts outgoing JSON responses.
- */
 export function payloadEncryptionMiddleware(req: E2EERequest, res: Response, next: NextFunction) {
-  // 1. Check if incoming body is an encrypted envelope
   if (req.body && typeof req.body === 'object' && isEncryptedEnvelope(req.body)) {
     try {
       const envelope = req.body as EncryptedEnvelope;
@@ -36,7 +31,6 @@ export function payloadEncryptionMiddleware(req: E2EERequest, res: Response, nex
     }
   }
 
-  // 2. Wrap res.json to encrypt outgoing API responses when client requests E2EE
   const originalJson = res.json.bind(res);
 
   res.json = function (body?: object): Response {
@@ -44,7 +38,6 @@ export function payloadEncryptionMiddleware(req: E2EERequest, res: Response, nex
       return originalJson(body);
     }
 
-    // Encrypt response if the incoming request was encrypted or client requested E2EE
     const isE2EEClient = req.isE2EE || req.headers['x-e2ee-client'] === 'true';
 
     if (isE2EEClient && !isEncryptedEnvelope(body)) {
