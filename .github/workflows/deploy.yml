@@ -45,10 +45,50 @@ jobs:
             package-lock.json
 
       - name: 🔑 Configure SSH Key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY || secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          printf "%s\n" "${{ secrets.EC2_SSH_KEY || secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          
+          # 1. Handle literal \n if pasted as single-line string or standard multiline
+          if echo "$SSH_PRIVATE_KEY" | grep -q '\\n'; then
+            printf "%b\n" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          else
+            printf "%s\n" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          fi
+
+          # 2. Clean Windows carriage returns (\r)
+          sed -i 's/\r$//' ~/.ssh/id_rsa
+
+          # 3. Ensure trailing newline (required by OpenSSH libcrypto)
+          if [ -n "$(tail -c1 ~/.ssh/id_rsa 2>/dev/null)" ]; then
+            echo "" >> ~/.ssh/id_rsa
+          fi
+
           chmod 600 ~/.ssh/id_rsa
+
+          # 4. Configure SSH client options (enables RSA key types for modern Ubuntu runners)
+          cat << 'EOF' > ~/.ssh/config
+          Host *
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            HostKeyAlgorithms +ssh-rsa,ssh-ed25519
+            PubkeyAcceptedKeyTypes +ssh-rsa,ssh-ed25519
+            ServerAliveInterval 15
+            ServerAliveCountMax 3
+          EOF
+          chmod 600 ~/.ssh/config
+
+          # 5. Pre-validate key format with ssh-keygen
+          if ! ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
+            echo "❌ ERROR: OpenSSH libcrypto could not parse the private key."
+            echo "👉 Make sure your GitHub Secret contains the entire .pem key file, including:"
+            echo "-----BEGIN ... PRIVATE KEY-----"
+            echo "and"
+            echo "-----END ... PRIVATE KEY-----"
+            exit 1
+          fi
+          echo "✅ SSH Key successfully loaded and validated!"
 
       - name: 📤 Upload to Linux EC2 (SCP)
         env:
@@ -57,7 +97,7 @@ jobs:
           PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
           echo "Uploading deployment package to $USER@$HOST..."
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -o ServerAliveInterval=15 -P $PORT -i ~/.ssh/id_rsa deploy.tar.gz $USER@$HOST:/home/$USER/deploy.tar.gz
+          scp -P $PORT -i ~/.ssh/id_rsa deploy.tar.gz $USER@$HOST:/home/$USER/deploy.tar.gz
 
       - name: 🚀 Deploy on Linux EC2 Server (SSH)
         env:
@@ -65,7 +105,7 @@ jobs:
           USER: ${{ secrets.EC2_USER || secrets.USERNAME || 'ec2-user' }}
           PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -p $PORT -i ~/.ssh/id_rsa $USER@$HOST bash -s << 'EOF'
+          ssh -p $PORT -i ~/.ssh/id_rsa $USER@$HOST bash -s << 'EOF'
             set -e
             echo "🚀 Starting Linux EC2 Deployment..."
 
