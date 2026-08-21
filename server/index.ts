@@ -106,7 +106,14 @@ const allowedOrigins = Array.from(new Set([...defaultOrigins, ...rawAllowedOrigi
 const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https://'));
 
 function isAllowedOrigin(origin: string): boolean {
-  return allowedOrigins.includes(origin.trim().replace(/\/$/, ''));
+  const normalized = origin.trim().replace(/\/$/, '');
+  if (allowedOrigins.includes(normalized)) {
+    return true;
+  }
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*thebytebandits\.com$/.test(normalized)) {
+    return true;
+  }
+  return false;
 }
 
 const app = express();
