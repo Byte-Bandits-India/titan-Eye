@@ -1,4 +1,4 @@
-name: 🚀 Build & Deploy Titan to Windows IIS Server
+name: 🚀 Build & Deploy Titan to Linux EC2 Server
 
 on:
   push:
@@ -18,25 +18,22 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🟢 Setup Node
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: 📦 Install Dependencies
-        run: npm install
+        run: npm ci || npm install
 
       - name: 🏗 Set Build Environment Variables for Vite
         run: |
           echo "VITE_API_BASE_URL=/api" > .env.production
           echo "VITE_E2EE_SECRET=${{ secrets.VITE_E2EE_SECRET }}" >> .env.production
 
-      - name: 🏗 Build App
+      - name: 🏗 Build App (Frontend & Backend)
         run: npm run build
-
-      - name: 📄 Copy web.config into dist
-        run: |
-          cp web.config dist/web.config
 
       - name: 📦 Create Deployment Package
         run: |
@@ -44,136 +41,88 @@ jobs:
             dist \
             dist-server \
             server.js \
-            web.config \
             package.json \
             package-lock.json
 
       - name: 🔑 Configure SSH Key
         run: |
           mkdir -p ~/.ssh
-          printf "%s\n" "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          printf "%s\n" "${{ secrets.EC2_SSH_KEY || secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: 📤 Upload to Windows Server (SCP)
+      - name: 📤 Upload to Linux EC2 (SCP)
+        env:
+          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP }}
+          USER: ${{ secrets.EC2_USER || secrets.USERNAME || 'ec2-user' }}
+          PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          echo "Uploading deployment package..."
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -o ServerAliveInterval=15 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:C:/Windows/Temp/deploy.tar.gz || \
-          scp -O -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -i ~/.ssh/id_rsa deploy.tar.gz ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }}:deploy.tar.gz
+          echo "Uploading deployment package to $USER@$HOST..."
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -o ServerAliveInterval=15 -P $PORT -i ~/.ssh/id_rsa deploy.tar.gz $USER@$HOST:/home/$USER/deploy.tar.gz
 
-      - name: 🚀 Deploy on Windows IIS Server (SSH & PowerShell)
+      - name: 🚀 Deploy on Linux EC2 Server (SSH)
+        env:
+          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP }}
+          USER: ${{ secrets.EC2_USER || secrets.USERNAME || 'ec2-user' }}
+          PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa ${{ secrets.USERNAME || 'Administrator' }}@${{ secrets.SERVER_IP }} powershell -ExecutionPolicy Bypass -NoProfile -Command - << 'EOF'
-            $ErrorActionPreference = "Continue"
-            Write-Host "🚀 Starting Windows IIS Deployment..."
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -p $PORT -i ~/.ssh/id_rsa $USER@$HOST bash -s << 'EOF'
+            set -e
+            echo "🚀 Starting Linux EC2 Deployment..."
 
-            $APP_DIR = "C:\titan"
-            $DATA_DIR = "C:\titan\data"
-            $DIST_DIR = "C:\titan\dist"
-            $DIST_SERVER_DIR = "C:\titan\dist-server"
-            $NSSM = "C:\Windows\system32\nssm.exe"
+            APP_DIR="/home/$(whoami)/titan"
+            TEMP_ARCHIVE="/home/$(whoami)/deploy.tar.gz"
 
-            # 1. Stop backend service
-            Write-Host "⏸️  Stopping TitanService..."
-            if (Test-Path $NSSM) {
-              & $NSSM stop TitanService
-            } else {
-              Get-Service TitanService -ErrorAction SilentlyContinue | Stop-Service -Force -ErrorAction SilentlyContinue
-            }
+            echo "📁 Ensuring required application directories exist..."
+            mkdir -p "$APP_DIR"
+            mkdir -p "$APP_DIR/uploads"
+            mkdir -p "$APP_DIR/logs"
 
-            Start-Sleep -Seconds 3
+            # 1. Clean old build directories (dist and dist-server)
+            echo "🧹 Cleaning old build directories..."
+            rm -rf "$APP_DIR/dist" "$APP_DIR/dist-server"
 
-            # 2. Terminate any lingering Node.js process on port 3001 to release file locks & port
-            Write-Host "🛑 Checking for lingering backend processes on port 3001..."
-            try {
-              $portConns = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue
-              if ($portConns) {
-                $pids = $portConns | Select-Object -ExpandProperty OwningProcess -Unique
-                foreach ($procId in $pids) {
-                  if ($procId -gt 0) {
-                    Write-Host "Terminating lingering process on port 3001 (PID: $procId)..."
-                    Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
-                  }
-                }
-              }
-            } catch {
-              Write-Host "Port check completed."
-            }
+            # 2. Extract new build package into app directory (preserves .env, database.db, and uploads)
+            echo "📦 Extracting new build package..."
+            tar -xzf "$TEMP_ARCHIVE" -C "$APP_DIR"
+            rm -f "$TEMP_ARCHIVE"
 
-            # 3. Ensure directories exist
-            if (!(Test-Path $APP_DIR)) { New-Item -ItemType Directory -Force -Path $APP_DIR | Out-Null }
-            if (!(Test-Path $DATA_DIR)) { New-Item -ItemType Directory -Force -Path $DATA_DIR | Out-Null }
-            if (!(Test-Path "$DATA_DIR\backups")) { New-Item -ItemType Directory -Force -Path "$DATA_DIR\backups" | Out-Null }
+            # 3. Enter application directory
+            cd "$APP_DIR"
 
-            # 4. Preserve database
-            if ((Test-Path "$APP_DIR\database.db") -and !(Test-Path "$DATA_DIR\database.db")) {
-              Write-Host "📦 Preserving database in data directory..."
-              Copy-Item -Path "$APP_DIR\database.db*" -Destination $DATA_DIR -Force
-            }
-
-            # 5. Clean out previous build directories (prevents stale code / deleted files from persisting)
-            Write-Host "🧹 Cleaning old build directories ($DIST_DIR and $DIST_SERVER_DIR)..."
-            if (Test-Path $DIST_DIR) {
-              Remove-Item -Recurse -Force $DIST_DIR -ErrorAction SilentlyContinue
-            }
-            if (Test-Path $DIST_SERVER_DIR) {
-              Remove-Item -Recurse -Force $DIST_SERVER_DIR -ErrorAction SilentlyContinue
-            }
-
-            # 6. Extract new build package
-            Write-Host "📦 Extracting new build to $APP_DIR ..."
-            if (Test-Path "C:\Windows\Temp\deploy.tar.gz") {
-              tar -xzf "C:\Windows\Temp\deploy.tar.gz" -C $APP_DIR
-              Remove-Item -Force "C:\Windows\Temp\deploy.tar.gz" -ErrorAction SilentlyContinue
-            } elseif (Test-Path "$HOME\deploy.tar.gz") {
-              tar -xzf "$HOME\deploy.tar.gz" -C $APP_DIR
-              Remove-Item -Force "$HOME\deploy.tar.gz" -ErrorAction SilentlyContinue
-            } elseif (Test-Path "deploy.tar.gz") {
-              tar -xzf "deploy.tar.gz" -C $APP_DIR
-              Remove-Item -Force "deploy.tar.gz" -ErrorAction SilentlyContinue
-            }
-
-            # 7. Ensure web.config is inside dist directory for IIS
-            if (Test-Path "$APP_DIR\web.config") {
-              Copy-Item -Path "$APP_DIR\web.config" -Destination $DIST_DIR -Force
-            }
-
-            Set-Location $APP_DIR
-
-            # 8. Install production dependencies
-            Write-Host "📦 Installing production dependencies..."
+            # 4. Install production dependencies and compile native binaries for Linux
+            echo "📦 Installing production dependencies..."
             npm install --omit=dev --legacy-peer-deps
 
-            # 9. Start backend service
-            Write-Host "▶️  Starting TitanService..."
-            if (Test-Path $NSSM) {
-              & $NSSM start TitanService
-            } else {
-              Get-Service TitanService -ErrorAction SilentlyContinue | Start-Service
-            }
+            # 5. Ensure PM2 / Node binary is discoverable across different shell environments
+            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/$(node -v 2>/dev/null || echo "")/bin
 
-            # 10. Recycle IIS Application Pools & ensure ARR preserves external redirect locations
-            Write-Host "🔄 Recycling IIS Application Pools..."
-            $appcmd = "$env:SystemRoot\system32\inetsrv\appcmd.exe"
-            if (Test-Path $appcmd) {
-              try {
-                & $appcmd set config -section:system.webServer/proxy /reverseRewriteHostInResponseHeaders:"False" /commit:apphost
-              } catch {
-                Write-Host "ARR proxy configuration check finished."
-              }
-              try {
-                & $appcmd list apppools /text:name | ForEach-Object {
-                  Write-Host "Recycling AppPool: $_"
-                  & $appcmd recycle apppool /apppool.name:$_
-                }
-              } catch {
-                Write-Host "Apppool recycle check finished."
-              }
-            }
+            # 6. Restart backend process using PM2
+            echo "🔄 Restarting application with PM2..."
+            if command -v pm2 &> /dev/null; then
+              if pm2 describe titan &> /dev/null; then
+                pm2 reload titan || pm2 restart titan
+              else
+                pm2 start server.js --name titan --time
+                pm2 save
+              fi
+            else
+              echo "⚠️ PM2 not found in PATH. Checking if running on port 3001..."
+              fuser -k 3001/tcp || true
+              nohup node server.js > logs/app.log 2>&1 &
+            fi
 
-            # 11. Verify TitanService status
-            Start-Sleep -Seconds 3
-            Write-Host "🔍 TitanService status:"
-            Get-Service TitanService | Select-Object Name, DisplayName, State
+            # 7. Health Check Verification
+            echo "🔍 Verifying application health..."
+            sleep 4
+            if command -v curl &> /dev/null; then
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/api/ping || true)
+              echo "Health check response code: $HTTP_CODE"
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "✅ Health check passed: Server is running on port 3001!"
+              else
+                echo "ℹ️ Health check response: $HTTP_CODE"
+              fi
+            fi
 
-            Write-Host "✅ Windows IIS deployment completed successfully!"
+            echo "✅ Titan deployment to Linux EC2 completed successfully!"
           EOF
