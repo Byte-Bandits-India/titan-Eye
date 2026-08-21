@@ -7,6 +7,7 @@ import { updateCustomerAction } from '../../../Actions/customerActions';
 import { RxScrollPicker } from '../../../components/shared/RxScrollPicker';
 import { TeamsCallModal } from '../../../components/shared/TeamsCallModal';
 import { Input } from '../../../components/ui/input';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '../../../components/ui/resizable';
 import { Sheet, SheetBody, SheetContent, SheetFooter } from '../../../components/ui/sheet';
 import { useToast } from '../../../components/ui/toast';
 import {
@@ -187,12 +188,12 @@ export function OptometristCallDrawer({
         lastUpdatedOn: buildTimestamp(),
         optometristFeedback: notes,
         optometristRxData: { le, re },
-        status: 'Completed',
+        status: 'Test Completed',
       };
 
       await dispatch(updateCustomerAction(customer.id, updatedCustomer));
       toast({
-        description: 'Subjective/Final prescription saved and consultation marked as completed.',
+        description: 'Subjective/Final prescription saved and eye test marked as completed.',
         title: 'Saved',
         type: 'success',
       });
@@ -236,91 +237,131 @@ export function OptometristCallDrawer({
     );
   };
 
+  const [isLargeScreen, setIsLargeScreen] = React.useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true
+  );
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const handleChange = () => setIsLargeScreen(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
   return (
     <Sheet onOpenChange={(open) => !open && handleMinimize()} open={!minimized}>
-      <SheetContent hideCloseButton={false} side="bottom">
-        <div className="flex h-full flex-col lg:flex-row">
-          <div className="min-h-[45vh] flex-1 lg:min-h-0">
-            {callSession && callActive ? (
-              <TeamsCallModal onClose={handleEmbeddedCallClose} session={callSession} variant="embedded" />
-            ) : (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-slate-900">
-                {callSession && (
-                  <div className="flex flex-col items-center gap-2 text-slate-400">
-                    <PhoneOff size={28} />
-                    <p className="text-sm font-medium">Call ended</p>
-                  </div>
-                )}
+      <SheetContent
+        hideCloseButton={false}
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        side="bottom"
+      >
+        <ResizablePanelGroup
+          className="h-full w-full overflow-hidden"
+          key={isLargeScreen ? 'horizontal' : 'vertical'}
+          orientation={isLargeScreen ? 'horizontal' : 'vertical'}
+        >
+          <ResizablePanel
+            className="flex min-h-0 min-w-0 flex-col"
+            defaultSize={isLargeScreen ? '72%' : '45%'}
+            maxSize={isLargeScreen ? '85%' : '80%'}
+            minSize={isLargeScreen ? '40%' : '20%'}
+          >
+            <div className="relative flex h-full w-full flex-1 flex-col overflow-hidden bg-slate-900">
+              {callSession && callActive ? (
+                <TeamsCallModal onClose={handleEmbeddedCallClose} session={callSession} variant="embedded" />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-slate-900 p-4">
+                  {callSession && (
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <PhoneOff size={28} />
+                      <p className="text-sm font-medium">Call ended</p>
+                    </div>
+                  )}
 
-                <button
-                  className="active:scale-98 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-6 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isStartingCall}
-                  onClick={handleStartCall}
-                  type="button"
-                >
-                  {isStartingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone size={16} />}
-                  {callSession ? 'Call Again' : 'Call'}
-                </button>
-                <p className="text-xs text-slate-400">Ring the store to start the video consultation.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex w-full flex-col border-t border-border lg:w-[440px] lg:border-l lg:border-t-0">
-            <SheetBody className="p-4 sm:p-6">
-              <h2 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-foreground">
-                Subjective / Final
-              </h2>
-
-              <div className="space-y-2">
-                <div className="grid grid-cols-3 items-center gap-2">
-                  <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
-                    Right
-                  </p>
-                  <span />
-                  <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
-                    Left
+                  <button
+                    className="active:scale-98 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-6 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isStartingCall}
+                    onClick={handleStartCall}
+                    type="button"
+                  >
+                    {isStartingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone size={16} />}
+                    {callSession ? 'Call Again' : 'Call'}
+                  </button>
+                  <p className="text-center text-xs text-slate-400">
+                    Ring the store to start the video consultation.
                   </p>
                 </div>
+              )}
+            </div>
+          </ResizablePanel>
 
-                {optometristFields.map((field, idx) => (
-                  <div className="grid grid-cols-3 items-center gap-2" key={field}>
-                    {renderValueCell('re', field)}
-                    <p className="text-center text-xs font-bold text-muted-foreground">
-                      {optometristHeaders[idx]}
-                      {MANDATORY_FIELDS.has(field) && <span className="text-rose-500"> *</span>}
+          <ResizableHandle className="bg-slate-200 dark:bg-zinc-800" withHandle />
+
+          <ResizablePanel
+            className="flex min-h-0 min-w-0 flex-col bg-card"
+            defaultSize={isLargeScreen ? '28%' : '55%'}
+            maxSize={isLargeScreen ? '60%' : '80%'}
+            minSize={isLargeScreen ? '15%' : '20%'}
+          >
+            <div className="flex h-full w-full flex-col overflow-hidden">
+              <SheetBody className="p-4 sm:p-6">
+                <h2 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-foreground">
+                  Subjective / Final
+                </h2>
+
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 items-center gap-2">
+                    <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
+                      Right
                     </p>
-                    {renderValueCell('le', field)}
+                    <span />
+                    <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
+                      Left
+                    </p>
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-6 space-y-1.5">
-                <label className="text-xs font-medium uppercase tracking-wider text-foreground">
-                  Optometrist Notes
-                </label>
-                <textarea
-                  className="min-h-[120px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Enter clinical notes, remarks, or advice for the patient..."
-                  value={notes}
-                />
-              </div>
-            </SheetBody>
+                  {optometristFields.map((field, idx) => (
+                    <div className="grid grid-cols-3 items-center gap-2" key={field}>
+                      {renderValueCell('re', field)}
+                      <p className="text-center text-xs font-bold text-muted-foreground">
+                        {optometristHeaders[idx]}
+                        {MANDATORY_FIELDS.has(field) && <span className="text-rose-500"> *</span>}
+                      </p>
+                      {renderValueCell('le', field)}
+                    </div>
+                  ))}
+                </div>
 
-            <SheetFooter>
-              <button
-                className="active:scale-98 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 px-5 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSaving}
-                onClick={handleCompleteAndSave}
-                type="button"
-              >
-                {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                Complete and save
-              </button>
-            </SheetFooter>
-          </div>
-        </div>
+                <div className="mt-6 space-y-1.5">
+                  <label className="text-xs font-medium uppercase tracking-wider text-foreground">
+                    Optometrist Notes
+                  </label>
+                  <textarea
+                    className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Enter clinical notes, remarks, or advice for the patient..."
+                    value={notes}
+                  />
+                </div>
+              </SheetBody>
+
+              <SheetFooter>
+                <button
+                  className="active:scale-98 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 px-5 text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSaving}
+                  onClick={handleCompleteAndSave}
+                  type="button"
+                >
+                  {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Complete and save
+                </button>
+              </SheetFooter>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </SheetContent>
     </Sheet>
   );

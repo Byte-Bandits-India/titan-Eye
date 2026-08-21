@@ -1,4 +1,4 @@
-import { Bell, Stethoscope, Store, UserPlus } from 'lucide-react';
+import { Stethoscope, Store, UserPlus } from 'lucide-react';
 import * as React from 'react';
 
 import type {
@@ -22,6 +22,7 @@ import {
 import { AppLayout } from '../../components/layout/AppLayout';
 import { MetricCard } from '../../components/shared/MetricCard';
 import { Button } from '../../components/ui/button';
+import { useNotificationLog } from '../../components/ui/notificationLog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
 import { usePagination } from '../../hooks/usePagination';
@@ -52,6 +53,7 @@ export function AdminScreen() {
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const { addLogNotification } = useNotificationLog();
 
   const [activeTab, setActiveTab] = React.useState<AdminTab>('customers');
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -158,11 +160,22 @@ export function AdminScreen() {
   const customerTabCounts = React.useMemo(
     () => ({
       all: dateFilteredCustomers.length,
-      completed: dateFilteredCustomers.filter((c) => c.status === 'Completed' || c.status === 'Closed')
-        .length,
-      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Accepted').length,
+      completed: dateFilteredCustomers.filter(
+        (c) =>
+          c.status === 'Completed' ||
+          c.status === 'Test Completed' ||
+          c.status === 'Closed' ||
+          c.status === 'Cancelled'
+      ).length,
+      inProgress: dateFilteredCustomers.filter(
+        (c) => c.status === 'Accepted' || c.status === 'Testing'
+      ).length,
       pending: dateFilteredCustomers.filter(
-        (c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop'
+        (c) =>
+          c.status === 'Created' ||
+          c.status === 'Queued' ||
+          c.status === 'Initiated' ||
+          c.status === 'Drop'
       ).length,
     }),
     [dateFilteredCustomers]
@@ -174,16 +187,32 @@ export function AdminScreen() {
     return dateFilteredCustomers.filter((c) => {
       if (
         customerStatusTab === 'Pending' &&
-        !(c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop')
+        !(
+          c.status === 'Created' ||
+          c.status === 'Queued' ||
+          c.status === 'Initiated' ||
+          c.status === 'Drop'
+        )
       ) {
         return false;
       }
 
-      if (customerStatusTab === 'InProgress' && c.status !== 'Accepted') {
+      if (
+        customerStatusTab === 'InProgress' &&
+        !(c.status === 'Accepted' || c.status === 'Testing')
+      ) {
         return false;
       }
 
-      if (customerStatusTab === 'Completed' && !(c.status === 'Completed' || c.status === 'Closed')) {
+      if (
+        customerStatusTab === 'Completed' &&
+        !(
+          c.status === 'Completed' ||
+          c.status === 'Test Completed' ||
+          c.status === 'Closed' ||
+          c.status === 'Cancelled'
+        )
+      ) {
         return false;
       }
 
@@ -526,8 +555,57 @@ export function AdminScreen() {
     }
   };
 
+  const availableOptometristDoctors = React.useMemo(
+    () => computeOptometristAvailability(users, customers).filter((u) => u.avail.statusLabel === 'Available'),
+    [users, customers]
+  );
+  const prevAvailableCountRef = React.useRef<number>(0);
+  const isInitialFetchRef = React.useRef(true);
+
+  React.useEffect(() => {
+    const currentCount = availableOptometristDoctors.length;
+    const prevCount = prevAvailableCountRef.current;
+
+    if (isInitialFetchRef.current) {
+      if (users.length > 0) {
+        isInitialFetchRef.current = false;
+        prevAvailableCountRef.current = currentCount;
+      }
+
+      return;
+    }
+
+    if (currentCount > 0 && prevCount === 0) {
+      const names = availableOptometristDoctors.map((d) => d.name).join(', ');
+      addLogNotification({
+        description: `${names} ${availableOptometristDoctors.length > 1 ? 'are' : 'is'} online and available for testing.`,
+        title: 'Optometrists Online',
+        type: 'optometrist_available',
+      });
+    }
+
+    prevAvailableCountRef.current = currentCount;
+  }, [availableOptometristDoctors, addLogNotification, users.length]);
+
+  const handleSelectCustomerFromNotification = (customerId: string) => {
+    const cust = customers.find((c) => c.id === customerId);
+
+    if (cust?.patientFeedback) {
+      setActiveTab('feedback');
+      setSearchTerm(cust.name || cust.id);
+    } else {
+      setActiveTab('customers');
+      setSearchTerm(customerId);
+    }
+  };
+
   return (
-    <AppLayout activeTab={activeTab} consoleLabel="Admin Console" setActiveTab={setActiveTab}>
+    <AppLayout
+      activeTab={activeTab}
+      consoleLabel="Admin Console"
+      onSelectCustomer={handleSelectCustomerFromNotification}
+      setActiveTab={setActiveTab}
+    >
       <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
@@ -554,16 +632,8 @@ export function AdminScreen() {
                       : 'Track all activity across Store, Optometrist, and Admin roles'}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <Button
-              className="h-10 gap-2 px-4 text-xs font-medium"
-              onClick={() => window.dispatchEvent(new CustomEvent('titan:open_notifications'))}
-              variant="outline"
-            >
-              <Bell size={14} />
-              View Notification
-            </Button>
-            {activeTab === 'users' && (
+          {activeTab === 'users' && (
+            <div className="flex shrink-0 items-center gap-2">
               <Button
                 className="active:scale-98 h-10 gap-2 px-4 text-xs font-medium shadow-sm transition-all"
                 onClick={handleAddNewClick}
@@ -572,8 +642,8 @@ export function AdminScreen() {
                 <UserPlus size={14} />
                 Add User
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Layout Row 1: Metrics Grid (left) + Optometrist Users Card (right) stretched to same height */}

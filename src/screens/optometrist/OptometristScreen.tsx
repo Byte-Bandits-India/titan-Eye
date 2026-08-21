@@ -1,5 +1,4 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
-import { Bell } from 'lucide-react';
 import * as React from 'react';
 
 import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
@@ -9,7 +8,7 @@ import { fetchUsersAction } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
-import { Button } from '../../components/ui/button';
+import { useNotificationLog } from '../../components/ui/notificationLog';
 import { usePagination } from '../../hooks/usePagination';
 import { cn } from '../../lib/utils';
 import { PAGINATION } from '../../options/Option';
@@ -35,15 +34,23 @@ const OPTOMETRIST_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'actions', isMandatory: true, label: 'Action' },
 ];
 
-const QUEUE_TAB_STATUSES: readonly Customer['status'][] = ['Created', 'Initiated', 'Drop'];
+const QUEUE_TAB_STATUSES: readonly Customer['status'][] = ['Created', 'Queued', 'Initiated', 'Drop'];
 
 const getQueueStatusLabel = (status: Customer['status']): string => {
-  if (status === 'Accepted') {
+  if (status === 'Accepted' || status === 'Testing') {
     return 'Testing';
+  }
+
+  if (status === 'Test Completed') {
+    return 'Test Completed';
   }
 
   if (status === 'Completed') {
     return 'Completed';
+  }
+
+  if (status === 'Closed' || status === 'Cancelled') {
+    return 'Cancelled';
   }
 
   if (QUEUE_TAB_STATUSES.includes(status)) {
@@ -65,6 +72,8 @@ export function OptometristScreen() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isEditing, setIsEditing] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTOMETRIST_PAGE_SIZE);
+
+  const { addLogNotification } = useNotificationLog();
 
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
 
@@ -181,7 +190,10 @@ export function OptometristScreen() {
   const dateFilteredCustomers = React.useMemo(
     () =>
       filterCustomersByDate(
-        customers.filter((c) => c.status !== 'Closed' && !(c.status === 'Created' && !c.callStartTime)),
+        customers.filter(
+          (c) =>
+            c.status !== 'Closed' && c.status !== 'Cancelled' && !(c.status === 'Created' && !c.callStartTime)
+        ),
         dateRange
       ),
     [customers, dateRange]
@@ -190,17 +202,23 @@ export function OptometristScreen() {
   const tabCounts = React.useMemo(
     () => ({
       all: dateFilteredCustomers.length,
-      completed: dateFilteredCustomers.filter((c) => c.status === 'Completed').length,
-      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Accepted').length,
+      completed: dateFilteredCustomers.filter(
+        (c) => c.status === 'Completed' || c.status === 'Test Completed'
+      ).length,
+      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Accepted' || c.status === 'Testing')
+        .length,
       pending: dateFilteredCustomers.filter(
-        (c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop'
+        (c) =>
+          c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop'
       ).length,
     }),
     [dateFilteredCustomers]
   );
 
   const pendingPriorityMap = React.useMemo(() => {
-    const pending = dateFilteredCustomers.filter((c) => c.status === 'Created');
+    const pending = dateFilteredCustomers.filter(
+      (c) => c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated'
+    );
 
     const priorityCustomers = [...pending.filter((c) => c.isPriority)].sort(
       (a, b) => parseTimestamp(a.lastUpdatedOn) - parseTimestamp(b.lastUpdatedOn)
@@ -229,16 +247,16 @@ export function OptometristScreen() {
     const byStatus = dateFilteredCustomers.filter((c) => {
       if (
         statusTab === 'Pending' &&
-        !(c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop')
+        !(c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop')
       ) {
         return false;
       }
 
-      if (statusTab === 'InProgress' && c.status !== 'Accepted') {
+      if (statusTab === 'InProgress' && !(c.status === 'Accepted' || c.status === 'Testing')) {
         return false;
       }
 
-      if (statusTab === 'Completed' && c.status !== 'Completed') {
+      if (statusTab === 'Completed' && !(c.status === 'Completed' || c.status === 'Test Completed')) {
         return false;
       }
 
@@ -291,7 +309,11 @@ export function OptometristScreen() {
           const optometristEmailLower = optometristUser.email.toLowerCase();
 
           const activeCall = customers.find((c) => {
-            const isCallActiveState = c.status === 'Initiated' || c.status === 'Accepted';
+            const isCallActiveState =
+              c.status === 'Initiated' ||
+              c.status === 'Accepted' ||
+              c.status === 'Queued' ||
+              c.status === 'Testing';
 
             if (!isCallActiveState || !c.callTakenBy) {
               return false;
@@ -330,6 +352,43 @@ export function OptometristScreen() {
         }),
     [users, customers]
   );
+
+  const availablePeerDoctors = React.useMemo(
+    () =>
+      optometristUsersWithStatus.filter(
+        (u) =>
+          u.avail.statusLabel === 'Available' && u.email.toLowerCase() !== (user?.email || '').toLowerCase()
+      ),
+    [optometristUsersWithStatus, user?.email]
+  );
+
+  const prevPeerCountRef = React.useRef<number>(0);
+  const isInitialPeerFetchRef = React.useRef(true);
+
+  React.useEffect(() => {
+    const currentCount = availablePeerDoctors.length;
+    const prevCount = prevPeerCountRef.current;
+
+    if (isInitialPeerFetchRef.current) {
+      if (users.length > 0) {
+        isInitialPeerFetchRef.current = false;
+        prevPeerCountRef.current = currentCount;
+      }
+
+      return;
+    }
+
+    if (currentCount > 0 && prevCount === 0) {
+      const names = availablePeerDoctors.map((d) => d.name).join(', ');
+      addLogNotification({
+        description: `${names} ${availablePeerDoctors.length > 1 ? 'are' : 'is'} online and available.`,
+        title: 'Optometrist Online',
+        type: 'optometrist_available',
+      });
+    }
+
+    prevPeerCountRef.current = currentCount;
+  }, [availablePeerDoctors, addLogNotification, users.length]);
 
   const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () =>
@@ -663,25 +722,13 @@ export function OptometristScreen() {
         />
       ) : (
         <main className="font-pro mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
-          {/* ── Page Header ── */}
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-[28px] font-semibold leading-tight text-foreground">Optometrist Console</h1>
               <p className="mt-0.5 text-sm font-normal text-muted-foreground">{user.name}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button
-                className="h-10 gap-2 px-4 text-xs font-medium"
-                onClick={() => window.dispatchEvent(new CustomEvent('titan:open_notifications'))}
-                variant="outline"
-              >
-                <Bell size={14} />
-                View Notification
-              </Button>
-            </div>
           </div>
 
-          {/* ── Row 1: Metrics (left) + Optometrist Users table (right) ── */}
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <OptometristCard tabCounts={tabCounts} variant="metrics" />
             <OptometristCard
@@ -691,7 +738,6 @@ export function OptometristScreen() {
             />
           </div>
 
-          {/* ── Row 2: Queue Requests table ── */}
           <OptometristCard
             columns={currentTabColumns}
             currentPage={currentPage}

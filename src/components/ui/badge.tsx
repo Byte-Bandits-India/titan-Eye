@@ -18,6 +18,8 @@ const badgeVariants = cva(
           'border-transparent bg-emerald-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-emerald-700',
         admin:
           'border-transparent bg-violet-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-violet-700',
+        Cancelled:
+          'border-transparent bg-rose-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-rose-600',
         Closed:
           'border-transparent bg-gray-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-gray-500',
         Completed:
@@ -31,6 +33,12 @@ const badgeVariants = cva(
           'border-transparent bg-rose-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-rose-700',
         Initiated:
           'border-transparent bg-indigo-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-indigo-600',
+        Queued:
+          'border-transparent bg-amber-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-amber-700',
+        'Test Completed':
+          'border-transparent bg-purple-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-purple-700',
+        Testing:
+          'border-transparent bg-amber-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-amber-700',
         optometrist:
           'border-transparent bg-teal-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-teal-700',
         outline: 'border-gray-300 text-gray-900',

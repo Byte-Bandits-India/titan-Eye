@@ -85,17 +85,6 @@ type CustomerForm = {
 type RxFormState = { autoRefLe: RxValues; autoRefRe: RxValues; pgpLe: RxValues; pgpRe: RxValues };
 type OptometristRxFormState = { le: OptometristRxValues; re: OptometristRxValues };
 
-const RX_MANDATORY_FIELDS: { field: keyof RxValues; label: string; row: RxRow }[] = [
-  { field: 'sph', label: 'Auto Ref (R E) - SPH', row: 'autoRefRe' },
-  { field: 'cyl', label: 'Auto Ref (R E) - CYL', row: 'autoRefRe' },
-  { field: 'axis', label: 'Auto Ref (R E) - Axis', row: 'autoRefRe' },
-  { field: 'pd', label: 'Auto Ref (R E) - PD', row: 'autoRefRe' },
-  { field: 'sph', label: 'Auto Ref (L E) - SPH', row: 'autoRefLe' },
-  { field: 'cyl', label: 'Auto Ref (L E) - CYL', row: 'autoRefLe' },
-  { field: 'axis', label: 'Auto Ref (L E) - Axis', row: 'autoRefLe' },
-  { field: 'pd', label: 'Auto Ref (L E) - PD', row: 'autoRefLe' },
-];
-
 type CustomerDetailsFieldsProps = {
   errors: Record<string, string>;
   form: CustomerForm;
@@ -256,27 +245,6 @@ function ObjectiveRxContentComponent({
               >
                 Objective prescription
               </TableHead>
-            </TableRow>
-            <TableRow className="border-b border-slate-400 bg-slate-100/50 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800/50">
-              <TableHead
-                className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"
-                colSpan={2}
-              ></TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                *
-              </TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                *
-              </TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                *
-              </TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                *
-              </TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
-              <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
-              <TableHead className="py-1 text-center text-sm font-medium text-blue-600 dark:text-blue-400"></TableHead>
             </TableRow>
             <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
               <TableHead
@@ -510,10 +478,10 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
   const [isRequesting, setIsRequesting] = React.useState(false);
   const [activeStep, setActiveStep] = React.useState(1);
 
-  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
+  const [prevCustomerId, setPrevCustomerId] = React.useState(selectedCustomer?.id);
 
-  if (selectedCustomer !== prevSelectedCustomer) {
-    setPrevSelectedCustomer(selectedCustomer);
+  if (selectedCustomer?.id !== prevCustomerId) {
+    setPrevCustomerId(selectedCustomer?.id);
     setForm(buildFormState(selectedCustomer));
     setStoreFeedback(selectedCustomer?.storeFeedback || '');
     setRxForm(
@@ -662,12 +630,6 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
     if (!form.preferredLanguage.trim()) {
       missing.push('Preferred Language 1');
     }
-
-    RX_MANDATORY_FIELDS.forEach(({ field, label, row }) => {
-      if (!rxForm[row][field]?.trim()) {
-        missing.push(label);
-      }
-    });
 
     return missing;
   };

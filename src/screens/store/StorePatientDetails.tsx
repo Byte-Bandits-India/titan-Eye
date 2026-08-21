@@ -61,11 +61,11 @@ export function StorePatientDetails({
 
   const [form, setForm] = React.useState(() => buildFormState(selectedCustomer, isAddingNew));
 
-  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
+  const [prevCustomerId, setPrevCustomerId] = React.useState(selectedCustomer?.id);
   const [prevIsAddingNew, setPrevIsAddingNew] = React.useState(isAddingNew);
 
-  if (selectedCustomer !== prevSelectedCustomer || isAddingNew !== prevIsAddingNew) {
-    setPrevSelectedCustomer(selectedCustomer);
+  if (selectedCustomer?.id !== prevCustomerId || isAddingNew !== prevIsAddingNew) {
+    setPrevCustomerId(selectedCustomer?.id);
     setPrevIsAddingNew(isAddingNew);
     setForm(buildFormState(selectedCustomer, isAddingNew));
   }

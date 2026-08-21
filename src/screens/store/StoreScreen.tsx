@@ -25,7 +25,11 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { computeOptometristAvailability } from '../../utils/optometristAvailability';
 import { renderCallDuration, WaitingCell } from './components/cells';
-import { ConversionStatusBadge, CustomerActionsCell } from './components/CustomerActionsCell';
+import {
+  ConversionStatusBadge,
+  CustomerActionsCell,
+  CustomerStatusBadge,
+} from './components/CustomerActionsCell';
 import { CancelRequestDialog } from './components/CancelRequestDialog';
 import { parseTimestamp } from './components/formatters';
 import { StoreCard } from './components/StoreCard';
@@ -39,6 +43,12 @@ export function StoreScreen() {
   const customers = useAppSelector((state) => state.customers.customers);
   const users = useAppSelector((state) => state.users.users);
   const dispatch = useAppDispatch();
+
+  const isTabletShortcut = React.useMemo(
+    () => new URLSearchParams(window.location.search).get('src') === 'tablet-shortcut',
+    []
+  );
+
   const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState('');
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
@@ -101,7 +111,7 @@ export function StoreScreen() {
       try {
         const customer = customers.find((c) => c.id === customerId);
 
-        if (customer && customer.status === 'Initiated') {
+        if (customer && (customer.status === 'Initiated' || customer.status === 'Queued')) {
           const timestamp = new Date().toLocaleString('en-US', {
             day: 'numeric',
             hour: 'numeric',
@@ -132,7 +142,10 @@ export function StoreScreen() {
     const checkTimeout = () => {
       const now = Date.now();
       customers.forEach((cust) => {
-        if (cust.status === 'Initiated' && (cust.callStartTime || cust.lastUpdatedOn)) {
+        if (
+          (cust.status === 'Initiated' || cust.status === 'Queued') &&
+          (cust.callStartTime || cust.lastUpdatedOn)
+        ) {
           const startTimeStr = cust.callStartTime || cust.lastUpdatedOn;
           let startMs = parseInt(startTimeStr!, 10);
 
@@ -159,17 +172,31 @@ export function StoreScreen() {
   );
 
   const hasActiveRequest = React.useMemo(
-    () => customers.some((c) => c.status === 'Initiated' || c.status === 'Accepted'),
+    () =>
+      customers.some(
+        (c) =>
+          c.status === 'Initiated' ||
+          c.status === 'Accepted' ||
+          c.status === 'Queued' ||
+          c.status === 'Testing'
+      ),
     [customers]
   );
 
   const tabCounts = React.useMemo(
     () => ({
-      all: customers.length,
-      completed: customers.filter((c) => c.status === 'Completed').length,
-      inProgress: customers.filter((c) => c.status === 'Accepted').length,
+      all: customers.filter(
+        (c) => c.status !== 'Test Completed' && c.status !== 'Testing' && c.status !== 'Accepted'
+      ).length,
+      completed: customers.filter(
+        (c) => c.status === 'Completed' || c.status === 'Closed' || c.status === 'Cancelled'
+      ).length,
+      inProgress: customers.filter(
+        (c) => c.status === 'Accepted' || c.status === 'Testing' || c.status === 'Test Completed'
+      ).length,
       pending: customers.filter(
-        (c) => c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop'
+        (c) =>
+          c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop'
       ).length,
     }),
     [customers]
@@ -179,16 +206,29 @@ export function StoreScreen() {
     const byStatus = customers.filter((c) => {
       if (
         statusTab === 'Pending' &&
-        !(c.status === 'Created' || c.status === 'Initiated' || c.status === 'Drop')
+        !(c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop')
       ) {
         return false;
       }
 
-      if (statusTab === 'InProgress' && c.status !== 'Accepted') {
+      if (
+        statusTab === 'InProgress' &&
+        !(c.status === 'Accepted' || c.status === 'Testing' || c.status === 'Test Completed')
+      ) {
         return false;
       }
 
-      if (statusTab === 'Completed' && c.status !== 'Completed') {
+      if (
+        statusTab === 'Completed' &&
+        !(c.status === 'Completed' || c.status === 'Closed' || c.status === 'Cancelled')
+      ) {
+        return false;
+      }
+
+      if (
+        statusTab === 'all' &&
+        (c.status === 'Test Completed' || c.status === 'Testing' || c.status === 'Accepted')
+      ) {
         return false;
       }
 
@@ -268,7 +308,7 @@ export function StoreScreen() {
       { id: 'callDuration', isMandatory: false, label: 'Call Duration' },
       ...(statusTab !== 'Pending' ? [{ id: 'optometrist', isMandatory: false, label: 'Optometrist' }] : []),
       ...(statusTab === 'Pending' ? [{ id: 'position', isMandatory: true, label: 'Queue' }] : []),
-      ...(statusTab === 'all' ? [{ id: 'status', isMandatory: true, label: 'Status' }] : []),
+      { id: 'status', isMandatory: true, label: 'Status' },
       { id: 'actions', isMandatory: true, label: 'Actions' },
     ],
     [statusTab]
@@ -317,16 +357,20 @@ export function StoreScreen() {
       return;
     }
 
+    const targetId = cancelRequestTarget.id;
+    const targetName = cancelRequestTarget.name;
+
     setIsCancellingRequest(true);
 
     try {
-      await dispatch(dropCustomerAction(cancelRequestTarget.id, reason));
+      await dispatch(dropCustomerAction(targetId, reason));
       toast({
-        description: `The request for ${cancelRequestTarget.name} has been cancelled.`,
+        description: `The request for ${targetName} has been cancelled. Please update sales conversion status.`,
         title: 'Request Cancelled',
         type: 'info',
       });
       setCancelRequestTarget(null);
+      handleOpenUpdateStatus(targetId);
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       toast({
@@ -545,22 +589,21 @@ export function StoreScreen() {
             } satisfies ColumnDef<DataGridFeatures, Customer>,
           ]
         : []),
-      ...(statusTab === 'all'
-        ? [
-            {
-              cell: ({ row }: { row: { original: Customer } }) => (
-                <ConversionStatusBadge status={row.original.status} />
-              ),
-              enableSorting: false,
-              header: () => (
-                <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Status</span>
-              ),
-              id: 'status',
-              meta: { cellClassName: 'py-3' },
-              size: 130,
-            } satisfies ColumnDef<DataGridFeatures, Customer>,
-          ]
-        : []),
+      {
+        cell: ({ row }: { row: { original: Customer } }) =>
+          isViewingSalesConversion ? (
+            <ConversionStatusBadge conversionStatus={row.original.conversionStatus} />
+          ) : (
+            <CustomerStatusBadge status={row.original.status} />
+          ),
+        enableSorting: false,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-medium text-muted-foreground">Status</span>
+        ),
+        id: 'status',
+        meta: { cellClassName: 'py-3' },
+        size: 130,
+      },
       {
         cell: ({ row }) => (
           <CustomerActionsCell
@@ -590,7 +633,7 @@ export function StoreScreen() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [completingCallId, user, statusTab, hasActiveRequest]
+    [completingCallId, user, statusTab, hasActiveRequest, isViewingSalesConversion]
   );
 
   const customersTable = useTable({
@@ -678,6 +721,42 @@ export function StoreScreen() {
 
           {renderRecentCustomersCard(true)}
         </main>
+      ) : isTabletShortcut ? (
+        <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6 md:px-8">
+          <StoreCard isTabletMode={true} tabCounts={tabCounts} variant="metrics" />
+          <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center">
+            <div>
+              <h1 className="text-[26px] font-semibold leading-tight text-foreground sm:text-[28px]">
+                Store Overview
+              </h1>
+              <p className="mt-0.5 text-sm font-normal text-muted-foreground">{user.name}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                className="h-10 gap-2 px-4 text-sm font-medium"
+                onClick={handleOpenSalesConversion}
+                variant="outline"
+              >
+                <TrendingUp size={16} />
+                Sales Conversion
+              </Button>
+              <Button
+                className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
+                onClick={handleAddNewClick}
+                variant="gradient"
+              >
+                <Plus size={14} />
+                Create customer
+              </Button>
+            </div>
+          </div>
+
+          <div className="w-full">
+            <StoreCard data={optometristUsersWithStatus} variant="optometrist-users" />
+          </div>
+
+          {renderRecentCustomersCard()}
+        </main>
       ) : (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -687,7 +766,7 @@ export function StoreScreen() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
-                className="h-10 gap-2 px-4 py-4 text-sm font-medium"
+                className="h-10 gap-2 px-4 text-sm font-medium"
                 onClick={handleOpenSalesConversion}
                 variant="outline"
               >

@@ -60,10 +60,10 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
       : { le: { ...emptyOptometristRxValues }, re: { ...emptyOptometristRxValues } };
   });
 
-  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
+  const [prevCustomerId, setPrevCustomerId] = React.useState(selectedCustomer?.id);
 
-  if (selectedCustomer !== prevSelectedCustomer) {
-    setPrevSelectedCustomer(selectedCustomer);
+  if (selectedCustomer?.id !== prevCustomerId) {
+    setPrevCustomerId(selectedCustomer?.id);
 
     if (selectedCustomer) {
       setStoreFeedback(selectedCustomer.storeFeedback || '');

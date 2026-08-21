@@ -153,7 +153,17 @@ export type CustomerState = {
   loading: boolean;
 };
 
-export type CustomerStatus = 'Accepted' | 'Closed' | 'Completed' | 'Created' | 'Drop' | 'Initiated';
+export type CustomerStatus =
+  | 'Accepted'
+  | 'Cancelled'
+  | 'Closed'
+  | 'Completed'
+  | 'Created'
+  | 'Drop'
+  | 'Initiated'
+  | 'Queued'
+  | 'Test Completed'
+  | 'Testing';
 
 export type CustomerStatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
 

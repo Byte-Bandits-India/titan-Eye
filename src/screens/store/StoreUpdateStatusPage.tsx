@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { useToast } from '../../components/ui/toast';
+import { isObjectiveRxComplete } from '../../options/Option';
 import { useAppDispatch } from '../../store';
 import { parseTimestamp } from './components/formatters';
 
@@ -86,10 +87,10 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = React.useState(false);
 
-  const [prevSelectedCustomer, setPrevSelectedCustomer] = React.useState(selectedCustomer);
+  const [prevCustomerId, setPrevCustomerId] = React.useState(selectedCustomer?.id);
 
-  if (selectedCustomer !== prevSelectedCustomer) {
-    setPrevSelectedCustomer(selectedCustomer);
+  if (selectedCustomer?.id !== prevCustomerId) {
+    setPrevCustomerId(selectedCustomer?.id);
     setForm(buildFormState(selectedCustomer));
     setErrors({});
   }
@@ -154,6 +155,17 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
       return;
     }
 
+    if (selectedCustomer.status === 'Test Completed' && !isObjectiveRxComplete(selectedCustomer.rxData)) {
+      toast({
+        description:
+          'Please fill in the required Auto Ref prescription fields (Sph, Cyl, Axis, PD for both eyes) in Store Rx before marking the consultation as Completed.',
+        title: 'Prescription Incomplete',
+        type: 'error',
+      });
+
+      return;
+    }
+
     const isConverted = form.conversionStatus === 'Converted';
 
     const updatedCustomer: Customer = {
@@ -167,6 +179,7 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
       nonConversionReason: isConverted ? null : form.nonConversionReason,
       orderDate: isConverted ? form.orderDate.trim() : null,
       salesOrderNumber: isConverted ? form.salesOrderNumber.trim() : null,
+      status: selectedCustomer.status === 'Closed' ? 'Closed' : 'Completed',
     };
 
     setIsSaving(true);

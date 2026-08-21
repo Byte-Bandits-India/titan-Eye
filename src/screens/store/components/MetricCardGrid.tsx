@@ -5,10 +5,11 @@ import type { TabCounts } from '../../../types';
 import { MetricCard } from '../../../components/shared/MetricCard';
 
 type MetricCardGridProps = {
+  isTabletMode?: boolean;
   tabCounts: TabCounts;
 };
 
-export function MetricCardGrid({ tabCounts }: MetricCardGridProps) {
+export function MetricCardGrid({ isTabletMode, tabCounts }: MetricCardGridProps) {
   const cards = [
     {
       icon: Clock,
@@ -37,7 +38,13 @@ export function MetricCardGrid({ tabCounts }: MetricCardGridProps) {
   ] as const;
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div
+      className={
+        isTabletMode
+          ? 'grid w-full grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4'
+          : 'grid w-full grid-cols-2 gap-4'
+      }
+    >
       {cards.map((card) => (
         <MetricCard key={card.label} {...card} />
       ))}

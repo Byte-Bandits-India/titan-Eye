@@ -53,12 +53,12 @@ async function findNextAvailableOptometrist(
   );
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
   const busyRows = await all<{ callTakenBy: null | string }>(
-    `SELECT callTakenBy FROM customers WHERE status IN ('Initiated', 'Accepted') AND callTakenBy IS NOT NULL`
+    `SELECT callTakenBy FROM customers WHERE status IN ('Initiated', 'Accepted', 'Queued', 'Testing') AND callTakenBy IS NOT NULL`
   );
   const busyLower = new Set(busyRows.map((r) => (r.callTakenBy || '').toLowerCase()));
 
   const callCountRows = await all<{ callCount: number; callTakenBy: null | string }>(
-    `SELECT callTakenBy, COUNT(*) as callCount FROM customers WHERE status = 'Completed' AND callTakenBy IS NOT NULL GROUP BY callTakenBy`
+    `SELECT callTakenBy, COUNT(*) as callCount FROM customers WHERE status IN ('Completed', 'Test Completed') AND callTakenBy IS NOT NULL GROUP BY callTakenBy`
   );
   const callCountByName = new Map<string, number>();
   for (const row of callCountRows) {
@@ -189,7 +189,7 @@ async function computeQueuePositions(): Promise<Map<string, number>> {
     Pick<CustomerRow, 'callStartTime' | 'createdOn' | 'id' | 'isPriority' | 'lastUpdatedOn'>
   >(
     `SELECT id, createdOn, callStartTime, lastUpdatedOn, isPriority FROM customers
-     WHERE status = 'Initiated' OR (status = 'Created' AND callStartTime IS NOT NULL AND callStartTime != '')`
+     WHERE status IN ('Initiated', 'Queued') OR (status = 'Created' AND callStartTime IS NOT NULL AND callStartTime != '')`
   );
 
   const priorityRows = rows
@@ -658,6 +658,10 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     const sanitized = validation.sanitized;
 
+    if (req.user!.role === 'optometrist' && (sanitized.status === 'Completed' || c.status === 'Completed')) {
+      sanitized.status = 'Test Completed';
+    }
+
     const optometristFeedbackVal = sanitized.optometristFeedback ?? '';
     const optometristRxVal = sanitized.optometristRxData ?? null;
     const optometristCallStartVal = c.optometristCallStartTime ?? null;
@@ -743,7 +747,12 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       }
     }
 
-    if (customer.status === 'Initiated' || customer.status === 'Accepted') {
+    if (
+      customer.status === 'Initiated' ||
+      customer.status === 'Accepted' ||
+      customer.status === 'Queued' ||
+      customer.status === 'Testing'
+    ) {
       const currentHolder = await get<UserRow>('SELECT role FROM users WHERE name = ?', [
         customer.callTakenBy,
       ]);
@@ -760,7 +769,8 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       }
 
       const isOptometristRequester = requesterRole === 'optometrist';
-      const isUnclaimedOffer = customer.status === 'Initiated' && !customer.callTakenBy;
+      const isUnclaimedOffer =
+        (customer.status === 'Initiated' || customer.status === 'Queued') && !customer.callTakenBy;
 
       if (!((isStoreHolder || isUnclaimedOffer) && isOptometristRequester)) {
         return res
@@ -1423,7 +1433,7 @@ setInterval(async () => {
   try {
     const nowMs = Date.now();
     const initiatedCalls = await all<CustomerRow>(
-      "SELECT id, callStartTime, lastUpdatedOn FROM customers WHERE status = 'Initiated' AND callActive = 1"
+      "SELECT id, callStartTime, lastUpdatedOn FROM customers WHERE (status = 'Initiated' OR status = 'Queued') AND callActive = 1"
     );
 
     for (const call of initiatedCalls) {
@@ -1479,7 +1489,7 @@ setInterval(async () => {
   try {
     const nowMs = Date.now();
     const pendingOffers = await all<CustomerRow>(
-      "SELECT * FROM customer_summary WHERE status = 'Initiated' AND callActive = 1 AND offeredToOptometristEmail IS NOT NULL"
+      "SELECT * FROM customer_summary WHERE (status = 'Initiated' OR status = 'Queued') AND callActive = 1 AND offeredToOptometristEmail IS NOT NULL"
     );
 
     for (const customer of pendingOffers) {

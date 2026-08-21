@@ -435,6 +435,7 @@ export function NotificationPopover({
 
       return next;
     });
+    stopAudio();
   };
 
   const handleAccept = (customerId: string) => {
@@ -741,9 +742,13 @@ export function NotificationPopover({
               const subtitle = item.category === 'customer' ? item.subtitle : item.description;
               const initial = (title || 'N').trim().charAt(0).toUpperCase();
               const dismissId = item.category === 'customer' ? item.customer.id : item.id;
+              const isIncomingCall = item.category === 'customer' && item.type === 'incoming_call';
               const isCallAccepted = item.category === 'customer' && item.type === 'call_accepted';
+              const isAdminStatus = item.category === 'customer' && item.type === 'admin_status';
               const isRetryable =
                 item.category === 'log' && item.logType === 'no_optometrist_available' && item.customerId;
+              const hasCustomerLog =
+                item.category === 'log' && Boolean(item.customerId) && item.logType !== 'no_optometrist_available';
 
               return (
                 <div
@@ -762,19 +767,64 @@ export function NotificationPopover({
                       <p className="truncate text-base font-bold text-white">{title}</p>
                       <p className="mt-1.5 text-sm font-medium text-white/90">{subtitle}</p>
                     </div>
-                    <button
-                      className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                      onClick={() =>
-                        item.category === 'customer'
-                          ? handleDismiss(dismissId)
-                          : dismissLogNotification(dismissId)
-                      }
-                      title="Close"
-                      type="button"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {isIncomingCall && user?.role === 'optometrist' && (
+                        <button
+                          className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                          onClick={() => {
+                            setIsMuted((prev) => {
+                              const next = !prev;
+
+                              if (next) {
+                                stopAudio();
+                              }
+
+                              return next;
+                            });
+                          }}
+                          title={isMuted ? 'Unmute chime' : 'Mute chime'}
+                          type="button"
+                        >
+                          {isMuted ? (
+                            <VolumeX className="h-4 w-4 text-rose-300" />
+                          ) : (
+                            <Volume2 className="h-4 w-4 text-emerald-300" />
+                          )}
+                        </button>
+                      )}
+                      <button
+                        className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                        onClick={() =>
+                          item.category === 'customer'
+                            ? handleDismiss(dismissId)
+                            : dismissLogNotification(dismissId)
+                        }
+                        title="Close"
+                        type="button"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
+
+                  {isIncomingCall && (
+                    <div className="flex divide-x divide-white/15" style={{ backgroundColor: '#222876' }}>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-emerald-300 transition-colors hover:bg-white/10"
+                        onClick={() => handleAccept(item.customer.id)}
+                        type="button"
+                      >
+                        Accept / View
+                      </button>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-rose-300 transition-colors hover:bg-white/10"
+                        onClick={() => handleDecline(item.customer.id)}
+                        type="button"
+                      >
+                        Ignore
+                      </button>
+                    </div>
+                  )}
 
                   {isCallAccepted && (
                     <div className="flex" style={{ backgroundColor: '#222876' }}>
@@ -788,6 +838,18 @@ export function NotificationPopover({
                     </div>
                   )}
 
+                  {isAdminStatus && (
+                    <div className="flex" style={{ backgroundColor: '#222876' }}>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        onClick={() => handleAccept(item.customer.id)}
+                        type="button"
+                      >
+                        Review Feedback
+                      </button>
+                    </div>
+                  )}
+
                   {isRetryable && (
                     <div className="flex" style={{ backgroundColor: '#222876' }}>
                       <button
@@ -797,6 +859,18 @@ export function NotificationPopover({
                         type="button"
                       >
                         {retryingLogId === item.id ? 'Retrying…' : 'Try Again'}
+                      </button>
+                    </div>
+                  )}
+
+                  {hasCustomerLog && (
+                    <div className="flex" style={{ backgroundColor: '#222876' }}>
+                      <button
+                        className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        onClick={() => handleAccept(item.customerId!)}
+                        type="button"
+                      >
+                        View Customer
                       </button>
                     </div>
                   )}

@@ -107,7 +107,14 @@ export function OptometristPatientDetails({
       status,
     };
 
-    if (status === 'Completed' || status === 'Closed' || status === 'Created' || status === 'Drop') {
+    if (
+      status === 'Test Completed' ||
+      status === 'Completed' ||
+      status === 'Closed' ||
+      status === 'Cancelled' ||
+      status === 'Created' ||
+      status === 'Drop'
+    ) {
       updatedCustomer.callActive = false;
     }
 
@@ -173,7 +180,7 @@ export function OptometristPatientDetails({
       return;
     }
 
-    void applyStatusUpdate('Completed');
+    void applyStatusUpdate('Test Completed');
   };
 
   const handleDropCall = async () => {
@@ -221,7 +228,7 @@ export function OptometristPatientDetails({
             Back
           </Button>
 
-          {readOnly ? null : selectedCustomer?.status === 'Accepted' ? (
+          {readOnly ? null : selectedCustomer?.status === 'Accepted' || selectedCustomer?.status === 'Testing' ? (
             <div className="inline-flex h-10 items-center overflow-hidden rounded-md border border-border">
               <button
                 className="h-full cursor-pointer bg-white px-4 text-sm font-normal text-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-card"

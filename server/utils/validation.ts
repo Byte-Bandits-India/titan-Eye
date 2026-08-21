@@ -9,7 +9,19 @@ const MAX_COMMENT_LENGTH = 500;
 
 const VALID_GENDERS = ['Male', 'Female', 'Other'];
 const VALID_CUSTOMER_TYPES = ['New', 'Existing', 'VIP'];
-const VALID_STATUSES = ['Created', 'Initiated', 'Accepted', 'Completed', 'Closed', 'Drop'];
+const VALID_STATUSES = [
+  'Created',
+  'Queued',
+  'Initiated',
+  'Testing',
+  'Accepted',
+  'Test Completed',
+  'TestCompleted',
+  'Completed',
+  'Cancelled',
+  'Closed',
+  'Drop',
+];
 const VALID_CONVERSION_STATUSES = ['Converted', 'Not Converted'];
 const VALID_NON_CONVERSION_REASONS = [
   'Price is high',

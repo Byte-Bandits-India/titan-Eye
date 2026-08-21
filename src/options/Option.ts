@@ -28,6 +28,27 @@ export function isOptometristRxComplete(
   );
 }
 
+export function isObjectiveRxComplete(
+  rx: null | undefined | { autoRefLe?: RxValues; autoRefRe?: RxValues }
+): boolean {
+  if (!rx?.autoRefRe || !rx?.autoRefLe) {
+    return false;
+  }
+
+  const { autoRefLe, autoRefRe } = rx;
+
+  return Boolean(
+    autoRefRe.sph?.trim() &&
+    autoRefRe.cyl?.trim() &&
+    autoRefRe.axis?.trim() &&
+    autoRefRe.pd?.trim() &&
+    autoRefLe.sph?.trim() &&
+    autoRefLe.cyl?.trim() &&
+    autoRefLe.axis?.trim() &&
+    autoRefLe.pd?.trim()
+  );
+}
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 export const PAGINATION = {

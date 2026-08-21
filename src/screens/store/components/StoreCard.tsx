@@ -22,6 +22,7 @@ import { RecentCustomersBody } from './RecentCustomersBody';
 export type StoreCardProps = MetricsVariant | OptometristUsersVariant | RecentCustomersVariant;
 
 type MetricsVariant = {
+  isTabletMode?: boolean;
   tabCounts: TabCounts;
   variant: 'metrics';
 };
@@ -58,7 +59,7 @@ type RecentCustomersVariant = {
 
 export function StoreCard(props: StoreCardProps) {
   if (props.variant === 'metrics') {
-    return <MetricCardGrid tabCounts={props.tabCounts} />;
+    return <MetricCardGrid isTabletMode={props.isTabletMode} tabCounts={props.tabCounts} />;
   }
 
   if (props.variant === 'optometrist-users') {

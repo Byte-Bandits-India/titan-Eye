@@ -37,9 +37,9 @@ export function MetricCard({
         <span className="truncate text-sm font-medium text-black">{label}</span>
       </div>
 
-      <div className="flex items-baseline gap-2 px-8 py-5">
-        <MetricCountUp className="text-[42px] font-medium leading-none text-foreground" value={value} />
-        <span className="text-sm font-normal text-muted-foreground">
+      <div className="flex items-baseline gap-2 px-4 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5">
+        <MetricCountUp className="text-[28px] font-medium leading-none text-foreground sm:text-[34px] md:text-[42px]" value={value} />
+        <span className="text-xs font-normal text-muted-foreground sm:text-sm">
           {value === 1 ? unitSingular : unitPlural}
         </span>
       </div>
