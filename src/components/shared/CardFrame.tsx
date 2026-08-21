@@ -17,7 +17,7 @@ export type CardHeaderProps = {
 export function CardFrame({ children, className }: CardFrameProps) {
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-md border border-[#c2c2c2] bg-card shadow-sm${className ? ` ${className}` : ''}`}
+      className={`flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-xs${className ? ` ${className}` : ''}`}
     >
       {children}
     </div>
@@ -33,7 +33,7 @@ export function CardHeader({
 }: CardHeaderProps) {
   return (
     <div
-      className={`flex flex-wrap items-center justify-between gap-2.5 border-b border-[#e5e5e5] bg-[#F7F7F7] px-4 py-2.5${className ? ` ${className}` : ''}`}
+      className={`flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5 dark:bg-muted/40${className ? ` ${className}` : ''}`}
     >
       <div className="flex items-center gap-2.5">
         <div
@@ -41,7 +41,7 @@ export function CardHeader({
         >
           <Icon size={13} />
         </div>
-        <span className="text-sm font-medium text-black">{title}</span>
+        <span className="text-sm font-semibold text-foreground">{title}</span>
       </div>
 
       {right != null && <div className="flex items-center gap-2">{right}</div>}

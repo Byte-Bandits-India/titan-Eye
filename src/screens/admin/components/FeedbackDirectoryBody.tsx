@@ -40,19 +40,19 @@ export function FeedbackDirectoryBody({
   const columns = React.useMemo<DataTableColumn<Customer>[]>(
     () => [
       {
-        cellClassName: 'font-mono text-xs font-normal text-slate-600 dark:text-slate-400',
-        headerClassName: 'w-28 text-sm font-medium text-muted-foreground',
+        cellClassName: 'font-mono text-xs font-medium text-slate-600 dark:text-slate-400',
+        headerClassName: 'w-28 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'id',
         label: 'Patient ID',
         render: (cust) => cust.id,
       },
       {
-        headerClassName: 'w-44 text-sm font-medium text-muted-foreground',
+        headerClassName: 'w-44 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'name',
         label: 'Name',
         render: (cust) => (
           <>
-            <div className="font-normal text-foreground">{cust.name}</div>
+            <div className="text-xs sm:text-sm font-medium text-foreground">{cust.name}</div>
             <div className="text-xs text-muted-foreground">
               {cust.age} yrs • {cust.gender}
             </div>
@@ -60,7 +60,7 @@ export function FeedbackDirectoryBody({
         ),
       },
       {
-        headerClassName: 'w-36 text-sm font-medium text-muted-foreground',
+        headerClassName: 'w-36 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'storeName',
         label: 'Store Code',
         render: (cust) => (
@@ -71,13 +71,13 @@ export function FeedbackDirectoryBody({
       },
       {
         cellClassName: 'font-mono text-xs text-slate-600 dark:text-slate-400',
-        headerClassName: 'w-90 text-sm font-medium text-muted-foreground',
+        headerClassName: 'w-90 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'storeContactEmail',
         label: 'Store Email',
         render: (cust) => cust.storeContactEmail || '—',
       },
       {
-        headerClassName: 'text-sm font-medium text-muted-foreground',
+        headerClassName: 'text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'patientFeedback',
         label: 'Patient Feedback',
         render: (cust) => (
@@ -88,7 +88,7 @@ export function FeedbackDirectoryBody({
       },
       {
         cellClassName: 'text-right text-xs text-muted-foreground',
-        headerClassName: 'w-32 text-right text-sm font-medium text-muted-foreground',
+        headerClassName: 'w-32 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground',
         id: 'lastUpdated',
         label: 'Date',
         render: (cust) =>

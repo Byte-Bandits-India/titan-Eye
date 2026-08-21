@@ -40,7 +40,7 @@ function AvailableDirectoryCard({
 
   return (
     <CardFrame className="flex h-[300px] flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#e5e5e5] bg-[#F7F7F7] px-4 py-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5 dark:bg-muted/40">
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
@@ -50,7 +50,7 @@ function AvailableDirectoryCard({
           >
             {view === 'optometrists' ? <Stethoscope size={13} /> : <Store size={13} />}
           </div>
-          <span className="text-sm font-medium text-black">Available</span>
+          <span className="text-sm font-semibold text-foreground">Available</span>
           <div className="flex gap-1 rounded-lg bg-muted p-1">
             <button
               className={cn(

@@ -40,7 +40,7 @@ export function DataTable<T>({
           <TableRow className={headerRowClassName}>
             {visibleColumnDefs.map((col) => (
               <TableHead
-                className={col.headerClassName ?? 'whitespace-nowrap text-sm font-medium text-muted-foreground'}
+                className={col.headerClassName ?? 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground'}
                 key={col.id}
               >
                 {col.label}

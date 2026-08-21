@@ -39,7 +39,7 @@ export function ColumnVisibilityDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           className={cn(
-            'border-border/80 shadow-xs flex h-10 shrink-0 cursor-pointer items-center justify-between gap-2.5 rounded-md border bg-card px-4 text-xs font-medium text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
+            'border-border/80 shadow-xs flex h-9 shrink-0 cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 text-xs font-medium text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
             className
           )}
           size="sm"

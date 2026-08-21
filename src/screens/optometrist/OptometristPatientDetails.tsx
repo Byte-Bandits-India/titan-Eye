@@ -215,7 +215,7 @@ export function OptometristPatientDetails({
   return (
     <main className="font-pro mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-lg font-medium text-foreground sm:text-xl">Customer Details</h1>
+        <h1 className="text-lg font-bold text-foreground sm:text-xl">Customer Details</h1>
 
         <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
           <Button

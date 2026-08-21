@@ -28,10 +28,10 @@ export function PaginationBar({
   const isPreset = presets.includes(itemsPerPage);
 
   return (
-    <div className="bg-muted/30 flex items-center justify-between border-t border-border px-2 py-4 text-xs text-muted-foreground">
+    <div className="bg-muted/30 flex items-center justify-between border-t border-border px-3 py-3 text-xs font-medium text-muted-foreground">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-muted-foreground">Per page:</span>
+          <span className="text-xs font-medium text-muted-foreground">Per page:</span>
           {onItemsPerPageChange ? (
             <div className="relative flex items-center">
               {isCustomMode ? (

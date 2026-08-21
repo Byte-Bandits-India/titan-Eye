@@ -52,14 +52,14 @@ export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
                 />
               </div>
               <div className="min-w-0">
-                <div className="truncate text-xs font-normal text-foreground">{row.original.name}</div>
-                <div className="truncate text-[10px] text-muted-foreground">{location || '—'}</div>
+                <div className="truncate text-xs sm:text-sm font-medium text-foreground">{row.original.name}</div>
+                <div className="truncate text-xs text-muted-foreground">{location || '—'}</div>
               </div>
             </div>
           );
         },
         enableSorting: false,
-        header: () => <span className="text-sm font-medium text-muted-foreground">Store</span>,
+        header: () => <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Store</span>,
         id: 'name',
         meta: { cellClassName: 'py-2.5' },
         size: 260,
@@ -68,7 +68,7 @@ export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
         cell: ({ row }) => (
           <span
             className={cn(
-              'inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-medium',
+              'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium',
               row.original.avail.badgeClass
             )}
           >
@@ -76,7 +76,7 @@ export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
           </span>
         ),
         enableSorting: false,
-        header: () => <span className="text-sm font-medium text-muted-foreground">Status</span>,
+        header: () => <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>,
         id: 'status',
         meta: { cellClassName: 'py-2.5' },
         size: 120,

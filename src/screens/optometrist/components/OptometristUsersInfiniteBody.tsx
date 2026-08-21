@@ -39,11 +39,11 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto" onScroll={handleScroll}>
         <table className="w-full border-collapse text-left">
           <thead className="sticky top-0 z-10 bg-card">
-            <tr className="border-b border-gray-200">
-              <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Optometrist</th>
-              <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Languages Known</th>
-              <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-sm font-normal text-muted-foreground">Call Duration</th>
+            <tr className="border-b border-border">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Optometrist</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Languages Known</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Call Duration</th>
             </tr>
           </thead>
           <tbody>

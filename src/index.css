@@ -132,10 +132,8 @@ table {
 
 .font-pro {
   font-family: 'Inter', sans-serif;
-  line-height: auto;
+  line-height: normal;
   letter-spacing: 0px;
-  font-weight: normal;
-  color: #333333;
 }
 
 @keyframes tvmode-kenburns {

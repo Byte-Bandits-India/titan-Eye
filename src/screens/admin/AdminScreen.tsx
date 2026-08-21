@@ -609,7 +609,7 @@ export function AdminScreen() {
       <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-lg font-bold text-foreground sm:text-xl">
+            <h1 className="text-2xl sm:text-[28px] font-semibold leading-tight text-foreground">
               {activeTab === 'customers'
                 ? 'Customer Directory'
                 : activeTab === 'users'
@@ -620,7 +620,7 @@ export function AdminScreen() {
                       ? 'Video Library'
                       : 'System Audit Logs'}
             </h1>
-            <p className="text-xs text-muted-foreground sm:text-sm">
+            <p className="mt-0.5 text-xs sm:text-sm font-normal text-muted-foreground">
               {activeTab === 'customers'
                 ? 'Search and view registered customer transactions'
                 : activeTab === 'users'
