@@ -95,6 +95,8 @@ const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 const defaultOrigins = [
   'http://titan.thebytebandits.com',
   'https://titan.thebytebandits.com',
+  'http://titan-dev.thebytebandits.com',
+  'https://titan-dev.thebytebandits.com',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
