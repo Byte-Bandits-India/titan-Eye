@@ -47,8 +47,20 @@ apiClient.interceptors.response.use(
 
     return response;
   },
-  (error) => {
+  async (error) => {
     if (axios.isAxiosError(error) && error.response) {
+      if (
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        isEncryptedEnvelope(error.response.data)
+      ) {
+        try {
+          error.response.data = await decryptClientPayload(error.response.data);
+        } catch {
+          /* fallback: leave encrypted envelope as-is */
+        }
+      }
+
       const status = error.response.status;
       const data = error.response.data as { error?: string; message?: string };
 

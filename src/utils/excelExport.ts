@@ -246,6 +246,58 @@ const REFERENCE_PARAMETERS_DATA = [
   ['Base', '–', '–', 'Accepted values: Up, Down, In, Out'],
 ];
 
+function csvEscape(value: string): string {
+  if (/[",\n]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+
+  return value;
+}
+
+function parseTimestampMs(val: null | string | undefined): number {
+  if (!val) {
+    return 0;
+  }
+
+  const num = parseInt(val, 10);
+
+  if (!isNaN(num) && String(num).length >= 10) {
+    return num;
+  }
+
+  const dateMs = new Date(val).getTime();
+
+  return isNaN(dateMs) ? 0 : dateMs;
+}
+
+export function exportSalesConversionCsv(customers: Customer[]) {
+  const header = ['Customer ID', 'Mobile Number', 'Name', 'Date', 'Status'];
+
+  const rows = customers.map((c) => {
+    const ms = parseTimestampMs(c.createdOn || c.lastUpdatedOn);
+    const date = ms
+      ? new Date(ms).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+
+    return [c.id, c.mobile || '', c.name || '', date, c.conversionStatus || 'Pending'];
+  });
+
+  const csvContent = [header, ...rows]
+    .map((row) => row.map((cell) => csvEscape(String(cell))).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = `Sales_Conversion_${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function exportAllCustomersReport(customers: Customer[]) {
   const wb = generateCustomersWorkbook(customers);
   const filename = `Titan_Patients_Report_${new Date().toISOString().split('T')[0]}.xlsx`;

@@ -24,6 +24,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
+import { exportSalesConversionCsv } from '../../utils/excelExport';
 import { computeOptometristAvailability } from '../../utils/optometristAvailability';
 import { renderCallDuration, WaitingCell } from './components/cells';
 import {
@@ -507,7 +508,7 @@ export function StoreScreen() {
     setIsEditingRx(false);
     setIsCreatingTest(false);
     setIsUpdatingStatus(false);
-    setStatusTab('all');
+    setStatusTab('Pending');
     setConversionStatusFilter('all');
     resetPage();
     setIsViewingSalesConversion(true);
@@ -856,6 +857,9 @@ export function StoreScreen() {
         setConversionStatusFilter(val);
         resetPage();
       }}
+      onExportCsv={
+        onlyPendingAndAll ? () => exportSalesConversionCsv(salesConversionFilteredCustomers) : undefined
+      }
       onlyPendingAndAll={onlyPendingAndAll}
       onDateRangeChange={setCustomerDateRange}
       onNextPage={nextPage}

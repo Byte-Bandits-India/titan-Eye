@@ -22,7 +22,11 @@ const handleApiError = (err: Error, dispatch: AppDispatch, defaultMsg: string): 
       return 'Session expired. Please log in again.';
     }
 
-    const data = err.response?.data as undefined | { error?: string };
+    const data = err.response?.data as undefined | { details?: string[]; error?: string };
+
+    if (data?.details?.length) {
+      return `${data.error || defaultMsg}: ${data.details.join(', ')}`;
+    }
 
     return data?.error || defaultMsg;
   }

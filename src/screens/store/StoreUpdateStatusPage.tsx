@@ -11,7 +11,7 @@ import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { useToast } from '../../components/ui/toast';
 import { isObjectiveRxComplete } from '../../options/Option';
-import { useAppDispatch } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store';
 import { parseTimestamp } from './components/formatters';
 
 const NON_CONVERSION_REASONS = [
@@ -68,19 +68,42 @@ function formatTestConductedOn(customer: Customer | null): string {
   });
 }
 
+function getStorePrefix(customer: Customer | null, user: null | { name: string; storeName?: null | string }) {
+  return (customer?.storeName || user?.storeName || '').trim().toUpperCase();
+}
+
+function formatSalesOrderNumber(digits: string, storePrefix: string): string {
+  if (!digits) {
+    return '';
+  }
+
+  return `${storePrefix}${digits}`;
+}
+
 export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: StoreUpdateStatusPageProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const user = useAppSelector((state) => state.auth.user);
+  const storePrefix = getStorePrefix(selectedCustomer, user);
 
   const buildFormState = React.useCallback(
-    (customer: Customer | null) => ({
-      conversionStatus: customer?.conversionStatus || '',
-      nonConversionComment: customer?.nonConversionComment || '',
-      nonConversionReason: customer?.nonConversionReason || '',
-      orderDate: customer?.orderDate || '',
-      salesOrderNumber: customer?.salesOrderNumber || '',
-    }),
-    []
+    (customer: Customer | null) => {
+      const rawSalesOrderNumber = customer?.salesOrderNumber || '';
+      const prefix = getStorePrefix(customer, user);
+      const digitsOnly =
+        prefix && rawSalesOrderNumber.startsWith(prefix)
+          ? rawSalesOrderNumber.slice(prefix.length)
+          : rawSalesOrderNumber;
+
+      return {
+        conversionStatus: customer?.conversionStatus || '',
+        nonConversionComment: customer?.nonConversionComment || '',
+        nonConversionReason: customer?.nonConversionReason || '',
+        orderDate: customer?.orderDate || '',
+        salesOrderNumber: digitsOnly.replace(/\D/g, '').slice(0, 6),
+      };
+    },
+    [user]
   );
 
   const [form, setForm] = React.useState(() => buildFormState(selectedCustomer));
@@ -121,6 +144,8 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
     if (form.conversionStatus === 'Converted') {
       if (!form.salesOrderNumber.trim()) {
         newErrors.salesOrderNumber = 'Sales order number is required';
+      } else if (form.salesOrderNumber.trim().length !== 6) {
+        newErrors.salesOrderNumber = 'Sales order number must be exactly 6 digits';
       }
 
       if (!form.orderDate.trim()) {
@@ -178,7 +203,7 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
           : null,
       nonConversionReason: isConverted ? null : form.nonConversionReason,
       orderDate: isConverted ? form.orderDate.trim() : null,
-      salesOrderNumber: isConverted ? form.salesOrderNumber.trim() : null,
+      salesOrderNumber: isConverted ? formatSalesOrderNumber(form.salesOrderNumber.trim(), storePrefix) : null,
       status: selectedCustomer.status === 'Closed' ? 'Closed' : 'Completed',
     };
 
@@ -288,11 +313,21 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
                     <label className="text-sm font-medium text-muted-foreground">
                       Sales Order Number *
                     </label>
-                    <Input
-                      onChange={(e) => setField('salesOrderNumber')(e.target.value)}
-                      placeholder="Enter sales order number"
-                      value={form.salesOrderNumber}
-                    />
+                    <div className="relative w-full">
+                      {storePrefix && (
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                          {storePrefix}
+                        </span>
+                      )}
+                      <Input
+                        className={storePrefix ? 'pl-[3.25rem]' : undefined}
+                        inputMode="numeric"
+                        maxLength={6}
+                        onChange={(e) => setField('salesOrderNumber')(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="007231"
+                        value={form.salesOrderNumber}
+                      />
+                    </div>
                     {errors.salesOrderNumber && (
                       <p className="text-sm font-medium text-red-500">{errors.salesOrderNumber}</p>
                     )}

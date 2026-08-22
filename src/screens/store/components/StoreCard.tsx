@@ -1,6 +1,6 @@
 import type { Table } from '@tanstack/react-table';
 
-import { Stethoscope, Users2 } from 'lucide-react';
+import { Download, Stethoscope, Users2 } from 'lucide-react';
 
 import type { DataGridFeatures } from '../../../components/reui/data-grid/data-grid';
 import type {
@@ -19,6 +19,7 @@ import {
   type ConversionStatusFilterValue,
 } from '../../../components/shared/ConversionStatusFilter';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
+import { Button } from '../../../components/ui/button';
 import { OptometristUsersInfiniteBody } from '../../optometrist/components/OptometristUsersInfiniteBody';
 import { MetricCardGrid } from './MetricCardGrid';
 import { RecentCustomersBody } from './RecentCustomersBody';
@@ -45,6 +46,7 @@ type RecentCustomersVariant = {
   dateRange: DateFilterRange;
   hideStatusTabs?: boolean;
   onConversionStatusFilterChange?: (value: ConversionStatusFilterValue) => void;
+  onExportCsv?: () => void;
   onlyPendingAndAll?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage?: () => void;
@@ -96,6 +98,7 @@ export function StoreCard(props: StoreCardProps) {
     dateRange,
     hideStatusTabs,
     onConversionStatusFilterChange,
+    onExportCsv,
     onlyPendingAndAll,
     onDateRangeChange,
     onNextPage,
@@ -121,11 +124,26 @@ export function StoreCard(props: StoreCardProps) {
       columns={columns}
       dateRange={dateRange}
       extra={
-        showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange ? (
-          <ConversionStatusFilter
-            onChange={onConversionStatusFilterChange}
-            value={conversionStatusFilter}
-          />
+        onExportCsv || (showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange) ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange && (
+              <ConversionStatusFilter
+                onChange={onConversionStatusFilterChange}
+                value={conversionStatusFilter}
+              />
+            )}
+            {onExportCsv && (
+              <Button
+                className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 px-3 text-sm font-medium shadow-sm transition-all"
+                onClick={onExportCsv}
+                title="Download all records as CSV"
+                variant="primary"
+              >
+                <Download size={14} />
+                <span>Export CSV</span>
+              </Button>
+            )}
+          </div>
         ) : undefined
       }
       onDateRangeChange={onDateRangeChange}
