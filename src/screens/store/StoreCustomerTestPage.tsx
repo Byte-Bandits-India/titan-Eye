@@ -61,23 +61,6 @@ import {
 } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 
-function useRenderLog(label: string) {
-  const renderCount = React.useRef(0);
-  const lastTime = React.useRef<null | number>(null);
-
-  React.useEffect(() => {
-    renderCount.current += 1;
-
-    const now = performance.now();
-    const delta = lastTime.current === null ? 0 : now - lastTime.current;
-    lastTime.current = now;
-
-    console.log(
-      `[render] ${label} #${renderCount.current} at ${now.toFixed(1)}ms (+${delta.toFixed(1)}ms since last)`
-    );
-  });
-}
-
 type RxRow = 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
 type CustomerForm = {
   activeProfile: boolean;
@@ -101,8 +84,6 @@ type CustomerDetailsFieldsProps = {
 };
 
 function CustomerDetailsFieldsComponent({ errors, form, setField }: CustomerDetailsFieldsProps) {
-  useRenderLog('CustomerDetailsFields');
-
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
       <div className="space-y-1.5">
@@ -336,8 +317,6 @@ function ObjectiveRxContentComponent({
   setStoreFeedback,
   storeFeedback,
 }: ObjectiveRxContentProps) {
-  useRenderLog('ObjectiveRxContent');
-
   return (
     <div className="space-y-4">
       <div className="shadow-xs w-full overflow-hidden rounded-lg border border-slate-300 dark:border-zinc-700">
@@ -449,8 +428,6 @@ export function StoreCustomerTestPage({
   selectedCustomer,
   setSelectedCustomerId,
 }: StoreCustomerTestPageProps) {
-  useRenderLog('StoreCustomerTestPage');
-
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
@@ -987,9 +964,7 @@ export function StoreCustomerTestPage({
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"></div>
-
+    <main className="mx-auto w-full max-w-[1400px] flex-1 px-3 py-4 duration-200 animate-in fade-in sm:px-6 sm:py-8 md:px-8">
       <CardFrame className="p-3 sm:p-6 md:p-8">
         <Stepper
           indicators={{ completed: <CheckIcon className="size-4" /> }}
@@ -1134,7 +1109,7 @@ export function StoreCustomerTestPage({
                     type="button"
                     variant="primary"
                   >
-                    {isRequesting ? 'Requesting…' : 'Save and Request'}
+                    {isRequesting ? 'Requesting…' : 'Request'}
                   </Button>
                 </div>
               </div>

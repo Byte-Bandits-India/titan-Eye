@@ -174,12 +174,6 @@ function TeamsCallModalComponent({
         const state = adapter.getState();
         const page = state.page;
 
-        console.log('[TeamsCallModal] Adapter state update:', {
-          page,
-          callEndReason: state.call?.callEndReason,
-          latestErrors: state.latestErrors,
-        });
-
         if (page === 'configuration' && !hasJoinedRef.current) {
           hasJoinedRef.current = true;
           adapter.joinCall();

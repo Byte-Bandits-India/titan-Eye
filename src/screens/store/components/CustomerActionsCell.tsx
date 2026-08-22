@@ -272,7 +272,7 @@ export function CustomerActionsCell({
         variant="primary"
       >
         <ClipboardPlus size={14} />
-        Create Test
+        View
       </Button>
     );
   })();
