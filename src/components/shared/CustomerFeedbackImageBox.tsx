@@ -1,4 +1,4 @@
-import { ImagePlus, X } from 'lucide-react';
+import { Camera, ImagePlus, X } from 'lucide-react';
 import * as React from 'react';
 
 import { useFileUpload } from '../../hooks/use-file-upload';
@@ -69,6 +69,29 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
     },
   });
 
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleCameraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (file.size > MAX_FEEDBACK_IMAGE_SIZE) {
+      toast({
+        description: `File exceeds the maximum size of ${(MAX_FEEDBACK_IMAGE_SIZE / (1024 * 1024)).toFixed(0)}MB.`,
+        title: 'File Too Large',
+        type: 'error',
+      });
+
+      return;
+    }
+
+    void handleUpload(file);
+  };
+
   const handleRemove = async () => {
     setIsRemoving(true);
 
@@ -105,6 +128,15 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
       onDrop={handleDrop}
     >
       <input {...getInputProps()} className="sr-only" disabled={disabled} />
+      <input
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        disabled={disabled}
+        onChange={handleCameraChange}
+        ref={cameraInputRef}
+        type="file"
+      />
 
       {present ? (
         <>
@@ -124,15 +156,27 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
           </button>
         </>
       ) : (
-        <button
-          className="flex cursor-pointer flex-col items-center gap-1 text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={disabled}
-          onClick={openFileDialog}
-          type="button"
-        >
-          {isUploading ? <Spinner className="size-4" /> : <ImagePlus className="size-5" />}
-          <span className="text-[11px] font-medium">{isUploading ? 'Uploading…' : 'Upload'}</span>
-        </button>
+        <div className="flex items-center gap-2.5 text-muted-foreground">
+          <button
+            className="flex cursor-pointer flex-col items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled}
+            onClick={() => cameraInputRef.current?.click()}
+            type="button"
+          >
+            {isUploading ? <Spinner className="size-4" /> : <Camera className="size-5" />}
+            <span className="text-[11px] font-medium">{isUploading ? 'Uploading…' : 'Camera'}</span>
+          </button>
+          <div className="h-8 w-px bg-border" />
+          <button
+            className="flex cursor-pointer flex-col items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={disabled}
+            onClick={openFileDialog}
+            type="button"
+          >
+            {isUploading ? <Spinner className="size-4" /> : <ImagePlus className="size-5" />}
+            <span className="text-[11px] font-medium">{isUploading ? 'Uploading…' : 'Upload'}</span>
+          </button>
+        </div>
       )}
 
       {errors.length > 0 && <p className="mt-1 text-[10px] text-red-500">{errors[0]}</p>}

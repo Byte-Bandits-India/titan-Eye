@@ -102,7 +102,7 @@ const SheetDescription = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
-    className={cn('mt-1 text-xs text-muted-foreground', className)}
+    className={cn('mt-1 text-sm text-muted-foreground', className)}
     ref={ref}
     {...props}
   />

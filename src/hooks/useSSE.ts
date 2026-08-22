@@ -6,7 +6,7 @@ import { fetchCustomersAction } from '../Actions/customerActions';
 import { fetchUsersAction } from '../Actions/userActions';
 import { useNotificationLog } from '../components/ui/notificationLog';
 import { API_BASE_URL } from '../options/Option';
-import { customerCreated, customerUpdated } from '../Reducers/customerReducer';
+import { customerCreated, customerDeleted, customerUpdated } from '../Reducers/customerReducer';
 import { useAppDispatch, useAppSelector } from '../store';
 import { decryptClientPayload, isEncryptedEnvelope } from '../Util/cryptoClient';
 
@@ -59,6 +59,10 @@ export function useSSE(): void {
           dispatch(customerUpdated(eventData as Customer));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
+        } else if (type === 'CUSTOMER_DELETED') {
+          const { id } = eventData as { id: string };
+          dispatch(customerDeleted(id));
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'NO_OPTOMETRIST_AVAILABLE' || type === 'OPTOMETRIST_NO_RESPONSE') {
           const payload = eventData as NoOptometristEventPayload;

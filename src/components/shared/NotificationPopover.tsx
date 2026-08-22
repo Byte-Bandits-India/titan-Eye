@@ -600,7 +600,7 @@ export function NotificationPopover({
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">No new notifications</p>
-            <p className="max-w-[220px] text-xs text-muted-foreground">
+            <p className="max-w-[220px] text-sm text-muted-foreground">
               You're all caught up! New updates and requests will appear here.
             </p>
           </div>
@@ -629,7 +629,7 @@ export function NotificationPopover({
                     <Icon className="w-4.5 h-4.5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1 pr-24">
-                    <div className="text-xs font-medium leading-snug text-foreground">{item.title}</div>
+                    <div className="text-sm font-medium leading-snug text-foreground">{item.title}</div>
                     <div className="text-[11px] leading-relaxed text-muted-foreground">
                       {item.description}
                     </div>
@@ -678,19 +678,19 @@ export function NotificationPopover({
                 key={`cust-${item.id}`}
               >
                 <Avatar className="shadow-xs h-9 w-9 shrink-0 ring-2 ring-blue-100 dark:ring-zinc-700">
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-xs font-medium text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-sm font-medium text-white">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1 pr-24">
-                  <div className="truncate text-xs font-medium leading-snug text-foreground">
+                  <div className="truncate text-sm font-medium leading-snug text-foreground">
                     {item.title}
                   </div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</div>
                   {item.type === 'incoming_call' && (
                     <div className="flex items-center gap-2 pt-2">
                       <button
-                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white transition-all hover:bg-emerald-700 active:scale-95"
+                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-medium text-white transition-all hover:bg-emerald-700 active:scale-95"
                         onClick={() => handleAccept(item.customer.id)}
                         type="button"
                       >
@@ -698,7 +698,7 @@ export function NotificationPopover({
                       </button>
 
                       <button
-                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                         onClick={() => handleDecline(item.customer.id)}
                         type="button"
                       >
@@ -748,7 +748,9 @@ export function NotificationPopover({
               const isRetryable =
                 item.category === 'log' && item.logType === 'no_optometrist_available' && item.customerId;
               const hasCustomerLog =
-                item.category === 'log' && Boolean(item.customerId) && item.logType !== 'no_optometrist_available';
+                item.category === 'log' &&
+                Boolean(item.customerId) &&
+                item.logType !== 'no_optometrist_available';
 
               return (
                 <div

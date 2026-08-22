@@ -219,7 +219,7 @@ export function OptometristCallDrawer({
     if (!options) {
       return (
         <Input
-          className={hasError ? 'border-rose-400 text-center text-xs' : 'text-center text-xs'}
+          className={hasError ? 'border-rose-400 text-center text-sm' : 'text-center text-sm'}
           onChange={(e) => setData({ ...data, [field]: e.target.value })}
           value={data[field]}
         />
@@ -290,7 +290,7 @@ export function OptometristCallDrawer({
                     {isStartingCall ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone size={16} />}
                     {callSession ? 'Call Again' : 'Call'}
                   </button>
-                  <p className="text-center text-xs text-slate-400">
+                  <p className="text-center text-sm text-slate-400">
                     Ring the store to start the video consultation.
                   </p>
                 </div>
@@ -308,25 +308,21 @@ export function OptometristCallDrawer({
           >
             <div className="flex h-full w-full flex-col overflow-hidden">
               <SheetBody className="p-4 sm:p-6">
-                <h2 className="mb-4 text-center text-sm font-semibold uppercase tracking-wide text-foreground">
+                <h2 className="mb-4 text-center text-sm font-semibold tracking-wide text-foreground">
                   Subjective / Final
                 </h2>
 
                 <div className="space-y-2">
                   <div className="grid grid-cols-3 items-center gap-2">
-                    <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
-                      Right
-                    </p>
+                    <p className="text-center text-sm font-bold tracking-wide text-foreground">Right</p>
                     <span />
-                    <p className="text-center text-xs font-bold uppercase tracking-wide text-foreground">
-                      Left
-                    </p>
+                    <p className="text-center text-sm font-bold tracking-wide text-foreground">Left</p>
                   </div>
 
                   {optometristFields.map((field, idx) => (
                     <div className="grid grid-cols-3 items-center gap-2" key={field}>
                       {renderValueCell('re', field)}
-                      <p className="text-center text-xs font-bold text-muted-foreground">
+                      <p className="text-center text-sm font-bold text-muted-foreground">
                         {optometristHeaders[idx]}
                         {MANDATORY_FIELDS.has(field) && <span className="text-rose-500"> *</span>}
                       </p>
@@ -336,9 +332,7 @@ export function OptometristCallDrawer({
                 </div>
 
                 <div className="mt-6 space-y-1.5">
-                  <label className="text-xs font-medium uppercase tracking-wider text-foreground">
-                    Optometrist Notes
-                  </label>
+                  <label className="text-sm font-medium text-foreground">Optometrist Notes</label>
                   <textarea
                     className="min-h-[100px] w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-800"
                     onChange={(e) => setNotes(e.target.value)}

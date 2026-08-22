@@ -83,10 +83,10 @@ export function CancelRequestDialog({
         </div>
 
         <DialogFooter>
-          <Button disabled={isSubmitting} onClick={() => handleOpenChange(false)} variant="outline">
+          <Button disabled={isSubmitting} onClick={() => handleOpenChange(false)} variant="secondary">
             Back
           </Button>
-          <Button disabled={!reason || isSubmitting} onClick={handleConfirm} variant="gradient">
+          <Button disabled={!reason || isSubmitting} onClick={handleConfirm} variant="primary">
             {isSubmitting ? 'Cancelling…' : 'Cancel Request'}
           </Button>
         </DialogFooter>

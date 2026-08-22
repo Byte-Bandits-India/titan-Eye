@@ -22,7 +22,7 @@ export function OptometristActionsCell({ onSelectCustomer, onSetEditing, req }: 
         className="h-8 gap-1.5 px-3 text-sm font-normal"
         onClick={handleAction}
         size="sm"
-        variant="outline"
+        variant="secondary"
       >
         View
       </Button>

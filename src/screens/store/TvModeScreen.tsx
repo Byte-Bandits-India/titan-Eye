@@ -131,7 +131,7 @@ function IncomingCallSplash({ session }: { session: CallSessionPayload }) {
         </span>
 
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-cyan-400">Incoming Consultation</p>
+          <p className="text-sm font-semibold tracking-wide text-cyan-400">Incoming Consultation</p>
           <h1 className="mt-1 text-3xl font-bold text-white sm:text-4xl">
             {customer?.name ? `Call for ${customer.name}` : 'Optometrist is calling'}
           </h1>

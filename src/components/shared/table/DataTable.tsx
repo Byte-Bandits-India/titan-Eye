@@ -40,7 +40,9 @@ export function DataTable<T>({
           <TableRow className={headerRowClassName}>
             {visibleColumnDefs.map((col) => (
               <TableHead
-                className={col.headerClassName ?? 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground'}
+                className={
+                  col.headerClassName ?? 'whitespace-nowrap text-sm font-semibold text-muted-foreground'
+                }
                 key={col.id}
               >
                 {col.label}
@@ -51,7 +53,10 @@ export function DataTable<T>({
         <TableBody>
           {rows.length === 0 ? (
             <TableRow>
-              <TableCell className="py-8 text-center text-muted-foreground" colSpan={visibleColumnDefs.length}>
+              <TableCell
+                className="py-8 text-center text-muted-foreground"
+                colSpan={visibleColumnDefs.length}
+              >
                 {emptyMessage}
               </TableCell>
             </TableRow>

@@ -19,7 +19,7 @@ const BrandHeader = () => (
   <div className="mb-7 flex flex-col items-center text-center">
     <p className="mb-2 text-sm text-gray-500">Welcome to</p>
     <img alt="TITAN EYE+" className="h-auto w-36" src="/images/logo-black.png" />
-    <p className="mt-2 text-xs font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
+    <p className="mt-2 text-sm font-medium tracking-[0.2em] text-gray-500">REMOTE EYE TESTING</p>
     <div className="mt-3 h-0.5 w-10 rounded-full bg-teal-600" />
   </div>
 );
@@ -181,9 +181,7 @@ export function LoginScreen() {
 
             <div className="my-6 flex items-center gap-4">
               <div className="h-px flex-1 bg-gray-300" />
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-400">
-                or continue with
-              </span>
+              <span className="text-sm font-medium text-gray-400">or continue with</span>
               <div className="h-px flex-1 bg-gray-300" />
             </div>
 
@@ -278,7 +276,7 @@ export function LoginScreen() {
             </div>
 
             <button
-              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-sm font-semibold uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-teal-600 text-sm font-semibold tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isLoading}
               type="submit"
             >
@@ -295,7 +293,7 @@ export function LoginScreen() {
 
           <div className="my-5 flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs font-medium uppercase text-gray-400">or continue with</span>
+            <span className="text-sm font-medium text-gray-400">or continue with</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 

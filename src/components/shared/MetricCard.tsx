@@ -24,8 +24,8 @@ export function MetricCard({
   value,
 }: MetricCardConfig) {
   return (
-    <div className="overflow-hidden rounded-md border border-border bg-card shadow-xs">
-      <div className="flex items-center gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5 dark:bg-muted/40">
+    <div className="shadow-xs overflow-hidden rounded-md border border-border bg-card">
+      <div className="dark:bg-muted/40 flex items-center gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5">
         <div
           className={cn(
             'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br text-white',
@@ -38,8 +38,11 @@ export function MetricCard({
       </div>
 
       <div className="flex items-baseline gap-2 px-4 py-3.5 sm:px-6 sm:py-4 md:px-8 md:py-5">
-        <MetricCountUp className="text-[28px] font-semibold leading-none text-foreground sm:text-[32px] md:text-[38px]" value={value} />
-        <span className="text-xs font-normal text-muted-foreground sm:text-sm">
+        <MetricCountUp
+          className="text-[28px] font-semibold leading-none text-foreground sm:text-[32px] md:text-[38px]"
+          value={value}
+        />
+        <span className="text-sm font-normal text-muted-foreground sm:text-sm">
           {value === 1 ? unitSingular : unitPlural}
         </span>
       </div>

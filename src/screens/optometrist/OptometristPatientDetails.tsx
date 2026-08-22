@@ -222,7 +222,7 @@ export function OptometristPatientDetails({
             className="active:scale-98 flex h-10 cursor-pointer items-center gap-1.5 rounded-md border-gray-200 bg-white px-4 text-sm font-normal text-gray-600 shadow-sm transition-all hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
             onClick={onBack}
             type="button"
-            variant="outline"
+            variant="secondary"
           >
             <ChevronLeft size={16} />
             Back
@@ -257,7 +257,7 @@ export function OptometristPatientDetails({
                 onClick={handleAcceptCall}
                 title={hasOtherActiveCall ? 'You already have an active call in progress.' : undefined}
                 type="button"
-                variant="gradient"
+                variant="primary"
               >
                 Accept
               </Button>
@@ -453,7 +453,7 @@ export function OptometristPatientDetails({
                   : undefined
             }
             type="button"
-            variant="gradient"
+            variant="primary"
           >
             <Video size={16} />
             {isConsultationOpen && isConsultationMinimized ? 'Resume Consultation' : 'Start Consultation'}

@@ -221,13 +221,13 @@ function TeamsCallModalComponent({
         <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 px-4 py-2.5">
           <div className="flex items-center gap-2.5">
             <span className="flex h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
-            <h3 className="text-xs font-medium text-white sm:text-sm">
+            <h3 className="text-sm font-medium text-white sm:text-sm">
               Live Video Consultation — Customer #{session.customerId}
             </h3>
           </div>
 
           <button
-            className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
+            className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-sm font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
             onClick={() => handleEndCall('User clicked End Call button')}
             type="button"
           >
@@ -242,7 +242,7 @@ function TeamsCallModalComponent({
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-              <p className="text-xs font-medium sm:text-sm">Initializing video consultation stream...</p>
+              <p className="text-sm font-medium sm:text-sm">Initializing video consultation stream...</p>
             </div>
           )}
         </div>
@@ -277,7 +277,7 @@ function TeamsCallModalComponent({
           <div className="flex items-center gap-2.5">
             <GripHorizontal className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="flex h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />
-            <span className="whitespace-nowrap text-xs font-medium text-white sm:text-xs">
+            <span className="whitespace-nowrap text-sm font-medium text-white sm:text-sm">
               Call Active · #{session.customerId}
             </span>
           </div>
@@ -329,7 +329,7 @@ function TeamsCallModalComponent({
           <div className="flex items-center gap-2.5">
             <span className="flex h-3 w-3 animate-pulse rounded-full bg-emerald-500" />
             <div>
-              <h3 className="text-xs font-medium text-white sm:text-sm">
+              <h3 className="text-sm font-medium text-white sm:text-sm">
                 Live Video Consultation — Customer #{session.customerId}
               </h3>
               <p className="text-[11px] text-slate-400">
@@ -362,7 +362,7 @@ function TeamsCallModalComponent({
 
             {/* End Call Button */}
             <button
-              className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1 text-sm font-medium text-white transition-all hover:bg-rose-700 active:scale-95"
               onClick={() => handleEndCall('User clicked End Call button')}
               type="button"
             >
@@ -379,7 +379,7 @@ function TeamsCallModalComponent({
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-              <p className="text-xs font-medium sm:text-sm">Initializing video consultation stream...</p>
+              <p className="text-sm font-medium sm:text-sm">Initializing video consultation stream...</p>
             </div>
           )}
         </div>

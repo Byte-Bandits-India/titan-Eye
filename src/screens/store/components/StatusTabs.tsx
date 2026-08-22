@@ -31,12 +31,12 @@ export function StatusTabs({
       <TabsList variant="line">
         {tabs.map((tab) => (
           <TabsTrigger
-            className="flex-none gap-2 text-xs font-medium text-muted-foreground underline-offset-4 data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:underline"
+            className="flex-none gap-2 text-sm font-medium text-muted-foreground underline-offset-4 data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:underline"
             key={tab.value}
             value={tab.value}
           >
             {tab.label}
-            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+            <span className="rounded-full bg-muted px-2 py-0.5 text-sm font-semibold text-muted-foreground">
               {tab.count}
             </span>
           </TabsTrigger>

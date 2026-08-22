@@ -104,7 +104,7 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
                   <FilmIcon className="size-5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{selectedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatBytes(selectedFile.size)}</p>
+                    <p className="text-sm text-muted-foreground">{formatBytes(selectedFile.size)}</p>
                   </div>
                 </div>
                 <Button
@@ -120,22 +120,22 @@ export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, ope
               <div className="flex flex-col items-center gap-2">
                 <UploadIcon className="size-5 text-muted-foreground" />
                 <p className="text-sm font-medium">Drag and drop a video here</p>
-                <p className="text-xs text-muted-foreground">or click below to browse</p>
-                <Button className="mt-1" onClick={openFileDialog} size="sm" type="button" variant="outline">
+                <p className="text-sm text-muted-foreground">or click below to browse</p>
+                <Button className="mt-1" onClick={openFileDialog} size="sm" type="button" variant="secondary">
                   Select video
                 </Button>
               </div>
             )}
           </div>
 
-          {errors.length > 0 && <p className="text-xs text-red-500">{errors[0]}</p>}
+          {errors.length > 0 && <p className="text-sm text-red-500">{errors[0]}</p>}
         </div>
 
         <DialogFooter>
-          <Button disabled={isUploading} onClick={() => handleOpenChange(false)} variant="outline">
+          <Button disabled={isUploading} onClick={() => handleOpenChange(false)} variant="secondary">
             Cancel
           </Button>
-          <Button disabled={!selectedFile || isUploading} onClick={handleSubmit} variant="gradient">
+          <Button disabled={!selectedFile || isUploading} onClick={handleSubmit} variant="primary">
             {isUploading && <Spinner className="size-4" />}
             {isUploading ? 'Saving...' : 'Upload'}
           </Button>

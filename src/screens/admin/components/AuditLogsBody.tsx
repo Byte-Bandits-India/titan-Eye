@@ -49,57 +49,58 @@ export function AuditLogsBody({
   const columns = React.useMemo<DataTableColumn<AuditLog>[]>(
     () => [
       {
-        cellClassName: 'whitespace-nowrap py-3 font-mono text-xs font-medium',
-        headerClassName: 'w-[110px] whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 font-mono text-sm font-medium',
+        headerClassName: 'w-[110px] whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'id',
         label: 'Log ID',
         render: (log) => <RoleIdBadge role={resolveLogRole(log)}>{log.id}</RoleIdBadge>,
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'timestamp',
         label: 'Timestamp',
         render: (log) => log.lastUpdatedOn || '—',
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs sm:text-sm font-medium text-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm sm:text-sm font-medium text-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'customerName',
         label: 'Name',
         render: (log) => log.customerName || 'N/A',
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 font-mono text-xs font-medium text-blue-600 dark:text-blue-400',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName:
+          'whitespace-nowrap py-3 font-mono text-sm font-medium text-blue-600 dark:text-blue-400',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'customerId',
         label: 'Patient ID',
         render: (log) => log.customerId,
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'storeName',
         label: 'Store Code',
         render: (log) => log.storeName || '—',
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'timeStarted',
         label: 'Time Started',
         render: (log) => renderTimeStarted(log),
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'callDuration',
         label: 'Call Duration',
         render: (log) => formatSeconds(log.callDuration || 0),
       },
       {
         cellClassName: 'whitespace-nowrap py-3',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'status',
         label: 'Status',
         render: (log) => (
@@ -109,13 +110,13 @@ export function AuditLogsBody({
         ),
       },
       {
-        cellClassName: 'whitespace-nowrap py-3 text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap py-3 text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'performedBy',
         label: 'Performed By',
         render: (log) => (
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-xs font-medium text-foreground">
+            <span className="truncate text-sm font-medium text-foreground">
               {log.callTakenBy || 'System / Store'}
             </span>
           </div>

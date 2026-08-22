@@ -308,11 +308,11 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
 
           <div className="flex justify-end border-t border-border pt-4">
             <Button
-              className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-xs font-medium shadow-md transition-all sm:w-auto"
+              className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-sm font-medium shadow-md transition-all sm:w-auto"
               disabled={isSaving}
               onClick={handleSave}
               type="button"
-              variant="gradient"
+              variant="primary"
             >
               {isSaving ? 'Saving…' : 'Save'}
             </Button>

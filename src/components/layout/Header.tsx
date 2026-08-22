@@ -137,7 +137,7 @@ export function Header({
               className={`${avatarSize} shadow-sm ring-2 ring-white transition-all group-hover:ring-blue-200`}
             >
               {photoUrl && <AvatarImage alt={user.name} src={photoUrl} />}
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-xs font-medium text-white">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-medium text-white">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -166,7 +166,7 @@ export function Header({
           </div>
         </div>
 
-        <DropdownMenuLabel className="px-2 pb-1 pt-2 text-[10px] font-medium uppercase tracking-widest text-slate-400">
+        <DropdownMenuLabel className="px-2 pb-1 pt-2 text-[10px] font-medium tracking-widest text-slate-400">
           Login Details
         </DropdownMenuLabel>
 
@@ -176,7 +176,7 @@ export function Header({
           </div>
           <div className="min-w-0">
             <div className="text-[10px] font-medium text-slate-400">Email</div>
-            <div className="truncate text-xs font-medium text-gray-800">{user.email}</div>
+            <div className="truncate text-sm font-medium text-gray-800">{user.email}</div>
           </div>
         </div>
 
@@ -205,7 +205,7 @@ export function Header({
             src="/images/logo-black.png"
           />
           {consoleLabel && (
-            <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:max-w-none sm:px-2.5 sm:text-xs">
+            <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:max-w-none sm:px-2.5 sm:text-sm">
               {consoleLabel}
             </div>
           )}
@@ -298,7 +298,7 @@ export function Header({
             className={`hidden sm:inline ${wifiIconColor} shrink-0 animate-pulse transition-colors duration-300`}
             size={14}
           />
-          <span className="hidden text-xs font-medium text-gray-700 transition-all duration-300 sm:inline">
+          <span className="hidden text-sm font-medium text-gray-700 transition-all duration-300 sm:inline">
             {speed}
           </span>
           <span
@@ -309,7 +309,7 @@ export function Header({
 
           {user.role === 'store' && (
             <button
-              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-cyan-700"
+              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-cyan-700"
               onClick={handleOpenTvMode}
               title="Open the TV call screen"
               type="button"
@@ -321,7 +321,7 @@ export function Header({
 
           {user.role === 'optometrist' && (
             <button
-              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-[#4f46e5] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#4338ca]"
+              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-[#4f46e5] px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#4338ca]"
               onClick={handleOpenTeamViewer}
               title="Open TeamViewer Remote Control"
               type="button"
@@ -345,7 +345,7 @@ export function Header({
         {activeTab && setActiveTab && (
           <div className="order-3 flex w-full max-w-full items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 [ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 xl:hidden [&::-webkit-scrollbar]:hidden">
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'customers'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -362,7 +362,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'users'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -379,7 +379,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'feedback'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -396,7 +396,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'auditLogs'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -413,7 +413,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'videos'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'

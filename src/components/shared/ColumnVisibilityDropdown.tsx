@@ -39,12 +39,12 @@ export function ColumnVisibilityDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           className={cn(
-            'border-border/80 shadow-xs flex h-9 shrink-0 cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 text-xs font-medium text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
+            'border-border/80 shadow-xs flex h-9 shrink-0 cursor-pointer items-center justify-between gap-2 rounded-md border bg-card px-3 text-sm font-medium text-foreground transition-all hover:border-blue-300 hover:bg-accent dark:hover:border-blue-700',
             className
           )}
           size="sm"
           title="Customize visible columns"
-          variant="outline"
+          variant="secondary"
         >
           <div className="flex items-center gap-2 overflow-hidden">
             <SlidersHorizontal className="shrink-0 stroke-[2.2] text-blue-600 dark:text-blue-400" size={16} />
@@ -59,7 +59,7 @@ export function ColumnVisibilityDropdown({
         sideOffset={6}
       >
         <div className="flex items-center justify-between px-2.5 py-1.5">
-          <DropdownMenuLabel className="p-0 text-xs font-medium text-foreground">
+          <DropdownMenuLabel className="p-0 text-sm font-medium text-foreground">
             Optional Columns
           </DropdownMenuLabel>
           {onResetColumns && (
@@ -79,7 +79,7 @@ export function ColumnVisibilityDropdown({
         <DropdownMenuSeparator />
         <div className="max-h-60 space-y-0.5 overflow-y-auto py-1">
           {optionalColumns.length === 0 ? (
-            <div className="px-3 py-2 text-center text-xs text-muted-foreground">
+            <div className="px-3 py-2 text-center text-sm text-muted-foreground">
               All columns are default.
             </div>
           ) : (
@@ -88,7 +88,7 @@ export function ColumnVisibilityDropdown({
 
               return (
                 <DropdownMenuItem
-                  className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium transition-colors hover:bg-accent"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-colors hover:bg-accent"
                   key={col.id}
                   onSelect={(e) => {
                     e.preventDefault();

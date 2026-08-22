@@ -314,6 +314,7 @@ export type SSEEventDetail =
       type: 'ADMIN_LOG_CREATED' | 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
     }
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
+  | { data: { id: string }; type: 'CUSTOMER_DELETED' }
   | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
   | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' }

@@ -221,7 +221,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
             <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">
               Prescription (RX) Management
             </h1>
-            <p className="truncate text-xs font-medium text-muted-foreground">
+            <p className="truncate text-sm font-medium text-muted-foreground">
               Patient: <span className="font-medium text-foreground">{selectedCustomer?.name}</span> (
               {selectedCustomer?.id}) — {selectedCustomer?.storeName}
             </p>
@@ -235,7 +235,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
         <form className="space-y-6 sm:space-y-8" onSubmit={handleSaveRx}>
           <div className="space-y-4">
             <div className="shadow-xs w-full overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-              <Table className="w-full min-w-[650px] table-fixed border-collapse text-center text-xs">
+              <Table className="w-full min-w-[650px] table-fixed border-collapse text-center text-sm">
                 <colgroup>
                   <col className="w-[100px]" />
                   <col className="w-[60px]" />
@@ -246,7 +246,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                 <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
                   <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
                     <TableHead
-                      className="border-b border-slate-400 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
+                      className="border-b border-slate-400 py-2.5 text-center text-sm font-medium text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
                       colSpan={9}
                     >
                       Objective prescription
@@ -275,14 +275,14 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
                     <TableHead
-                      className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400"
+                      className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400"
                       colSpan={2}
                     >
                       R X
                     </TableHead>
                     {rxHeaders.map((h) => (
                       <TableHead
-                        className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                        className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
                         key={h}
                       >
                         {h}
@@ -298,7 +298,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                     >
                       {rowIdx % 2 === 0 && (
                         <TableCell
-                          className="w-[100px] animate-none border-b border-r border-slate-400 bg-slate-50/50 px-3 py-4 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400"
+                          className="w-[100px] animate-none border-b border-r border-slate-400 bg-slate-50/50 px-3 py-4 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400"
                           rowSpan={2}
                         >
                           {rowIdx < 2 ? (
@@ -314,7 +314,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                           )}
                         </TableCell>
                       )}
-                      <TableCell className="w-[60px] animate-none whitespace-nowrap border-b border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                      <TableCell className="w-[60px] animate-none whitespace-nowrap border-b border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                         {rowIdx % 2 === 0 ? 'R E' : 'L E'}
                       </TableCell>
                       {rxFields.map((field, idx) => {
@@ -374,23 +374,23 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
 
           <div className="space-y-4">
             <div className="shadow-xs overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-              <Table className="w-full min-w-[550px] table-fixed border-collapse text-center text-xs">
+              <Table className="w-full min-w-[550px] table-fixed border-collapse text-center text-sm">
                 <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
                   <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
                     <TableHead
-                      className="border-b border-slate-400 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
+                      className="border-b border-slate-400 py-2.5 text-center text-sm font-medium text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
                       colSpan={8}
                     >
                       Subjective/Final
                     </TableHead>
                   </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
-                    <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
+                    <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
                       R X
                     </TableHead>
                     {optometristHeaders.map((h) => (
                       <TableHead
-                        className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                        className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
                         key={h}
                       >
                         {h}
@@ -404,7 +404,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                       className={idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
                       key={eye}
                     >
-                      <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                      <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                         {eye === 're' ? 'R E' : 'L E'}
                       </TableCell>
                       {optometristFields.map((field, fIdx) => (
@@ -413,7 +413,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                           key={field}
                         >
                           <input
-                            className="h-full w-full cursor-not-allowed border-0 bg-slate-50 px-3 py-2.5 text-center text-xs font-medium text-muted-foreground outline-none dark:bg-zinc-900"
+                            className="h-full w-full cursor-not-allowed border-0 bg-slate-50 px-3 py-2.5 text-center text-sm font-medium text-muted-foreground outline-none dark:bg-zinc-900"
                             disabled
                             type="text"
                             value={optometristRxForm[eye][field] || ''}
@@ -429,9 +429,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
             <div className="space-y-1.5 sm:col-span-3">
-              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-                Store Action / Feedback
-              </label>
+              <label className="text-[14px] font-medium text-foreground">Store Action / Feedback</label>
               <textarea
                 className="h-[176px] w-full resize-none rounded-md border border-input bg-background p-3 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 onChange={(e) => setStoreFeedback(e.target.value)}
@@ -441,9 +439,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
             </div>
 
             <div className="space-y-1.5 sm:col-span-1">
-              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-                Attachment 1
-              </label>
+              <label className="text-[14px] font-medium text-foreground">Attachment 1</label>
               <CustomerFeedbackImageBox
                 customerId={selectedCustomer?.id ?? ''}
                 hasImage={!!selectedCustomer?.storeFeedbackImage1}
@@ -452,9 +448,7 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
             </div>
 
             <div className="space-y-1.5 sm:col-span-1">
-              <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-                Attachment 2
-              </label>
+              <label className="text-[14px] font-medium text-foreground">Attachment 2</label>
               <CustomerFeedbackImageBox
                 customerId={selectedCustomer?.id ?? ''}
                 hasImage={!!selectedCustomer?.storeFeedbackImage2}
@@ -465,17 +459,17 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
 
           <div className="flex flex-col-reverse items-center justify-end gap-3 border-t border-border pt-4 sm:flex-row">
             <Button
-              className="h-10 w-full cursor-pointer rounded-[50px] border-border px-5 text-xs font-medium text-muted-foreground shadow-sm hover:bg-muted sm:w-auto"
+              className="h-10 w-full cursor-pointer rounded-[50px] border-border px-5 text-sm font-medium text-muted-foreground shadow-sm hover:bg-muted sm:w-auto"
               onClick={onBack}
               type="button"
-              variant="outline"
+              variant="secondary"
             >
               Cancel
             </Button>
             <Button
-              className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-xs font-medium shadow-md transition-all sm:w-auto"
+              className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-sm font-medium shadow-md transition-all sm:w-auto"
               type="submit"
-              variant="gradient"
+              variant="primary"
             >
               Save Changes
             </Button>

@@ -468,10 +468,14 @@ export function OptometristScreen() {
       {
         accessorKey: 'id',
         cell: ({ row }) => (
-          <span className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400">{row.original.id}</span>
+          <span className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400">
+            {row.original.id}
+          </span>
         ),
         enableSorting: false,
-        header: () => <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">ID</span>,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">ID</span>
+        ),
         id: 'id',
         meta: { cellClassName: 'py-3' },
         size: 80,
@@ -479,11 +483,13 @@ export function OptometristScreen() {
       {
         accessorKey: 'storeName',
         cell: ({ row }) => (
-          <span className="text-xs sm:text-sm font-medium text-foreground">{row.original.storeName || '—'}</span>
+          <span className="text-sm font-medium text-foreground sm:text-sm">
+            {row.original.storeName || '—'}
+          </span>
         ),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Store Code</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Store Code</span>
         ),
         id: 'storeName',
         meta: { cellClassName: 'py-3' },
@@ -493,7 +499,7 @@ export function OptometristScreen() {
         cell: ({ row }) => <WaitingCell cust={row.original} />,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Waiting Time</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Waiting Time</span>
         ),
         id: 'timeStarted',
         meta: { cellClassName: 'py-3' },
@@ -504,7 +510,7 @@ export function OptometristScreen() {
         cell: ({ row }) => renderCallDuration(row.original),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Call Duration</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Call Duration</span>
         ),
         id: 'callDuration',
         meta: { cellClassName: 'py-3' },
@@ -512,10 +518,10 @@ export function OptometristScreen() {
       },
       {
         accessorKey: 'age',
-        cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original.age}</span>,
+        cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.age}</span>,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Age</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Age</span>
         ),
         id: 'age',
         meta: { cellClassName: 'py-3' },
@@ -535,17 +541,17 @@ export function OptometristScreen() {
           return (
             <div className="flex items-center gap-2.5">
               <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-teal-100 text-xs font-semibold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+                <AvatarFallback className="bg-teal-100 text-sm font-semibold text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-xs sm:text-sm font-medium text-foreground">{titleCaseName}</span>
+              <span className="text-sm font-medium text-foreground sm:text-sm">{titleCaseName}</span>
             </div>
           );
         },
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Name</span>
         ),
         id: 'name',
         meta: { cellClassName: 'py-3' },
@@ -562,21 +568,21 @@ export function OptometristScreen() {
               {languages.length > 0 ? (
                 languages.map((lang) => (
                   <span
-                    className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                    className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                     key={lang}
                   >
                     {lang}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">—</span>
               )}
             </div>
           );
         },
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
             Preferred Languages
           </span>
         ),
@@ -589,13 +595,13 @@ export function OptometristScreen() {
           const info = pendingPriorityMap.get(row.original.id);
 
           if (!info) {
-            return <span className="text-xs text-muted-foreground">—</span>;
+            return <span className="text-sm text-muted-foreground">—</span>;
           }
 
           return (
             <span
               className={cn(
-                'inline-flex rounded-md border px-2.5 py-0.5 text-xs font-medium',
+                'inline-flex rounded-md border px-2.5 py-0.5 text-sm font-medium',
                 row.original.isPriority
                   ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-300'
                   : 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300'
@@ -607,7 +613,7 @@ export function OptometristScreen() {
         },
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Priority</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Priority</span>
         ),
         id: 'priority',
         meta: { cellClassName: 'py-3' },
@@ -616,11 +622,13 @@ export function OptometristScreen() {
       {
         accessorKey: 'callTakenBy',
         cell: ({ row }) => (
-          <span className="text-xs sm:text-sm font-medium text-foreground">{row.original.callTakenBy || '—'}</span>
+          <span className="text-sm font-medium text-foreground sm:text-sm">
+            {row.original.callTakenBy || '—'}
+          </span>
         ),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Optometrist</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Optometrist</span>
         ),
         id: 'optometrist',
         meta: { cellClassName: 'py-3' },
@@ -639,7 +647,7 @@ export function OptometristScreen() {
 
           return (
             <span
-              className={cn('inline-flex rounded-md border px-2.5 py-0.5 text-xs font-medium', badgeClass)}
+              className={cn('inline-flex rounded-md border px-2.5 py-0.5 text-sm font-medium', badgeClass)}
             >
               {label}
             </span>
@@ -647,7 +655,7 @@ export function OptometristScreen() {
         },
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Status</span>
         ),
         id: 'status',
         meta: { cellClassName: 'py-3' },
@@ -665,7 +673,7 @@ export function OptometristScreen() {
         ),
         enableSorting: false,
         header: () => (
-          <span className="block whitespace-nowrap pr-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="block whitespace-nowrap pr-4 text-right text-sm font-semibold text-muted-foreground">
             Action
           </span>
         ),

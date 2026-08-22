@@ -45,7 +45,7 @@ export function TagInput({ className, onChange, placeholder, suggestions, value 
     >
       {value.map((tag) => (
         <span
-          className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
+          className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-sm font-medium text-foreground"
           key={tag}
         >
           {tag}

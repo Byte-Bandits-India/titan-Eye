@@ -275,10 +275,10 @@ export function AdminCard(props: AdminCardProps) {
         dateRange={dateRange}
         extra={
           <Button
-            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-medium shadow-sm transition-all"
+            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-sm font-medium shadow-sm transition-all"
             onClick={() => exportAllCustomersReport(filteredCustomers)}
             title="Download full Excel report for all patients"
-            variant="gradient"
+            variant="primary"
           >
             <Download size={14} />
             <span>Export All Excel Reports</span>

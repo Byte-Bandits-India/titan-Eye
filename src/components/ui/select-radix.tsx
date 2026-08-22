@@ -78,7 +78,7 @@ SelectContent.displayName = 'SelectContent';
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
     <SelectPrimitive.Label
-      className={cn('px-1.5 py-1 text-xs text-muted-foreground', className)}
+      className={cn('px-1.5 py-1 text-sm text-muted-foreground', className)}
       data-slot="select-label"
       {...props}
     />

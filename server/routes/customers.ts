@@ -724,6 +724,42 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    if (['Accepted', 'Initiated', 'Queued', 'Testing'].includes(customer.status)) {
+      return res
+        .status(409)
+        .json({ error: 'Cannot delete a customer with an active Optometrist request.' });
+    }
+
+    await run('DELETE FROM customer_logs WHERE customerId = ?', [id]);
+    await run('DELETE FROM customers WHERE id = ?', [id]);
+
+    logSecurityEvent('CUSTOMER_DELETED', {
+      customerId: id,
+      requestId: req.requestId,
+      viewerEmail: req.user?.email,
+      viewerRole: req.user?.role,
+    });
+
+    broadcastEvent('CUSTOMER_DELETED', { id });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Delete customer error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);

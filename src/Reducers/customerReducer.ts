@@ -17,6 +17,9 @@ const customerSlice = createSlice({
         state.customers = [action.payload, ...state.customers];
       }
     },
+    customerDeleted(state, action: PayloadAction<string>) {
+      state.customers = state.customers.filter((c) => c.id !== action.payload);
+    },
     customerUpdated(state, action: PayloadAction<Customer>) {
       const exists = state.customers.some((c) => c.id === action.payload.id);
 
@@ -41,7 +44,7 @@ const customerSlice = createSlice({
   },
 });
 
-export const { customerCreated, customerUpdated, fetchFailure, fetchStart, fetchSuccess } =
+export const { customerCreated, customerDeleted, customerUpdated, fetchFailure, fetchStart, fetchSuccess } =
   customerSlice.actions;
 
 export default customerSlice.reducer;

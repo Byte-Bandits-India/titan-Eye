@@ -22,8 +22,8 @@ const badgeVariants = cva(
         full: 'rounded-full',
       },
       size: {
-        default: 'px-1.25 h-5 min-w-5 gap-1 py-0.5 text-xs',
-        lg: 'h-5.5 min-w-5.5 gap-1 px-1.5 py-0.5 text-xs',
+        default: 'px-1.25 h-5 min-w-5 gap-1 py-0.5 text-sm',
+        lg: 'h-5.5 min-w-5.5 gap-1 px-1.5 py-0.5 text-sm',
         sm: 'py-0.25 h-4.5 min-w-4.5 gap-1 px-1 text-[0.625rem] leading-none',
         xl: 'py-0.75 h-6 min-w-6 gap-1.5 px-2 text-sm',
         xs: 'py-0.25 h-4 min-w-4 gap-1 px-1 text-[0.6rem] leading-none',

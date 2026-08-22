@@ -65,7 +65,7 @@ export function RxScrollPicker({
     <Select onOpenChange={handleOpenChange} onValueChange={onChange} value={value}>
       <SelectTrigger
         className={cn(
-          'h-9 w-full justify-center gap-1 border-0 bg-transparent px-1 font-mono text-xs font-medium text-foreground shadow-none hover:bg-slate-100/60 focus-visible:ring-1 focus-visible:ring-blue-500 dark:hover:bg-zinc-800/60',
+          'h-9 w-full justify-center gap-1 border-0 bg-transparent px-1 font-mono text-sm font-medium text-foreground shadow-none hover:bg-slate-100/60 focus-visible:ring-1 focus-visible:ring-blue-500 dark:hover:bg-zinc-800/60',
           hasError && 'bg-rose-50 font-medium text-rose-600'
         )}
         size="sm"
@@ -76,7 +76,7 @@ export function RxScrollPicker({
         {options.map((opt) => (
           <SelectItem
             className={cn(
-              'justify-center text-center font-mono text-xs',
+              'justify-center text-center font-mono text-sm',
               (opt === '0.00' || opt === '0') && 'font-bold'
             )}
             key={opt}

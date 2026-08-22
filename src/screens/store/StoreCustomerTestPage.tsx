@@ -1,13 +1,21 @@
-import { CheckIcon, ChevronLeft, ClipboardPlus, Phone, User } from 'lucide-react';
+import { CheckIcon, ChevronLeft, Phone, Trash2, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, OptometristRxValues, RxValues, StoreCustomerTestPageProps } from '../../types';
 
-import { createCustomerAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import {
+  createCustomerAction,
+  deleteCustomerAction,
+  dropCustomerAction,
+  initiateCallAction,
+  updateCustomerAction,
+} from '../../Actions/customerActions';
 import { BackButton } from '../../components/shared/BackButton';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { CustomerFeedbackImageBox } from '../../components/shared/CustomerFeedbackImageBox';
 import { RxScrollPicker } from '../../components/shared/RxScrollPicker';
+import { CancelRequestDialog } from './components/CancelRequestDialog';
+import { DeleteCustomerDialog } from './components/DeleteCustomerDialog';
 import {
   Stepper,
   StepperContent,
@@ -33,13 +41,13 @@ import {
   AXIS_OPTIONS,
   AXIS_REGEX,
   BASE_OPTIONS,
+  CUSTOMER_MOBILE_REGEX,
   CUSTOMER_NAME_REGEX,
   CYL_OPTIONS,
   CYL_REGEX,
   emptyOptometristRxValues,
   emptyRxValues,
   LANGUAGES,
-  MOBILE_REGEX,
   optometristFields,
   optometristHeaders,
   PD_OPTIONS,
@@ -154,15 +162,17 @@ function CustomerDetailsFieldsComponent({ errors, form, setField }: CustomerDeta
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-muted-foreground">Gender *</label>
         <Select
-          className="rounded-none"
+          className={cn('rounded-none', errors.gender && 'border-red-500 focus:ring-red-500')}
           onChange={(e) => setField('gender')(e.target.value)}
           options={[
+            { label: 'Select Gender', value: '' },
             { label: 'Male', value: 'Male' },
             { label: 'Female', value: 'Female' },
             { label: 'Other', value: 'Other' },
           ]}
           value={form.gender}
         />
+        {errors.gender && <p className="text-sm font-medium text-red-500">{errors.gender}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -216,19 +226,20 @@ type ObjectiveRxContentProps = {
 
 type RxSubTableProps = {
   label: React.ReactNode;
+  mandatoryHeaders?: readonly string[];
   rows: readonly [RxRow, RxRow];
   rxErrors: Record<string, boolean>;
   rxForm: RxFormState;
   setRxField: (row: RxRow, field: keyof RxValues, val: string) => void;
 };
 
-function RxSubTable({ label, rows, rxErrors, rxForm, setRxField }: RxSubTableProps) {
+function RxSubTable({ label, mandatoryHeaders = [], rows, rxErrors, rxForm, setRxField }: RxSubTableProps) {
   return (
     <div className="overflow-x-auto rounded-md border border-slate-300 dark:border-zinc-700">
-      <p className="border-b border-slate-300 bg-slate-50/70 px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
+      <p className="border-b border-slate-300 bg-slate-50/70 px-3 py-1.5 text-left text-sm font-bold text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
         {label}
       </p>
-      <Table className="w-full min-w-[560px] table-fixed border-collapse text-center text-xs">
+      <Table className="w-full min-w-[560px] table-fixed border-collapse text-center text-sm">
         <colgroup>
           <col className="w-[60px]" />
           {rxHeaders.map((h) => (
@@ -240,10 +251,11 @@ function RxSubTable({ label, rows, rxErrors, rxForm, setRxField }: RxSubTablePro
             <TableHead className="border-r border-slate-400 px-3 py-2 dark:border-zinc-700" />
             {rxHeaders.map((h) => (
               <TableHead
-                className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
                 key={h}
               >
                 {h}
+                {mandatoryHeaders.includes(h) && <span className="text-red-500"> *</span>}
               </TableHead>
             ))}
           </TableRow>
@@ -254,7 +266,7 @@ function RxSubTable({ label, rows, rxErrors, rxForm, setRxField }: RxSubTablePro
               className={rowIdx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
               key={row}
             >
-              <TableCell className="w-[60px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+              <TableCell className="w-[60px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                 {rowIdx === 0 ? 'R E' : 'L E'}
               </TableCell>
               {rxFields.map((field, idx) => {
@@ -329,13 +341,14 @@ function ObjectiveRxContentComponent({
   return (
     <div className="space-y-4">
       <div className="shadow-xs w-full overflow-hidden rounded-lg border border-slate-300 dark:border-zinc-700">
-        <p className="border-b border-slate-400 bg-slate-100 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+        <p className="border-b border-slate-400 bg-slate-100 py-2.5 text-center text-sm font-medium text-slate-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
           Objective prescription
         </p>
 
         <div className="space-y-4 overflow-x-auto p-3">
           <RxSubTable
             label="Auto ref"
+            mandatoryHeaders={['Sph', 'Cyl', 'Axis', 'PD']}
             rows={['autoRefRe', 'autoRefLe']}
             rxErrors={rxErrors}
             rxForm={rxForm}
@@ -352,23 +365,23 @@ function ObjectiveRxContentComponent({
       </div>
 
       <div className="shadow-xs overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-        <Table className="w-full min-w-[550px] table-fixed border-collapse text-center text-xs">
+        <Table className="w-full min-w-[550px] table-fixed border-collapse text-center text-sm">
           <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
             <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
               <TableHead
-                className="border-b border-slate-400 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
+                className="border-b border-slate-400 py-2.5 text-center text-sm font-medium text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
                 colSpan={8}
               >
                 Subjective/Final
               </TableHead>
             </TableRow>
             <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
-              <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
+              <TableHead className="w-[70px] whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400">
                 R X
               </TableHead>
               {optometristHeaders.map((h) => (
                 <TableHead
-                  className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                  className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
                   key={h}
                 >
                   {h}
@@ -382,7 +395,7 @@ function ObjectiveRxContentComponent({
                 className={idx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
                 key={eye}
               >
-                <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                <TableCell className="w-[70px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 py-3 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
                   {eye === 're' ? 'R E' : 'L E'}
                 </TableCell>
                 {optometristFields.map((field, fIdx) => (
@@ -391,7 +404,7 @@ function ObjectiveRxContentComponent({
                     key={field}
                   >
                     <input
-                      className="h-full w-full cursor-not-allowed border-0 bg-slate-50 px-3 py-2.5 text-center text-xs font-medium text-muted-foreground outline-none dark:bg-zinc-900"
+                      className="h-full w-full cursor-not-allowed border-0 bg-slate-50 px-3 py-2.5 text-center text-sm font-medium text-muted-foreground outline-none dark:bg-zinc-900"
                       disabled
                       type="text"
                       value={optometristRxForm[eye][field] || ''}
@@ -406,9 +419,7 @@ function ObjectiveRxContentComponent({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
         <div className="space-y-1.5 sm:col-span-3">
-          <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-            Store Action / Feedback
-          </label>
+          <label className="text-[14px] font-medium text-foreground">Store Action / Feedback</label>
           <textarea
             className="h-[176px] w-full resize-none rounded-md border border-input bg-background p-3 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             onChange={(e) => setStoreFeedback(e.target.value)}
@@ -418,16 +429,12 @@ function ObjectiveRxContentComponent({
         </div>
 
         <div className="space-y-1.5 sm:col-span-1">
-          <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-            Attachment 1
-          </label>
+          <label className="text-[14px] font-medium text-foreground">Attachment 1</label>
           <CustomerFeedbackImageBox customerId={customerId} hasImage={hasImage1} slot={1} />
         </div>
 
         <div className="space-y-1.5 sm:col-span-1">
-          <label className="text-[14px] font-medium uppercase tracking-wider text-foreground">
-            Attachment 2
-          </label>
+          <label className="text-[14px] font-medium text-foreground">Attachment 2</label>
           <CustomerFeedbackImageBox customerId={customerId} hasImage={hasImage2} slot={2} />
         </div>
       </div>
@@ -454,7 +461,7 @@ export function StoreCustomerTestPage({
       activeProfile: customer?.activeProfile || false,
       age: customer?.age || '',
       customerType: customer?.customerType || 'New',
-      gender: customer?.gender || 'Male',
+      gender: customer?.gender || '',
       mobile: customer?.mobile || '',
       name: customer?.name || '',
       preferredLanguage: customer?.preferredLanguage || 'English',
@@ -489,7 +496,15 @@ export function StoreCustomerTestPage({
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [isRequesting, setIsRequesting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [activeStep, setActiveStep] = React.useState(1);
+
+  const hasPendingRequest = selectedCustomer?.status === 'Initiated' || selectedCustomer?.status === 'Queued';
+  const hasActiveRequest =
+    hasPendingRequest || selectedCustomer?.status === 'Accepted' || selectedCustomer?.status === 'Testing';
 
   const [prevCustomerId, setPrevCustomerId] = React.useState(selectedCustomer?.id);
 
@@ -569,8 +584,12 @@ export function StoreCustomerTestPage({
 
     if (!form.mobile) {
       newErrors.mobile = 'Mobile number is required';
-    } else if (!MOBILE_REGEX.test(form.mobile.trim())) {
+    } else if (!CUSTOMER_MOBILE_REGEX.test(form.mobile.trim())) {
       newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
+    }
+
+    if (!form.gender) {
+      newErrors.gender = 'Gender is required';
     }
 
     if (!form.preferredLanguage) {
@@ -645,6 +664,34 @@ export function StoreCustomerTestPage({
     }
 
     return missing;
+  };
+
+  const getMissingMandatoryRxFieldsForRequest = (): { keys: string[]; labels: string[] } => {
+    const fieldLabels: { field: 'axis' | 'cyl' | 'pd' | 'sph'; label: string }[] = [
+      { field: 'sph', label: 'Sph' },
+      { field: 'cyl', label: 'Cyl' },
+      { field: 'axis', label: 'Axis' },
+      { field: 'pd', label: 'PD' },
+    ];
+    const rowGroups: { eyeLabel: string; groupLabel: string; row: RxRow }[] = [
+      { eyeLabel: 'RE', groupLabel: 'Auto Ref', row: 'autoRefRe' },
+      { eyeLabel: 'LE', groupLabel: 'Auto Ref', row: 'autoRefLe' },
+    ];
+    const keys: string[] = [];
+    const labels: string[] = [];
+
+    rowGroups.forEach(({ eyeLabel, groupLabel, row }) => {
+      const data = rxForm[row];
+
+      fieldLabels.forEach(({ field, label }) => {
+        if (!data[field]) {
+          keys.push(`${row}.${field}`);
+          labels.push(`${groupLabel} ${eyeLabel} ${label}`);
+        }
+      });
+    });
+
+    return { keys, labels };
   };
 
   const buildTimestamp = (): string =>
@@ -801,9 +848,21 @@ export function StoreCustomerTestPage({
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
 
-    if (missingFields.length > 0) {
+    const { keys: missingRxKeys, labels: missingRxLabels } = getMissingMandatoryRxFieldsForRequest();
+    const allMissingFields = [...missingFields, ...missingRxLabels];
+
+    if (allMissingFields.length > 0) {
+      setRxErrors((prev) => {
+        const next = { ...prev };
+
+        missingRxKeys.forEach((key) => {
+          next[key] = true;
+        });
+
+        return next;
+      });
       toast({
-        description: `Please fill the following required fields to request an Optometrist: ${missingFields.join(', ')}.`,
+        description: `Please fill the following required fields to request an Optometrist: ${allMissingFields.join(', ')}.`,
         title: 'Missing Required Fields',
         type: 'error',
       });
@@ -871,32 +930,65 @@ export function StoreCustomerTestPage({
     }
   };
 
+  const handleDelete = async () => {
+    if (!selectedCustomer) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await dispatch(deleteCustomerAction(selectedCustomer.id));
+      toast({
+        description: `${selectedCustomer.name}'s details have been deleted.`,
+        title: 'Customer Deleted',
+        type: 'success',
+      });
+      setIsDeleteDialogOpen(false);
+      onBack();
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      toast({
+        description: err.message || 'Failed to delete customer.',
+        title: 'Error Deleting Customer',
+        type: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmCancelRequest = async (reason: string) => {
+    if (!selectedCustomer) {
+      return;
+    }
+
+    setIsCancellingRequest(true);
+
+    try {
+      await dispatch(dropCustomerAction(selectedCustomer.id, reason));
+      toast({
+        description: `The request for ${selectedCustomer.name} has been cancelled.`,
+        title: 'Request Cancelled',
+        type: 'info',
+      });
+      setIsCancelDialogOpen(false);
+      onBack();
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      toast({
+        description: err.message || 'Failed to cancel the request.',
+        title: 'System Error',
+        type: 'error',
+      });
+    } finally {
+      setIsCancellingRequest(false);
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
-      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-md">
-            <ClipboardPlus className="text-white" size={20} />
-          </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">
-              {selectedCustomer ? 'Create Test' : 'New Patient'}
-            </h1>
-            <p className="truncate text-xs font-medium text-muted-foreground">
-              {selectedCustomer ? (
-                <>
-                  Patient: <span className="font-medium text-foreground">{selectedCustomer.name}</span> (
-                  {selectedCustomer.id}) — {selectedCustomer.storeName}
-                </>
-              ) : (
-                'Enter customer details to register a new patient'
-              )}
-            </p>
-          </div>
-        </div>
-
-        <BackButton onClick={onBack} />
-      </div>
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"></div>
 
       <CardFrame className="p-3 sm:p-6 md:p-8">
         <Stepper
@@ -905,32 +997,32 @@ export function StoreCustomerTestPage({
           value={activeStep}
         >
           <StepperNav className="mx-auto mb-8 flex data-[orientation=horizontal]:w-fit">
-            <StepperItem className="items-start not-last:flex-none" step={1}>
+            <StepperItem className="not-last:flex-none items-start" step={1}>
               <StepperTrigger className="flex-col gap-2">
-                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=completed]:border-transparent data-[state=completed]:bg-foreground data-[state=completed]:text-background">
+                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=completed]:border-transparent data-[state=active]:bg-background data-[state=completed]:bg-foreground data-[state=active]:text-foreground data-[state=completed]:text-background">
                   1
                 </StepperIndicator>
                 <div className="flex flex-col items-center gap-0.5 text-center">
                   <StepperTitle className="text-sm font-semibold data-[state=inactive]:font-medium data-[state=inactive]:text-muted-foreground">
                     Customer Details
                   </StepperTitle>
-                  <StepperDescription className="whitespace-nowrap text-xs">
+                  <StepperDescription className="whitespace-nowrap text-sm">
                     Enter customer information
                   </StepperDescription>
                 </div>
               </StepperTrigger>
               <StepperSeparator className="mx-1.5 mb-0.5 mt-[15px] h-0.5 w-10 shrink-0 grow-0 basis-auto self-start bg-muted group-data-[state=completed]/step:bg-foreground sm:w-16" />
             </StepperItem>
-            <StepperItem className="items-start not-last:flex-none" step={2}>
+            <StepperItem className="not-last:flex-none items-start" step={2}>
               <StepperTrigger className="flex-col gap-2">
-                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=completed]:border-transparent data-[state=completed]:bg-foreground data-[state=completed]:text-background">
+                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=completed]:border-transparent data-[state=active]:bg-background data-[state=completed]:bg-foreground data-[state=active]:text-foreground data-[state=completed]:text-background">
                   2
                 </StepperIndicator>
                 <div className="flex flex-col items-center gap-0.5 text-center">
                   <StepperTitle className="text-sm font-semibold data-[state=inactive]:font-medium data-[state=inactive]:text-muted-foreground">
                     Objective Rx
                   </StepperTitle>
-                  <StepperDescription className="whitespace-nowrap text-xs">
+                  <StepperDescription className="whitespace-nowrap text-sm">
                     Record objective prescription
                   </StepperDescription>
                 </div>
@@ -942,25 +1034,55 @@ export function StoreCustomerTestPage({
             <StepperContent className="space-y-6 sm:space-y-8" value={1}>
               <CustomerDetailsFields errors={errors} form={form} setField={setField} />
 
-              <div className="flex flex-col-reverse items-center justify-end gap-3 border-t border-border pt-4 sm:flex-row">
-                <Button
-                  className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-5 text-xs font-medium shadow-md transition-all sm:w-auto"
-                  disabled={isSaving || isRequesting}
-                  onClick={handleSave}
-                  type="button"
-                  variant="outline"
-                >
-                  {isSaving ? 'Saving…' : 'Save'}
-                </Button>
-                <Button
-                  className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-xs font-medium shadow-md transition-all sm:w-auto"
-                  disabled={isSaving || isRequesting}
-                  onClick={handleNext}
-                  type="button"
-                  variant="gradient"
-                >
-                  Next
-                </Button>
+              <div className="grid grid-cols-1 items-center gap-3 border-t border-border pt-4 sm:grid-cols-3">
+                <div className="flex justify-center sm:justify-start">
+                  <BackButton onClick={onBack} />
+                </div>
+
+                <div className="flex flex-col-reverse items-center justify-center gap-3 sm:flex-row">
+                  {hasPendingRequest ? (
+                    <Button
+                      className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-sm transition-all sm:w-auto"
+                      onClick={() => setIsCancelDialogOpen(true)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      Cancel Request
+                    </Button>
+                  ) : (
+                    <Button
+                      className="active:scale-98 h-10 w-full cursor-pointer gap-2 px-5 text-sm font-medium shadow-sm transition-all sm:w-auto"
+                      disabled={!selectedCustomer || isDeleting || hasActiveRequest}
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      type="button"
+                      variant="destructive"
+                    >
+                      <Trash2 size={14} />
+                      {isDeleting ? 'Deleting…' : 'Delete'}
+                    </Button>
+                  )}
+                  <Button
+                    className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
+                    disabled={isSaving || isRequesting}
+                    onClick={handleSave}
+                    type="button"
+                    variant="secondary"
+                  >
+                    {isSaving ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
+
+                <div className="flex justify-center sm:justify-end">
+                  <Button
+                    className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
+                    disabled={isSaving || isRequesting}
+                    onClick={handleNext}
+                    type="button"
+                    variant="primary"
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
             </StepperContent>
 
@@ -977,33 +1099,40 @@ export function StoreCustomerTestPage({
                 storeFeedback={storeFeedback}
               />
 
-              <div className="flex flex-col-reverse items-center justify-between gap-3 border-t border-border pt-4 sm:flex-row">
-                <Button
-                  className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-5 text-xs font-medium shadow-sm transition-all sm:w-auto"
-                  onClick={() => setActiveStep(1)}
-                  type="button"
-                  variant="outline"
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </Button>
+              <div className="grid grid-cols-1 items-center gap-3 border-t border-border pt-4 sm:grid-cols-3">
+                <div className="flex justify-center sm:justify-start">
+                  <BackButton onClick={onBack} />
+                </div>
 
-                <div className="flex w-full flex-col-reverse items-center gap-3 sm:w-auto sm:flex-row">
+                <div className="flex justify-center">
+                  {hasPendingRequest && (
+                    <Button
+                      className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-sm transition-all sm:w-auto"
+                      onClick={() => setIsCancelDialogOpen(true)}
+                      type="button"
+                      variant="secondary"
+                    >
+                      Cancel Request
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex flex-col-reverse items-center justify-center gap-3 sm:flex-row sm:justify-end">
                   <Button
-                    className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-5 text-xs font-medium shadow-md transition-all sm:w-auto"
-                    disabled={isSaving || isRequesting}
-                    onClick={handleSave}
+                    className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-sm transition-all sm:w-auto"
+                    onClick={() => setActiveStep(1)}
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                   >
-                    {isSaving ? 'Saving…' : 'Save'}
+                    <ChevronLeft size={16} />
+                    Previous
                   </Button>
                   <Button
-                    className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-xs font-medium shadow-md transition-all sm:w-auto"
+                    className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
                     disabled={isSaving || isRequesting}
                     onClick={handleSaveAndRequest}
                     type="button"
-                    variant="gradient"
+                    variant="primary"
                   >
                     {isRequesting ? 'Requesting…' : 'Save and Request'}
                   </Button>
@@ -1012,6 +1141,20 @@ export function StoreCustomerTestPage({
             </StepperContent>
           </StepperPanel>
         </Stepper>
+
+        <CancelRequestDialog
+          customer={isCancelDialogOpen ? selectedCustomer : null}
+          isSubmitting={isCancellingRequest}
+          onConfirm={handleConfirmCancelRequest}
+          onOpenChange={(open) => setIsCancelDialogOpen(open)}
+        />
+
+        <DeleteCustomerDialog
+          customer={isDeleteDialogOpen ? selectedCustomer : null}
+          isSubmitting={isDeleting}
+          onConfirm={handleDelete}
+          onOpenChange={(open) => setIsDeleteDialogOpen(open)}
+        />
       </CardFrame>
     </main>
   );

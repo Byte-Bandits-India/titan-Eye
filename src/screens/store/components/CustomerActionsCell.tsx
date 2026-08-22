@@ -1,4 +1,4 @@
-import { CheckCircle2, ClipboardPlus, FileText, MoreHorizontal, UserPen, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardPlus, FileText, MoreHorizontal, UserPen } from 'lucide-react';
 
 import type { Customer, StatusTab, User } from '../../../types';
 
@@ -164,6 +164,7 @@ export function CustomerActionsCell({
             className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-sm font-medium text-muted-foreground opacity-100"
             disabled
             title="Call in progress"
+            variant="ghost"
           >
             Call Initiated
           </Button>
@@ -178,6 +179,7 @@ export function CustomerActionsCell({
             className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-amber-100 px-3 text-sm font-medium text-amber-800 opacity-100 dark:bg-amber-950/60 dark:text-amber-300"
             disabled
             title="Waiting for an Optometrist doctor to respond"
+            variant="ghost"
           >
             Requesting Optometrist…
           </Button>
@@ -186,7 +188,7 @@ export function CustomerActionsCell({
               className="rounded-xs flex h-8 cursor-pointer items-center border border-red-200 px-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950/40"
               onClick={() => onCancelCall(cust.id)}
               title="Cancel pending Optometrist request"
-              variant="outline"
+              variant="secondary"
             >
               Cancel
             </Button>
@@ -201,10 +203,10 @@ export function CustomerActionsCell({
       if (isRxComplete) {
         return (
           <Button
-            className="h-8 gap-1.5 px-3 text-sm font-medium text-white shadow-sm cursor-pointer"
+            className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm"
             onClick={() => onUpdateStatus(cust.id)}
             size="sm"
-            variant="gradient"
+            variant="primary"
             title="Complete consultation and sales checkout"
           >
             <CheckCircle2 size={14} />
@@ -215,7 +217,7 @@ export function CustomerActionsCell({
 
       return (
         <Button
-          className="h-8 gap-1.5 px-3 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 shadow-sm cursor-pointer"
+          className="h-8 cursor-pointer gap-1.5 border border-emerald-300 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
           onClick={() => {
             onSelectCustomer(cust.id);
             onSetEditingRx(true);
@@ -223,6 +225,7 @@ export function CustomerActionsCell({
           }}
           size="sm"
           title="Fill mandatory Rx values before completing"
+          variant="ghost"
         >
           <FileText size={14} />
           Edit Rx
@@ -236,6 +239,7 @@ export function CustomerActionsCell({
           className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-sm font-medium text-muted-foreground opacity-100"
           disabled
           title="This customer consultation is completed"
+          variant="ghost"
         >
           Completed
         </Button>
@@ -248,6 +252,7 @@ export function CustomerActionsCell({
           className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-sm font-medium text-muted-foreground opacity-100"
           disabled
           title="This request was cancelled"
+          variant="ghost"
         >
           Cancelled
         </Button>
@@ -264,7 +269,7 @@ export function CustomerActionsCell({
             ? 'You already have an active Optometrist request. Only one request is allowed at a time.'
             : 'Create a test for this customer'
         }
-        variant="gradient"
+        variant="primary"
       >
         <ClipboardPlus size={14} />
         Create Test
@@ -273,20 +278,21 @@ export function CustomerActionsCell({
   })();
 
   const isCreateTestState = cust.status === 'Created' || (!cust.status && !cust.callStartTime);
+  const isPendingRequest = cust.status === 'Queued' || cust.status === 'Initiated';
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
-      {!isCreateTestState && (
+      {!isCreateTestState && !isPendingRequest && (
         <Popover>
           <PopoverTrigger asChild>
             <Button
               className="rounded-xs flex h-8 w-8 cursor-pointer items-center justify-center border-border p-0 shadow-sm transition-all hover:bg-muted active:scale-95"
               size="icon"
               title="Actions Menu"
-              variant="outline"
+              variant="secondary"
             >
               <MoreHorizontal className="text-muted-foreground" size={16} />
             </Button>
@@ -336,21 +342,6 @@ export function CustomerActionsCell({
                 >
                   <CheckCircle2 className="shrink-0 text-indigo-600 dark:text-indigo-400" size={14} />
                   <span>Completed</span>
-                </button>
-              </>
-            )}
-
-            {/* Cancel — only available from the Queue tab, while the request is still pending */}
-            {statusTab === 'Pending' && cust.status === 'Initiated' && onCancelCall && (
-              <>
-                <div className="my-1 h-px bg-border" />
-                <button
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                  onClick={() => onCancelCall(cust.id)}
-                  type="button"
-                >
-                  <XCircle className="shrink-0 text-red-600 dark:text-red-400" size={14} />
-                  <span>Cancel Request</span>
                 </button>
               </>
             )}

@@ -34,7 +34,10 @@ import {
   filterCustomersByDate,
   filterUsersByDate,
 } from '../../utils/dateFilter';
-import { computeOptometristAvailability, computeStoreAvailability } from '../../utils/optometristAvailability';
+import {
+  computeOptometristAvailability,
+  computeStoreAvailability,
+} from '../../utils/optometristAvailability';
 import { AdminCard } from './components/AdminCard';
 import {
   DEFAULT_AUDIT_LOG_COLUMNS,
@@ -167,15 +170,11 @@ export function AdminScreen() {
           c.status === 'Closed' ||
           c.status === 'Cancelled'
       ).length,
-      inProgress: dateFilteredCustomers.filter(
-        (c) => c.status === 'Accepted' || c.status === 'Testing'
-      ).length,
+      inProgress: dateFilteredCustomers.filter((c) => c.status === 'Accepted' || c.status === 'Testing')
+        .length,
       pending: dateFilteredCustomers.filter(
         (c) =>
-          c.status === 'Created' ||
-          c.status === 'Queued' ||
-          c.status === 'Initiated' ||
-          c.status === 'Drop'
+          c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop'
       ).length,
     }),
     [dateFilteredCustomers]
@@ -187,20 +186,12 @@ export function AdminScreen() {
     return dateFilteredCustomers.filter((c) => {
       if (
         customerStatusTab === 'Pending' &&
-        !(
-          c.status === 'Created' ||
-          c.status === 'Queued' ||
-          c.status === 'Initiated' ||
-          c.status === 'Drop'
-        )
+        !(c.status === 'Created' || c.status === 'Queued' || c.status === 'Initiated' || c.status === 'Drop')
       ) {
         return false;
       }
 
-      if (
-        customerStatusTab === 'InProgress' &&
-        !(c.status === 'Accepted' || c.status === 'Testing')
-      ) {
+      if (customerStatusTab === 'InProgress' && !(c.status === 'Accepted' || c.status === 'Testing')) {
         return false;
       }
 
@@ -448,7 +439,10 @@ export function AdminScreen() {
     [users, customers]
   );
 
-  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(() => computeStoreAvailability(users), [users]);
+  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
+    () => computeStoreAvailability(users),
+    [users]
+  );
 
   const totalOptometrists = React.useMemo(
     () => users.filter((u) => u.role === 'optometrist').length,
@@ -609,7 +603,7 @@ export function AdminScreen() {
       <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-2xl sm:text-[28px] font-semibold leading-tight text-foreground">
+            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-[28px]">
               {activeTab === 'customers'
                 ? 'Customer Directory'
                 : activeTab === 'users'
@@ -620,7 +614,7 @@ export function AdminScreen() {
                       ? 'Video Library'
                       : 'System Audit Logs'}
             </h1>
-            <p className="mt-0.5 text-xs sm:text-sm font-normal text-muted-foreground">
+            <p className="mt-0.5 text-sm font-normal text-muted-foreground sm:text-sm">
               {activeTab === 'customers'
                 ? 'Search and view registered customer transactions'
                 : activeTab === 'users'
@@ -635,9 +629,9 @@ export function AdminScreen() {
           {activeTab === 'users' && (
             <div className="flex shrink-0 items-center gap-2">
               <Button
-                className="active:scale-98 h-10 gap-2 px-4 text-xs font-medium shadow-sm transition-all"
+                className="active:scale-98 h-10 gap-2 px-4 text-sm font-medium shadow-sm transition-all"
                 onClick={handleAddNewClick}
-                variant="gradient"
+                variant="primary"
               >
                 <UserPlus size={14} />
                 Add User

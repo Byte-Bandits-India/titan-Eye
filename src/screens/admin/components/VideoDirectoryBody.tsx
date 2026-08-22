@@ -35,7 +35,7 @@ export function VideoDirectoryBody({
         icon={FilmIcon}
         iconGradient="from-purple-500 to-purple-800"
         right={
-          <Button className="h-9 gap-2 px-3 text-xs font-medium" onClick={onUploadClick} variant="gradient">
+          <Button className="h-9 gap-2 px-3 text-sm font-medium" onClick={onUploadClick} variant="primary">
             <UploadIcon size={14} />
             Add Video
           </Button>
@@ -48,7 +48,7 @@ export function VideoDirectoryBody({
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
             <FilmIcon className="size-8 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">No videos added yet</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Upload a file or paste a YouTube link to make it available in the admin console.
             </p>
           </div>

@@ -245,7 +245,7 @@ export function StorePatientDetails({
   const sheetFieldsMarkup = (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
           1
         </span>
         <h3 className="text-sm font-semibold text-foreground">Customer Information</h3>
@@ -362,7 +362,7 @@ export function StorePatientDetails({
         <Button
           className="active:scale-98 h-10 w-48 cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all"
           type="submit"
-          variant="gradient"
+          variant="primary"
         >
           {isAddingNew ? 'Create' : 'Save Changes'}
         </Button>

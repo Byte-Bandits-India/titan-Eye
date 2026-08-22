@@ -307,7 +307,7 @@ export function StoreScreen() {
       { id: 'callDuration', isMandatory: false, label: 'Call Duration' },
       ...(statusTab !== 'Pending' ? [{ id: 'optometrist', isMandatory: false, label: 'Optometrist' }] : []),
       ...(statusTab === 'Pending' ? [{ id: 'position', isMandatory: true, label: 'Queue' }] : []),
-      { id: 'status', isMandatory: true, label: 'Status' },
+      ...(statusTab !== 'Pending' ? [{ id: 'status', isMandatory: true, label: 'Status' }] : []),
       { id: 'actions', isMandatory: true, label: 'Actions' },
     ],
     [statusTab]
@@ -464,11 +464,13 @@ export function StoreScreen() {
       {
         accessorKey: 'id',
         cell: ({ row }) => (
-          <span className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400">{row.original.id}</span>
+          <span className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400">
+            {row.original.id}
+          </span>
         ),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Customer ID</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Customer ID</span>
         ),
         id: 'id',
         meta: { cellClassName: 'py-3' },
@@ -476,10 +478,12 @@ export function StoreScreen() {
       },
       {
         accessorKey: 'name',
-        cell: ({ row }) => <span className="text-xs sm:text-sm font-medium text-foreground">{row.original.name}</span>,
+        cell: ({ row }) => (
+          <span className="text-sm font-medium text-foreground sm:text-sm">{row.original.name}</span>
+        ),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Name</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Name</span>
         ),
         id: 'name',
         meta: { cellClassName: 'py-3' },
@@ -495,12 +499,12 @@ export function StoreScreen() {
             <div className="flex flex-wrap gap-1">
               {languages.length > 0 ? (
                 languages.map((lang) => (
-                  <span className="text-xs font-medium text-foreground" key={lang}>
+                  <span className="text-sm font-medium text-foreground" key={lang}>
                     {lang}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">—</span>
               )}
             </div>
           );
@@ -508,7 +512,7 @@ export function StoreScreen() {
         enableHiding: true,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
             Preferred Languages
           </span>
         ),
@@ -520,7 +524,7 @@ export function StoreScreen() {
         cell: ({ row }) => <WaitingCell cust={row.original} />,
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Waiting</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Waiting</span>
         ),
         id: 'waiting',
         meta: { cellClassName: 'py-3' },
@@ -531,7 +535,7 @@ export function StoreScreen() {
         cell: ({ row }) => renderCallDuration(row.original),
         enableSorting: false,
         header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Call Duration</span>
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Call Duration</span>
         ),
         id: 'callDuration',
         meta: { cellClassName: 'py-3' },
@@ -542,13 +546,15 @@ export function StoreScreen() {
             {
               cell: ({ row }: { row: { original: Customer } }) =>
                 row.original.callTakenBy ? (
-                  <span className="text-xs sm:text-sm font-medium text-foreground">{row.original.callTakenBy}</span>
+                  <span className="text-sm font-medium text-foreground sm:text-sm">
+                    {row.original.callTakenBy}
+                  </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 ),
               enableSorting: false,
               header: () => (
-                <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
                   Optometrist
                 </span>
               ),
@@ -565,16 +571,16 @@ export function StoreScreen() {
                 const pos = row.original.queuePosition;
 
                 return pos ? (
-                  <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
+                  <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
                     {pos}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 );
               },
               enableSorting: false,
               header: () => (
-                <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Queue</span>
+                <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Queue</span>
               ),
               id: 'position',
               meta: { cellClassName: 'py-3' },
@@ -582,21 +588,27 @@ export function StoreScreen() {
             } satisfies ColumnDef<DataGridFeatures, Customer>,
           ]
         : []),
-      {
-        cell: ({ row }: { row: { original: Customer } }) =>
-          isViewingSalesConversion ? (
-            <ConversionStatusBadge conversionStatus={row.original.conversionStatus} />
-          ) : (
-            <CustomerStatusBadge status={row.original.status} />
-          ),
-        enableSorting: false,
-        header: () => (
-          <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
-        ),
-        id: 'status',
-        meta: { cellClassName: 'py-3' },
-        size: 130,
-      },
+      ...(statusTab !== 'Pending'
+        ? [
+            {
+              cell: ({ row }: { row: { original: Customer } }) =>
+                isViewingSalesConversion ? (
+                  <ConversionStatusBadge conversionStatus={row.original.conversionStatus} />
+                ) : (
+                  <CustomerStatusBadge status={row.original.status} />
+                ),
+              enableSorting: false,
+              header: () => (
+                <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
+                  Status
+                </span>
+              ),
+              id: 'status',
+              meta: { cellClassName: 'py-3' },
+              size: 130,
+            } satisfies ColumnDef<DataGridFeatures, Customer>,
+          ]
+        : []),
       {
         cell: ({ row }) => (
           <CustomerActionsCell
@@ -616,7 +628,7 @@ export function StoreScreen() {
         ),
         enableSorting: false,
         header: () => (
-          <span className="block whitespace-nowrap pr-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="block whitespace-nowrap pr-4 text-right text-sm font-semibold text-muted-foreground">
             Actions
           </span>
         ),
@@ -707,7 +719,7 @@ export function StoreScreen() {
               </div>
               <div className="min-w-0">
                 <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">Sales Conversion</h1>
-                <p className="truncate text-xs font-medium text-muted-foreground">
+                <p className="truncate text-sm font-medium text-muted-foreground">
                   All recent customers for {user.name}
                 </p>
               </div>
@@ -732,7 +744,7 @@ export function StoreScreen() {
               <Button
                 className="h-10 gap-2 px-4 text-sm font-medium"
                 onClick={handleOpenSalesConversion}
-                variant="outline"
+                variant="secondary"
               >
                 <TrendingUp size={16} />
                 Sales Conversion
@@ -740,7 +752,7 @@ export function StoreScreen() {
               <Button
                 className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
                 onClick={handleAddNewClick}
-                variant="gradient"
+                variant="primary"
               >
                 <Plus size={14} />
                 Create customer
@@ -765,7 +777,7 @@ export function StoreScreen() {
               <Button
                 className="h-10 gap-2 px-4 text-sm font-medium"
                 onClick={handleOpenSalesConversion}
-                variant="outline"
+                variant="secondary"
               >
                 <TrendingUp size={16} />
                 Sales Conversion
@@ -773,7 +785,7 @@ export function StoreScreen() {
               <Button
                 className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
                 onClick={handleAddNewClick}
-                variant="gradient"
+                variant="primary"
               >
                 <Plus size={14} />
                 Create customer

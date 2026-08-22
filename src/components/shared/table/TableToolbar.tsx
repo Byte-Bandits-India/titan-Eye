@@ -39,7 +39,7 @@ export function TableToolbar({
   return (
     <div className={`flex items-center gap-2 ${className ?? ''}`}>
       <Input
-        className="h-9 w-72 border-border bg-card text-xs sm:w-80"
+        className="h-9 w-72 border-border bg-card text-sm sm:w-80"
         icon={Search}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder={searchPlaceholder}

@@ -28,10 +28,10 @@ export function PaginationBar({
   const isPreset = presets.includes(itemsPerPage);
 
   return (
-    <div className="bg-muted/30 flex items-center justify-between border-t border-border px-3 py-3 text-xs font-medium text-muted-foreground">
+    <div className="bg-muted/30 flex items-center justify-between border-t border-border px-3 py-3 text-sm font-medium text-muted-foreground">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground">Per page:</span>
+          <span className="text-sm font-medium text-muted-foreground">Per page:</span>
           {onItemsPerPageChange ? (
             <div className="relative flex items-center">
               {isCustomMode ? (
@@ -43,7 +43,7 @@ export function PaginationBar({
               ) : (
                 <>
                   <select
-                    className="shadow-3xs h-7 cursor-pointer appearance-none rounded-lg border border-border bg-card pl-2.5 text-xs font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="shadow-3xs h-7 cursor-pointer appearance-none rounded-lg border border-border bg-card pl-2.5 text-sm font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
                     onChange={(e) => {
                       const val = e.target.value;
 
@@ -92,7 +92,7 @@ export function PaginationBar({
               disabled={currentPage === 1}
               onClick={onPrev}
               size="icon"
-              variant="outline"
+              variant="secondary"
             >
               <ChevronLeft size={14} />
             </Button>
@@ -101,7 +101,7 @@ export function PaginationBar({
               disabled={currentPage === totalPages}
               onClick={onNext}
               size="icon"
-              variant="outline"
+              variant="secondary"
             >
               <ChevronRight size={14} />
             </Button>
@@ -136,7 +136,7 @@ function CustomPerPageInput({
   return (
     <input
       autoFocus
-      className="shadow-3xs h-7 w-12 rounded-lg border border-border bg-card px-2 text-center text-xs font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
+      className="shadow-3xs h-7 w-12 rounded-lg border border-border bg-card px-2 text-center text-sm font-medium text-foreground outline-none transition-all focus:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
       min={1}
       onBlur={handleSubmit}
       onChange={(e) => setVal(e.target.value)}
