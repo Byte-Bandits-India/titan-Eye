@@ -4,6 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 
 type StatusTabsProps = {
   hideCompleted?: boolean;
+  onlyPendingAndAll?: boolean;
   onValueChange: (tab: StatusTab) => void;
   pendingLabel?: string;
   tabCounts: TabCounts;
@@ -12,19 +13,25 @@ type StatusTabsProps = {
 
 export function StatusTabs({
   hideCompleted,
+  onlyPendingAndAll,
   onValueChange,
   pendingLabel = 'Created',
   tabCounts,
   value,
 }: StatusTabsProps) {
-  const tabs = [
-    { count: tabCounts.pending, label: pendingLabel, value: 'Pending' as StatusTab },
-    { count: tabCounts.inProgress, label: 'Testing', value: 'InProgress' as StatusTab },
-    ...(hideCompleted
-      ? []
-      : [{ count: tabCounts.completed, label: 'Completed', value: 'Completed' as StatusTab }]),
-    { count: tabCounts.all, label: 'All', value: 'all' as StatusTab },
-  ];
+  const tabs = onlyPendingAndAll
+    ? [
+        { count: tabCounts.pending, label: pendingLabel, value: 'Pending' as StatusTab },
+        { count: tabCounts.all, label: 'All', value: 'all' as StatusTab },
+      ]
+    : [
+        { count: tabCounts.pending, label: pendingLabel, value: 'Pending' as StatusTab },
+        { count: tabCounts.inProgress, label: 'Testing', value: 'InProgress' as StatusTab },
+        ...(hideCompleted
+          ? []
+          : [{ count: tabCounts.completed, label: 'Completed', value: 'Completed' as StatusTab }]),
+        { count: tabCounts.all, label: 'All', value: 'all' as StatusTab },
+      ];
 
   return (
     <Tabs className="px-4 pb-3 pt-3" onValueChange={(v) => onValueChange(v as StatusTab)} value={value}>

@@ -14,6 +14,10 @@ import type {
 
 import { ActiveCountBadge } from '../../../components/shared/ActiveCountBadge';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
+import {
+  ConversionStatusFilter,
+  type ConversionStatusFilterValue,
+} from '../../../components/shared/ConversionStatusFilter';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
 import { OptometristUsersInfiniteBody } from '../../optometrist/components/OptometristUsersInfiniteBody';
 import { MetricCardGrid } from './MetricCardGrid';
@@ -34,11 +38,14 @@ type OptometristUsersVariant = {
 
 type RecentCustomersVariant = {
   columns?: ColumnOption[];
+  conversionStatusFilter?: ConversionStatusFilterValue;
   currentPage?: number;
   customersTable: Table<DataGridFeatures, Customer>;
   data: Customer[];
   dateRange: DateFilterRange;
   hideStatusTabs?: boolean;
+  onConversionStatusFilterChange?: (value: ConversionStatusFilterValue) => void;
+  onlyPendingAndAll?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
@@ -48,7 +55,9 @@ type RecentCustomersVariant = {
   onStatusTabChange: (tab: StatusTab) => void;
   onToggleColumn?: (columnId: string) => void;
   pageSize?: number;
+  pendingLabel?: string;
   searchValue: string;
+  showConversionStatusFilter?: boolean;
   statusTab: StatusTab;
   tabCounts: TabCounts;
   totalItems?: number;
@@ -80,11 +89,14 @@ export function StoreCard(props: StoreCardProps) {
 
   const {
     columns,
+    conversionStatusFilter,
     currentPage,
     customersTable,
     data,
     dateRange,
     hideStatusTabs,
+    onConversionStatusFilterChange,
+    onlyPendingAndAll,
     onDateRangeChange,
     onNextPage,
     onPageSizeChange,
@@ -94,7 +106,9 @@ export function StoreCard(props: StoreCardProps) {
     onStatusTabChange,
     onToggleColumn,
     pageSize,
+    pendingLabel,
     searchValue,
+    showConversionStatusFilter,
     statusTab,
     tabCounts,
     totalItems,
@@ -106,6 +120,14 @@ export function StoreCard(props: StoreCardProps) {
     <TableToolbar
       columns={columns}
       dateRange={dateRange}
+      extra={
+        showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange ? (
+          <ConversionStatusFilter
+            onChange={onConversionStatusFilterChange}
+            value={conversionStatusFilter}
+          />
+        ) : undefined
+      }
       onDateRangeChange={onDateRangeChange}
       onResetColumns={onResetColumns}
       onSearchChange={onSearchChange}
@@ -129,6 +151,7 @@ export function StoreCard(props: StoreCardProps) {
         currentPage={currentPage}
         customersTable={customersTable}
         hideStatusTabs={hideStatusTabs}
+        onlyPendingAndAll={onlyPendingAndAll}
         onNextPage={onNextPage}
         onPageSizeChange={onPageSizeChange}
         onPrevPage={onPrevPage}
@@ -137,6 +160,7 @@ export function StoreCard(props: StoreCardProps) {
         onToggleColumn={onToggleColumn}
         pageSize={pageSize}
         paginatedCustomers={data}
+        pendingLabel={pendingLabel}
         statusTab={statusTab}
         tabCounts={tabCounts}
         totalItems={totalItems}

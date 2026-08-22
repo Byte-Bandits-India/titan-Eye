@@ -343,6 +343,7 @@ export type StoreCustomerTestPageProps = {
 
 export type StoreUpdateStatusPageProps = {
   onBack: () => void;
+  readOnly?: boolean;
   selectedCustomer: Customer | null;
 };
 

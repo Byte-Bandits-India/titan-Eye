@@ -13,6 +13,7 @@ type RecentCustomersBodyProps = {
   currentPage?: number;
   customersTable: Table<DataGridFeatures, Customer>;
   hideStatusTabs?: boolean;
+  onlyPendingAndAll?: boolean;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
   onPrevPage?: () => void;
@@ -21,6 +22,7 @@ type RecentCustomersBodyProps = {
   onToggleColumn?: (columnId: string) => void;
   pageSize?: number;
   paginatedCustomers: Customer[];
+  pendingLabel?: string;
   statusTab: StatusTab;
   tabCounts: TabCounts;
   totalItems?: number;
@@ -33,6 +35,7 @@ export function RecentCustomersBody({
   currentPage = 1,
   customersTable,
   hideStatusTabs,
+  onlyPendingAndAll,
   onNextPage,
   onPageSizeChange,
   onPrevPage,
@@ -41,6 +44,7 @@ export function RecentCustomersBody({
   onToggleColumn,
   pageSize = 10,
   paginatedCustomers,
+  pendingLabel,
   statusTab,
   tabCounts,
   totalItems = 0,
@@ -49,7 +53,14 @@ export function RecentCustomersBody({
   return (
     <>
       {!hideStatusTabs && (
-        <StatusTabs hideCompleted onValueChange={onStatusTabChange} tabCounts={tabCounts} value={statusTab} />
+        <StatusTabs
+          hideCompleted
+          onlyPendingAndAll={onlyPendingAndAll}
+          onValueChange={onStatusTabChange}
+          pendingLabel={pendingLabel}
+          tabCounts={tabCounts}
+          value={statusTab}
+        />
       )}
 
       <div className="border-b border-gray-200" />

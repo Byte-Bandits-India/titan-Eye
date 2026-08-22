@@ -15,6 +15,7 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
 import { BackButton } from '../../components/shared/BackButton';
 import { CompleteCallModal } from '../../components/shared/CompleteCallModal';
+import type { ConversionStatusFilterValue } from '../../components/shared/ConversionStatusFilter';
 import { Button } from '../../components/ui/button';
 import { useNotificationLog } from '../../components/ui/notificationLog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
@@ -52,11 +53,14 @@ export function StoreScreen() {
   const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState('');
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
+  const [conversionStatusFilter, setConversionStatusFilter] =
+    React.useState<ConversionStatusFilterValue>('all');
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0492');
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+  const [isViewingConversionDetail, setIsViewingConversionDetail] = React.useState(false);
   const [isCreatingTest, setIsCreatingTest] = React.useState(false);
   const [isViewingSalesConversion, setIsViewingSalesConversion] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
@@ -260,6 +264,50 @@ export function StoreScreen() {
     return list;
   }, [customers, statusTab, customerDateRange, customerSearchTerm]);
 
+  const salesConversionTabCounts = React.useMemo(
+    () => ({
+      all: customers.filter(
+        (c) => c.conversionStatus === 'Converted' || c.conversionStatus === 'Not Converted'
+      ).length,
+      completed: 0,
+      inProgress: 0,
+      pending: customers.filter(
+        (c) => c.conversionStatus !== 'Converted' && c.conversionStatus !== 'Not Converted'
+      ).length,
+    }),
+    [customers]
+  );
+
+  const salesConversionFilteredCustomers = React.useMemo(() => {
+    const byStatus = customers.filter((c) => {
+      const isConverted = c.conversionStatus === 'Converted' || c.conversionStatus === 'Not Converted';
+
+      if (statusTab === 'Pending') {
+        return !isConverted;
+      }
+
+      if (conversionStatusFilter !== 'all' && c.conversionStatus !== conversionStatusFilter) {
+        return false;
+      }
+
+      return isConverted;
+    });
+
+    const byDate = filterCustomersByDate(byStatus, customerDateRange);
+    const search = customerSearchTerm.trim().toLowerCase();
+
+    if (!search) {
+      return byDate;
+    }
+
+    return byDate.filter(
+      (c) =>
+        c.id.toLowerCase().includes(search) ||
+        c.name.toLowerCase().includes(search) ||
+        c.mobile.toLowerCase().includes(search)
+    );
+  }, [customers, statusTab, customerDateRange, customerSearchTerm, conversionStatusFilter]);
+
   const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () => computeOptometristAvailability(users, customers),
     [users, customers]
@@ -342,7 +390,7 @@ export function StoreScreen() {
     resetPage,
     totalItems,
     totalPages,
-  } = usePagination(filteredCustomers, pageSize);
+  } = usePagination(isViewingSalesConversion ? salesConversionFilteredCustomers : filteredCustomers, pageSize);
 
   const [cancelRequestTarget, setCancelRequestTarget] = React.useState<Customer | null>(null);
   const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
@@ -431,6 +479,11 @@ export function StoreScreen() {
     setIsUpdatingStatus(true);
   };
 
+  const handleViewSalesConversionCustomer = (id: string) => {
+    setSelectedCustomerId(id);
+    setIsViewingConversionDetail(true);
+  };
+
   const handleOpenRxFromNotification = (id: string) => {
     setIsEditing(false);
     setIsUpdatingStatus(false);
@@ -455,9 +508,135 @@ export function StoreScreen() {
     setIsCreatingTest(false);
     setIsUpdatingStatus(false);
     setStatusTab('all');
+    setConversionStatusFilter('all');
     resetPage();
     setIsViewingSalesConversion(true);
   };
+
+  const salesConversionColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        cell: ({ row }) => (
+          <span className="font-mono text-sm font-medium text-blue-600 dark:text-blue-400">
+            {row.original.id}
+          </span>
+        ),
+        enableSorting: false,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Customer ID</span>
+        ),
+        id: 'id',
+        meta: { cellClassName: 'py-3' },
+        size: 100,
+      },
+      {
+        accessorKey: 'mobile',
+        cell: ({ row }) => (
+          <span className="text-sm font-medium text-foreground">{row.original.mobile}</span>
+        ),
+        enableSorting: false,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
+            Mobile Number
+          </span>
+        ),
+        id: 'mobile',
+        meta: { cellClassName: 'py-3' },
+        size: 140,
+      },
+      {
+        accessorKey: 'name',
+        cell: ({ row }) => (
+          <span className="text-sm font-medium text-foreground sm:text-sm">{row.original.name}</span>
+        ),
+        enableSorting: false,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Name</span>
+        ),
+        id: 'name',
+        meta: { cellClassName: 'py-3' },
+        size: 150,
+      },
+      {
+        cell: ({ row }) => {
+          const ms = parseTimestamp(row.original.createdOn || row.original.lastUpdatedOn);
+
+          return (
+            <span className="text-sm text-foreground">
+              {ms ? new Date(ms).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+            </span>
+          );
+        },
+        enableSorting: false,
+        header: () => (
+          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Date</span>
+        ),
+        id: 'date',
+        meta: { cellClassName: 'py-3' },
+        size: 130,
+      },
+      ...(statusTab !== 'Pending'
+        ? [
+            {
+              cell: ({ row }: { row: { original: Customer } }) => (
+                <ConversionStatusBadge conversionStatus={row.original.conversionStatus} />
+              ),
+              enableSorting: false,
+              header: () => (
+                <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
+                  Status
+                </span>
+              ),
+              id: 'conversionStatusColumn',
+              meta: { cellClassName: 'py-3' },
+              size: 140,
+            } satisfies ColumnDef<DataGridFeatures, Customer>,
+          ]
+        : []),
+      {
+        cell: ({ row }) => {
+          const isConverted =
+            row.original.conversionStatus === 'Converted' ||
+            row.original.conversionStatus === 'Not Converted';
+
+          return (
+            <div className="flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
+              {isConverted ? (
+                <Button
+                  className="h-8 cursor-pointer gap-1.5 px-4 text-sm font-medium shadow-sm"
+                  onClick={() => handleViewSalesConversionCustomer(row.original.id)}
+                  size="sm"
+                  variant="secondary"
+                >
+                  View
+                </Button>
+              ) : (
+                <Button
+                  className="h-8 cursor-pointer gap-1.5 px-4 text-sm font-medium text-white shadow-sm"
+                  onClick={() => handleOpenUpdateStatus(row.original.id)}
+                  size="sm"
+                  variant="primary"
+                >
+                  Update
+                </Button>
+              )}
+            </div>
+          );
+        },
+        enableSorting: false,
+        header: () => (
+          <span className="block whitespace-nowrap pr-4 text-right text-sm font-semibold text-muted-foreground">
+            Actions
+          </span>
+        ),
+        id: 'actions',
+        meta: { cellClassName: 'py-3 pr-4' },
+        size: 140,
+      },
+    ],
+    [statusTab]
+  );
 
   const customerColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
     () => [
@@ -642,7 +821,7 @@ export function StoreScreen() {
   );
 
   const customersTable = useTable({
-    columns: customerColumns,
+    columns: isViewingSalesConversion ? salesConversionColumns : customerColumns,
     data: paginatedCustomers,
     features: dataGridFeatures,
     getRowId: (row: Customer) => row.id,
@@ -650,10 +829,12 @@ export function StoreScreen() {
     onPaginationChange: () => undefined,
     pageCount: 1,
     state: {
-      columnVisibility: {
-        ...columnVisibility,
-        language: columnVisibility.language ?? !isNarrowScreen,
-      },
+      columnVisibility: isViewingSalesConversion
+        ? {}
+        : {
+            ...columnVisibility,
+            language: columnVisibility.language ?? !isNarrowScreen,
+          },
       pagination: { pageIndex: 0, pageSize: Math.max(paginatedCustomers.length, 1) },
     },
   });
@@ -662,14 +843,20 @@ export function StoreScreen() {
     return null;
   }
 
-  const renderRecentCustomersCard = (hideStatusTabs?: boolean) => (
+  const renderRecentCustomersCard = (hideStatusTabs?: boolean, onlyPendingAndAll?: boolean) => (
     <StoreCard
-      columns={STORE_CUSTOMER_COLUMNS}
+      columns={onlyPendingAndAll ? undefined : STORE_CUSTOMER_COLUMNS}
+      conversionStatusFilter={conversionStatusFilter}
       currentPage={currentPage}
       customersTable={customersTable}
       data={paginatedCustomers}
       dateRange={customerDateRange}
       hideStatusTabs={hideStatusTabs}
+      onConversionStatusFilterChange={(val) => {
+        setConversionStatusFilter(val);
+        resetPage();
+      }}
+      onlyPendingAndAll={onlyPendingAndAll}
       onDateRangeChange={setCustomerDateRange}
       onNextPage={nextPage}
       onPageSizeChange={(newSize) => {
@@ -685,13 +872,15 @@ export function StoreScreen() {
       }}
       onToggleColumn={handleToggleColumn}
       pageSize={pageSize}
+      pendingLabel={onlyPendingAndAll ? 'Pending' : undefined}
       searchValue={customerSearchTerm}
+      showConversionStatusFilter={onlyPendingAndAll && statusTab === 'all'}
       statusTab={statusTab}
-      tabCounts={tabCounts}
+      tabCounts={onlyPendingAndAll ? salesConversionTabCounts : tabCounts}
       totalItems={totalItems}
       totalPages={totalPages}
       variant="recent-customers"
-      visibleColumns={visibleColumnIds}
+      visibleColumns={onlyPendingAndAll ? undefined : visibleColumnIds}
     />
   );
 
@@ -708,6 +897,12 @@ export function StoreScreen() {
       ) : isUpdatingStatus ? (
         <StoreUpdateStatusPage
           onBack={() => setIsUpdatingStatus(false)}
+          selectedCustomer={selectedCustomer}
+        />
+      ) : isViewingConversionDetail ? (
+        <StoreUpdateStatusPage
+          onBack={() => setIsViewingConversionDetail(false)}
+          readOnly
           selectedCustomer={selectedCustomer}
         />
       ) : isViewingSalesConversion ? (
@@ -728,7 +923,7 @@ export function StoreScreen() {
             <BackButton onClick={() => setIsViewingSalesConversion(false)} />
           </div>
 
-          {renderRecentCustomersCard(true)}
+          {renderRecentCustomersCard(false, true)}
         </main>
       ) : isTabletShortcut ? (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6 md:px-8">
