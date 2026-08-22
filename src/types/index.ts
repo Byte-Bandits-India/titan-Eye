@@ -337,6 +337,7 @@ export type StoreRxDetailsProps = {
 export type StoreCustomerTestPageProps = {
   onBack: () => void;
   selectedCustomer: Customer | null;
+  setSelectedCustomerId: (id: null | string) => void;
 };
 
 export type StoreUpdateStatusPageProps = {

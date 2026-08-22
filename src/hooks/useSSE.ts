@@ -54,24 +54,6 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
 
-          const currentUser = userRef.current;
-
-          if (currentUser?.role === 'optometrist') {
-            addLogNotification({
-              customerId: cust.id,
-              description: `${cust.name} was registered at ${cust.storeName || 'Store'}.`,
-              title: 'New Patient Registered',
-              type: 'patient_registered',
-            });
-          } else if (currentUser?.role === 'admin') {
-            addLogNotification({
-              customerId: cust.id,
-              description: `${cust.name} registered at ${cust.storeName || 'Store'}.`,
-              title: 'New Patient Registered',
-              type: 'patient_registered',
-            });
-          }
-
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'CUSTOMER_UPDATED') {
           dispatch(customerUpdated(eventData as Customer));

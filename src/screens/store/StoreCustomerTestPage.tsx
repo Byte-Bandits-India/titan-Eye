@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import type { Customer, OptometristRxValues, RxValues, StoreCustomerTestPageProps } from '../../types';
 
-import { initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import { createCustomerAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
 import { BackButton } from '../../components/shared/BackButton';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { CustomerFeedbackImageBox } from '../../components/shared/CustomerFeedbackImageBox';
@@ -11,6 +11,7 @@ import { RxScrollPicker } from '../../components/shared/RxScrollPicker';
 import {
   Stepper,
   StepperContent,
+  StepperDescription,
   StepperIndicator,
   StepperItem,
   StepperNav,
@@ -50,7 +51,7 @@ import {
   rxHeaders,
   SPH_REGEX,
 } from '../../options/Option';
-import { useAppDispatch } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store';
 
 function useRenderLog(label: string) {
   const renderCount = React.useRef(0);
@@ -213,6 +214,105 @@ type ObjectiveRxContentProps = {
   storeFeedback: string;
 };
 
+type RxSubTableProps = {
+  label: React.ReactNode;
+  rows: readonly [RxRow, RxRow];
+  rxErrors: Record<string, boolean>;
+  rxForm: RxFormState;
+  setRxField: (row: RxRow, field: keyof RxValues, val: string) => void;
+};
+
+function RxSubTable({ label, rows, rxErrors, rxForm, setRxField }: RxSubTableProps) {
+  return (
+    <div className="overflow-x-auto rounded-md border border-slate-300 dark:border-zinc-700">
+      <p className="border-b border-slate-300 bg-slate-50/70 px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
+        {label}
+      </p>
+      <Table className="w-full min-w-[560px] table-fixed border-collapse text-center text-xs">
+        <colgroup>
+          <col className="w-[60px]" />
+          {rxHeaders.map((h) => (
+            <col key={h} />
+          ))}
+        </colgroup>
+        <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
+          <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
+            <TableHead className="border-r border-slate-400 px-3 py-2 dark:border-zinc-700" />
+            {rxHeaders.map((h) => (
+              <TableHead
+                className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                key={h}
+              >
+                {h}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, rowIdx) => (
+            <TableRow
+              className={rowIdx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
+              key={row}
+            >
+              <TableCell className="w-[60px] animate-none whitespace-nowrap border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
+                {rowIdx === 0 ? 'R E' : 'L E'}
+              </TableCell>
+              {rxFields.map((field, idx) => {
+                const errKey = `${row}.${field}`;
+                const hasErr = !!rxErrors[errKey];
+
+                let optionsList: string[] = [];
+
+                if (field === 'sph') {
+                  optionsList = POWER_OPTIONS;
+                } else if (field === 'cyl') {
+                  optionsList = CYL_OPTIONS;
+                } else if (field === 'add') {
+                  optionsList = ADD_OPTIONS;
+                } else if (field === 'axis') {
+                  optionsList = AXIS_OPTIONS;
+                } else if (field === 'pd') {
+                  optionsList = PD_OPTIONS;
+                } else if (field === 'prism') {
+                  optionsList = PRISM_OPTIONS;
+                } else if (field === 'base') {
+                  optionsList = BASE_OPTIONS;
+                }
+
+                return (
+                  <TableCell
+                    className={cn(
+                      rowIdx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : '',
+                      'group relative p-0',
+                      idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''
+                    )}
+                    key={field}
+                  >
+                    <RxScrollPicker
+                      defaultValue={
+                        (row === 'autoRefRe' || row === 'autoRefLe') &&
+                        (field === 'sph' || field === 'cyl' || field === 'axis' || field === 'pd')
+                          ? '____'
+                          : field === 'prism' || field === 'base'
+                            ? '0'
+                            : '0.00'
+                      }
+                      hasError={hasErr}
+                      onChange={(val) => setRxField(row, field, val)}
+                      options={optionsList}
+                      value={rxForm[row][field] || ''}
+                    />
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function ObjectiveRxContentComponent({
   customerId,
   hasImage1,
@@ -228,120 +328,27 @@ function ObjectiveRxContentComponent({
 
   return (
     <div className="space-y-4">
-      <div className="shadow-xs w-full overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
-        <Table className="w-full min-w-[650px] table-fixed border-collapse text-center text-xs">
-          <colgroup>
-            <col className="w-[100px]" />
-            <col className="w-[60px]" />
-            {rxHeaders.map((h) => (
-              <col key={h} />
-            ))}
-          </colgroup>
-          <TableHeader className="border-slate-400 bg-slate-100 dark:border-zinc-700 dark:bg-zinc-800 [&_tr]:border-b">
-            <TableRow className="border-b border-slate-400 hover:bg-slate-100/50 dark:border-zinc-700 dark:hover:bg-zinc-800/50">
-              <TableHead
-                className="border-b border-slate-400 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:text-zinc-100"
-                colSpan={9}
-              >
-                Objective prescription
-              </TableHead>
-            </TableRow>
-            <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
-              <TableHead
-                className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-xs font-medium uppercase tracking-wider text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400"
-                colSpan={2}
-              >
-                R X
-              </TableHead>
-              {rxHeaders.map((h) => (
-                <TableHead
-                  className="border-r border-slate-400 px-3 py-2 text-center text-xs font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
-                  key={h}
-                >
-                  {h}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(['autoRefRe', 'autoRefLe', 'pgpRe', 'pgpLe'] as const).map((row, rowIdx) => (
-              <TableRow
-                className={rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : 'border-0'}
-                key={row}
-              >
-                {rowIdx % 2 === 0 && (
-                  <TableCell
-                    className="w-[100px] animate-none border-b border-r border-slate-400 bg-slate-50/50 px-3 py-4 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400"
-                    rowSpan={2}
-                  >
-                    {rowIdx < 2 ? (
-                      'Auto Ref'
-                    ) : (
-                      <>
-                        PGP
-                        <br />
-                        Old RX
-                        <br />
-                        Outside RX
-                      </>
-                    )}
-                  </TableCell>
-                )}
-                <TableCell className="w-[60px] animate-none whitespace-nowrap border-b border-r border-slate-400 bg-slate-50/50 px-3 py-3 text-center text-xs font-medium text-[#1a2b6e] dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-blue-400">
-                  {rowIdx % 2 === 0 ? 'R E' : 'L E'}
-                </TableCell>
-                {rxFields.map((field, idx) => {
-                  const errKey = `${row}.${field}`;
-                  const hasErr = !!rxErrors[errKey];
+      <div className="shadow-xs w-full overflow-hidden rounded-lg border border-slate-300 dark:border-zinc-700">
+        <p className="border-b border-slate-400 bg-slate-100 py-2.5 text-center text-sm font-medium uppercase tracking-wider text-slate-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+          Objective prescription
+        </p>
 
-                  let optionsList: string[] = [];
-
-                  if (field === 'sph') {
-                    optionsList = POWER_OPTIONS;
-                  } else if (field === 'cyl') {
-                    optionsList = CYL_OPTIONS;
-                  } else if (field === 'add') {
-                    optionsList = ADD_OPTIONS;
-                  } else if (field === 'axis') {
-                    optionsList = AXIS_OPTIONS;
-                  } else if (field === 'pd') {
-                    optionsList = PD_OPTIONS;
-                  } else if (field === 'prism') {
-                    optionsList = PRISM_OPTIONS;
-                  } else if (field === 'base') {
-                    optionsList = BASE_OPTIONS;
-                  }
-
-                  return (
-                    <TableCell
-                      className={cn(
-                        rowIdx < 3 ? 'border-b border-slate-400 dark:border-zinc-700' : '',
-                        'group relative p-0',
-                        idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''
-                      )}
-                      key={field}
-                    >
-                      <RxScrollPicker
-                        defaultValue={
-                          (row === 'autoRefRe' || row === 'autoRefLe') &&
-                          (field === 'sph' || field === 'cyl' || field === 'axis' || field === 'pd')
-                            ? '____'
-                            : field === 'prism' || field === 'base'
-                              ? '0'
-                              : '0.00'
-                        }
-                        hasError={hasErr}
-                        onChange={(val) => setRxField(row, field, val)}
-                        options={optionsList}
-                        value={rxForm[row][field] || ''}
-                      />
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <div className="space-y-4 overflow-x-auto p-3">
+          <RxSubTable
+            label="Auto ref"
+            rows={['autoRefRe', 'autoRefLe']}
+            rxErrors={rxErrors}
+            rxForm={rxForm}
+            setRxField={setRxField}
+          />
+          <RxSubTable
+            label="PGP, Old RX, Outside RX"
+            rows={['pgpRe', 'pgpLe']}
+            rxErrors={rxErrors}
+            rxForm={rxForm}
+            setRxField={setRxField}
+          />
+        </div>
       </div>
 
       <div className="shadow-xs overflow-x-auto rounded-lg border border-slate-300 dark:border-zinc-700">
@@ -430,11 +437,17 @@ function ObjectiveRxContentComponent({
 
 const ObjectiveRxContent = React.memo(ObjectiveRxContentComponent);
 
-export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustomerTestPageProps) {
+export function StoreCustomerTestPage({
+  onBack,
+  selectedCustomer,
+  setSelectedCustomerId,
+}: StoreCustomerTestPageProps) {
   useRenderLog('StoreCustomerTestPage');
 
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const user = useAppSelector((state) => state.auth.user);
+  const customers = useAppSelector((state) => state.customers.customers);
 
   const buildFormState = React.useCallback(
     (customer: Customer | null): CustomerForm => ({
@@ -447,9 +460,9 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
       preferredLanguage: customer?.preferredLanguage || 'English',
       preferredLanguage2: customer?.preferredLanguage2 || 'None',
       status: customer?.status || 'Created',
-      storeName: customer?.storeName || '',
+      storeName: customer?.storeName || user?.name || '',
     }),
-    []
+    [user]
   );
 
   const [form, setForm] = React.useState(() => buildFormState(selectedCustomer));
@@ -645,33 +658,63 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
       year: 'numeric',
     });
 
-  const persistCustomer = async (): Promise<void> => {
-    if (!selectedCustomer) {
-      return;
+  const persistCustomer = async (): Promise<string> => {
+    const timestamp = buildTimestamp();
+
+    if (selectedCustomer) {
+      const updatedCustomer: Customer = {
+        ...selectedCustomer,
+        activeProfile: form.activeProfile,
+        age: form.age,
+        customerType: form.customerType,
+        gender: form.gender,
+        lastUpdatedOn: timestamp,
+        mobile: form.mobile,
+        name: form.name,
+        optometristRxData: optometristRxForm,
+        preferredLanguage: form.preferredLanguage,
+        preferredLanguage2: form.preferredLanguage2,
+        rxData: rxForm,
+        status: form.status,
+        storeFeedback,
+        storeName: form.storeName,
+      };
+
+      await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
+
+      return selectedCustomer.id;
     }
 
-    const updatedCustomer: Customer = {
-      ...selectedCustomer,
-      activeProfile: form.activeProfile,
+    const numericIds = customers.map((c) => parseInt(c.id.replace('#', ''), 10)).filter((n) => !isNaN(n));
+    const nextNum = Math.max(...numericIds, 0) + 1;
+    const newId = `#${String(nextNum).padStart(4, '0')}`;
+
+    const newCustomer: Customer = {
+      activeProfile: true,
       age: form.age,
       customerType: form.customerType,
       gender: form.gender,
-      lastUpdatedOn: buildTimestamp(),
+      id: newId,
+      lastUpdatedOn: timestamp,
       mobile: form.mobile,
       name: form.name,
+      optometristFeedback: '',
       optometristRxData: optometristRxForm,
       preferredLanguage: form.preferredLanguage,
       preferredLanguage2: form.preferredLanguage2,
       rxData: rxForm,
       status: form.status,
       storeFeedback,
-      storeName: form.storeName,
+      storeName: form.storeName || user?.name || '',
     };
 
-    await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
+    const created = await dispatch(createCustomerAction(newCustomer));
+    setSelectedCustomerId(created.id);
+
+    return created.id;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
 
@@ -685,14 +728,29 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
       return;
     }
 
+    if (!selectedCustomer) {
+      setIsSaving(true);
+
+      try {
+        await persistCustomer();
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        toast({
+          description: err.message || 'Failed to connect to backend database.',
+          title: 'Error Saving Details',
+          type: 'error',
+        });
+
+        return;
+      } finally {
+        setIsSaving(false);
+      }
+    }
+
     setActiveStep(2);
   };
 
   const handleSave = async () => {
-    if (!selectedCustomer) {
-      return;
-    }
-
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
 
@@ -739,10 +797,6 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
   };
 
   const handleSaveAndRequest = async () => {
-    if (!selectedCustomer) {
-      return;
-    }
-
     const missingFields = getMissingMandatoryFieldsForRequest();
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
@@ -780,8 +834,8 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
     setIsRequesting(true);
 
     try {
-      await persistCustomer();
-      await dispatch(initiateCallAction(selectedCustomer.id));
+      const customerId = await persistCustomer();
+      await dispatch(initiateCallAction(customerId));
       toast({
         description: 'Your request has been sent to the available Optometrist doctor.',
         title: 'Optometrist Requested',
@@ -825,10 +879,18 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
             <ClipboardPlus className="text-white" size={20} />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">Create Test</h1>
+            <h1 className="truncate text-lg font-bold text-foreground sm:text-xl">
+              {selectedCustomer ? 'Create Test' : 'New Patient'}
+            </h1>
             <p className="truncate text-xs font-medium text-muted-foreground">
-              Patient: <span className="font-medium text-foreground">{selectedCustomer?.name}</span> (
-              {selectedCustomer?.id}) — {selectedCustomer?.storeName}
+              {selectedCustomer ? (
+                <>
+                  Patient: <span className="font-medium text-foreground">{selectedCustomer.name}</span> (
+                  {selectedCustomer.id}) — {selectedCustomer.storeName}
+                </>
+              ) : (
+                'Enter customer details to register a new patient'
+              )}
             </p>
           </div>
         </div>
@@ -838,26 +900,40 @@ export function StoreCustomerTestPage({ onBack, selectedCustomer }: StoreCustome
 
       <CardFrame className="p-3 sm:p-6 md:p-8">
         <Stepper
-          indicators={{ completed: <CheckIcon className="size-3.5" /> }}
+          indicators={{ completed: <CheckIcon className="size-4" /> }}
           onValueChange={setActiveStep}
           value={activeStep}
         >
-          <StepperNav className="mb-6">
-            <StepperItem step={1}>
-              <StepperTrigger>
-                <StepperIndicator className="size-6 border-2 border-muted data-[state=active]:border-primary data-[state=completed]:border-blue-600 data-[state=active]:bg-primary data-[state=completed]:bg-blue-600 data-[state=active]:text-primary-foreground data-[state=completed]:text-white">
+          <StepperNav className="mx-auto mb-8 flex data-[orientation=horizontal]:w-fit">
+            <StepperItem className="items-start not-last:flex-none" step={1}>
+              <StepperTrigger className="flex-col gap-2">
+                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=completed]:border-transparent data-[state=completed]:bg-foreground data-[state=completed]:text-background">
                   1
                 </StepperIndicator>
-                <StepperTitle>Customer Details</StepperTitle>
+                <div className="flex flex-col items-center gap-0.5 text-center">
+                  <StepperTitle className="text-sm font-semibold data-[state=inactive]:font-medium data-[state=inactive]:text-muted-foreground">
+                    Customer Details
+                  </StepperTitle>
+                  <StepperDescription className="whitespace-nowrap text-xs">
+                    Enter customer information
+                  </StepperDescription>
+                </div>
               </StepperTrigger>
-              <StepperSeparator className="group-data-[state=completed]/step:bg-blue-600" />
+              <StepperSeparator className="mx-1.5 mb-0.5 mt-[15px] h-0.5 w-10 shrink-0 grow-0 basis-auto self-start bg-muted group-data-[state=completed]/step:bg-foreground sm:w-16" />
             </StepperItem>
-            <StepperItem step={2}>
-              <StepperTrigger>
-                <StepperIndicator className="size-6 border-2 border-muted data-[state=active]:border-primary data-[state=completed]:border-blue-600 data-[state=active]:bg-primary data-[state=completed]:bg-blue-600 data-[state=active]:text-primary-foreground data-[state=completed]:text-white">
+            <StepperItem className="items-start not-last:flex-none" step={2}>
+              <StepperTrigger className="flex-col gap-2">
+                <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=completed]:border-transparent data-[state=completed]:bg-foreground data-[state=completed]:text-background">
                   2
                 </StepperIndicator>
-                <StepperTitle>Objective Rx</StepperTitle>
+                <div className="flex flex-col items-center gap-0.5 text-center">
+                  <StepperTitle className="text-sm font-semibold data-[state=inactive]:font-medium data-[state=inactive]:text-muted-foreground">
+                    Objective Rx
+                  </StepperTitle>
+                  <StepperDescription className="whitespace-nowrap text-xs">
+                    Record objective prescription
+                  </StepperDescription>
+                </div>
               </StepperTrigger>
             </StepperItem>
           </StepperNav>

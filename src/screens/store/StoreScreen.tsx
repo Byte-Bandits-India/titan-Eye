@@ -54,7 +54,6 @@ export function StoreScreen() {
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0492');
-  const [isAddingNew, setIsAddingNew] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
@@ -405,19 +404,17 @@ export function StoreScreen() {
   };
 
   const handleAddNewClick = () => {
-    setIsAddingNew(true);
     setIsEditing(false);
     setIsEditingRx(false);
-    setIsCreatingTest(false);
     setIsViewingSalesConversion(false);
     setIsUpdatingStatus(false);
     setSelectedCustomerId(null);
     setStatusTab('Pending');
     resetPage();
+    setIsCreatingTest(true);
   };
 
   const handleSelectCustomer = (id: string) => {
-    setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
@@ -427,7 +424,6 @@ export function StoreScreen() {
   };
 
   const handleOpenUpdateStatus = (id: string) => {
-    setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
@@ -436,7 +432,6 @@ export function StoreScreen() {
   };
 
   const handleOpenRxFromNotification = (id: string) => {
-    setIsAddingNew(false);
     setIsEditing(false);
     setIsUpdatingStatus(false);
     setIsCreatingTest(false);
@@ -446,7 +441,6 @@ export function StoreScreen() {
   };
 
   const handleOpenCreateTest = (id: string) => {
-    setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
     setIsUpdatingStatus(false);
@@ -456,7 +450,6 @@ export function StoreScreen() {
   };
 
   const handleOpenSalesConversion = () => {
-    setIsAddingNew(false);
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
@@ -693,7 +686,11 @@ export function StoreScreen() {
   return (
     <AppLayout onSelectCustomer={handleOpenRxFromNotification}>
       {isCreatingTest ? (
-        <StoreCustomerTestPage onBack={() => setIsCreatingTest(false)} selectedCustomer={selectedCustomer} />
+        <StoreCustomerTestPage
+          onBack={() => setIsCreatingTest(false)}
+          selectedCustomer={selectedCustomer}
+          setSelectedCustomerId={setSelectedCustomerId}
+        />
       ) : isEditingRx ? (
         <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
       ) : isUpdatingStatus ? (
@@ -811,34 +808,23 @@ export function StoreScreen() {
       <Dialog
         onOpenChange={(open) => {
           if (!open) {
-            setIsAddingNew(false);
             setIsEditing(false);
           }
         }}
-        open={isAddingNew || isEditing}
+        open={isEditing}
       >
         <DialogContent
           className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-xl p-0 sm:max-w-3xl"
           overlayClassName="bg-black/60"
         >
           <DialogHeader className="sr-only">
-            <DialogTitle>
-              {isEditing ? 'Edit Customer Details' : 'Customer Details'} - {user.name}
-            </DialogTitle>
+            <DialogTitle>Edit Customer Details - {user.name}</DialogTitle>
           </DialogHeader>
           <StorePatientDetails
-            isAddingNew={isAddingNew}
+            isAddingNew={false}
             layout="sheet"
-            onBack={() => {
-              if (isAddingNew) {
-                setStatusTab('Pending');
-                resetPage();
-              }
-
-              setIsAddingNew(false);
-              setIsEditing(false);
-            }}
-            selectedCustomer={isEditing ? selectedCustomer : null}
+            onBack={() => setIsEditing(false)}
+            selectedCustomer={selectedCustomer}
             setSelectedCustomerId={setSelectedCustomerId}
           />
         </DialogContent>
