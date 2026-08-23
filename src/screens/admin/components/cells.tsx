@@ -1,4 +1,4 @@
-import type { AuditLog, Customer } from '../../../types';
+import type { Customer } from '../../../types';
 
 import { CallTimer } from '../../../components/ui/CallTimer';
 import { formatSeconds, parseTimestamp } from './adminUtils';
@@ -23,7 +23,7 @@ export function renderCallDuration(cust: Customer) {
   return <span className="text-muted-foreground">—</span>;
 }
 
-export function renderTimeStarted(cust: AuditLog | Customer) {
+export function renderTimeStarted(cust: Customer) {
   if (cust.status === 'Closed') {
     return <span className="font-mono font-medium text-foreground">59m:00s</span>;
   }

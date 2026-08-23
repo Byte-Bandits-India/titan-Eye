@@ -245,150 +245,6 @@ async function verifyCustomerAccess(
   return customer;
 }
 
-router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const customerLogs = await all<CustomerLogRow & { customerName?: string; storeName?: string }>(`
-      SELECT cl.*, c.name as customerName, c.storeName
-      FROM customer_logs cl
-      LEFT JOIN customers c ON cl.customerId = c.id
-      ORDER BY cl.id ASC
-    `);
-
-    const adminLogs = await all<{
-      action: string;
-      adminEmail: string;
-      adminName: string;
-      details: string;
-      id: number;
-      target: string;
-      timestamp: string;
-    }>('SELECT * FROM admin_logs ORDER BY id ASC');
-
-    const optometristUsersList = await all<{ email: string; name: string }>(
-      'SELECT email, name FROM users WHERE role = ?',
-      ['optometrist']
-    );
-    const adminUsersList = await all<{ email: string; name: string }>(
-      'SELECT email, name FROM users WHERE role = ?',
-      ['admin']
-    );
-
-    const isOptometristActor = (takenBy?: null | string) => {
-      if (!takenBy) {
-        return false;
-      }
-
-      const lower = takenBy.toLowerCase();
-
-      if (lower.startsWith('dr.') || lower.includes('optometrist')) {
-        return true;
-      }
-
-      return optometristUsersList.some(
-        (u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower
-      );
-    };
-
-    const isAdminActor = (takenBy?: null | string) => {
-      if (!takenBy) {
-        return false;
-      }
-
-      const lower = takenBy.toLowerCase();
-
-      if (lower.includes('admin')) {
-        return true;
-      }
-
-      return adminUsersList.some((u) => u.name.toLowerCase() === lower || u.email.toLowerCase() === lower);
-    };
-
-    let optometristIdx = 0;
-    let storeIdx = 0;
-    let adminIdx = 0;
-
-    const formattedCustomerLogs = customerLogs.map((l) => {
-      const isOptometrist =
-        isOptometristActor(l.callTakenBy) ||
-        Boolean(l.optometristCallStartTime) ||
-        l.status === 'Accepted' ||
-        l.status === 'Completed';
-
-      const isAdmin = !isOptometrist && isAdminActor(l.callTakenBy);
-
-      let role: 'admin' | 'optometrist' | 'store' = 'store';
-      let prefix = 'STR';
-      let numStr = '';
-
-      if (isAdmin) {
-        adminIdx += 1;
-        role = 'admin';
-        prefix = 'ADM';
-        numStr = String(adminIdx).padStart(3, '0');
-      } else if (isOptometrist) {
-        optometristIdx += 1;
-        role = 'optometrist';
-        prefix = 'OPT';
-        numStr = String(optometristIdx).padStart(3, '0');
-      } else {
-        storeIdx += 1;
-        role = 'store';
-        prefix = 'STR';
-        numStr = String(storeIdx).padStart(3, '0');
-      }
-
-      return {
-        callDuration: l.callDuration,
-        callStartTime: l.callStartTime,
-        callTakenBy: l.callTakenBy || (isOptometrist ? 'Optometrist Doctor' : 'Store Staff'),
-        customerId: l.customerId,
-        customerName: l.customerName || 'N/A',
-        id: `${prefix}-${numStr}`,
-        lastUpdatedOn: l.lastUpdatedOn,
-        optometristCallStartTime: l.optometristCallStartTime,
-        role,
-        status: l.status,
-        storeName: l.storeName || 'Store / Clinic',
-      };
-    });
-
-    const formattedAdminLogs = adminLogs.map((a) => {
-      adminIdx += 1;
-      const numStr = String(adminIdx).padStart(3, '0');
-
-      return {
-        callDuration: 0,
-        callTakenBy: a.adminName ? `${a.adminName}` : a.adminEmail,
-        customerId: a.target,
-        customerName: a.details || 'Admin Management',
-        id: `ADM-${numStr}`,
-        lastUpdatedOn: a.timestamp,
-        role: 'admin' as const,
-        status: a.action,
-        storeName: 'Admin System',
-      };
-    });
-
-    const combinedLogs = [...formattedCustomerLogs, ...formattedAdminLogs].sort((a, b) => {
-      const timeA = a.lastUpdatedOn ? new Date(a.lastUpdatedOn).getTime() : 0;
-      const timeB = b.lastUpdatedOn ? new Date(b.lastUpdatedOn).getTime() : 0;
-
-      if (isNaN(timeA) || isNaN(timeB)) {
-        return 0;
-      }
-
-      return timeB - timeA;
-    });
-
-    return res.json(combinedLogs);
-  } catch (err) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    logger.error('Fetch all audit logs error', { errorMessage: error.message, requestId: req.requestId });
-
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     let query = 'SELECT * FROM customer_summary';
@@ -719,6 +575,42 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
     logger.error('Update customer error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    if (['Accepted', 'Initiated', 'Queued', 'Testing'].includes(customer.status)) {
+      return res
+        .status(409)
+        .json({ error: 'Cannot delete a customer with an active Optometrist request.' });
+    }
+
+    await run('DELETE FROM customer_logs WHERE customerId = ?', [id]);
+    await run('DELETE FROM customers WHERE id = ?', [id]);
+
+    logSecurityEvent('CUSTOMER_DELETED', {
+      customerId: id,
+      requestId: req.requestId,
+      viewerEmail: req.user?.email,
+      viewerRole: req.user?.role,
+    });
+
+    broadcastEvent('CUSTOMER_DELETED', { id });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Delete customer error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
   }

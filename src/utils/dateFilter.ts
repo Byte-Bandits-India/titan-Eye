@@ -1,4 +1,4 @@
-import type { AuditLog, Customer, ManagedUser } from '../types';
+import type { Customer, ManagedUser } from '../types';
 
 export type DateFilterRange = 'all' | 'day' | 'month' | 'week' | 'year';
 
@@ -9,22 +9,6 @@ export const DATE_FILTER_OPTIONS: { label: string; value: DateFilterRange }[] = 
   { label: 'This Month', value: 'month' },
   { label: 'This Year', value: 'year' },
 ];
-
-export function filterAuditLogsByDate(logs: AuditLog[], range: DateFilterRange): AuditLog[] {
-  if (range === 'all') {
-    return logs;
-  }
-
-  return logs.filter((log) => {
-    const d = parseAnyDate(log.lastUpdatedOn || log.callStartTime);
-
-    if (!d) {
-      return false;
-    }
-
-    return isDateInRange(d, range);
-  });
-}
 
 export function filterCustomersByDate(customers: Customer[], range: DateFilterRange): Customer[] {
   if (range === 'all') {

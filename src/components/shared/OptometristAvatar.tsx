@@ -61,7 +61,7 @@ export function OptometristAvatar({ className, email, name }: OptometristAvatarP
   return (
     <Avatar className={cn('h-9 w-9 shrink-0', className)}>
       {photoUrl && <AvatarImage alt={name} src={photoUrl} />}
-      <AvatarFallback className="bg-teal-100 text-xs font-medium text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+      <AvatarFallback className="bg-teal-100 text-sm font-medium text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
         {initials}
       </AvatarFallback>
     </Avatar>

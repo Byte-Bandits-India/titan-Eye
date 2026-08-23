@@ -1,7 +1,7 @@
 import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
-export type AdminTab = 'auditLogs' | 'customers' | 'feedback' | 'users' | 'videos';
+export type AdminTab = 'customers' | 'feedback' | 'videos';
 export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
 export type AppLayoutProps = {
@@ -13,21 +13,6 @@ export type AppLayoutProps = {
   searchPlaceholder?: string;
   searchValue?: string;
   setActiveTab?: (tab: AdminTab) => void;
-};
-
-export type AuditLog = {
-  callActive?: boolean;
-  callDuration: null | number;
-  callStartTime?: null | string;
-  callTakenBy: null | string;
-  customerId: string;
-  customerName?: string;
-  id: number | string;
-  lastUpdatedOn: null | string;
-  optometristCallStartTime?: null | string;
-  role?: UserRole;
-  status: CustomerStatus;
-  storeName?: string;
 };
 
 export type ManagedVideo = {
@@ -311,9 +296,10 @@ export type CallSessionPayload = {
 export type SSEEventDetail =
   | {
       data: Customer;
-      type: 'ADMIN_LOG_CREATED' | 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
+      type: 'USER_CREATED' | 'USER_DELETED' | 'USER_STATUS_CHANGE' | 'USER_UPDATED';
     }
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
+  | { data: { id: string }; type: 'CUSTOMER_DELETED' }
   | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
   | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' }
@@ -337,10 +323,12 @@ export type StoreRxDetailsProps = {
 export type StoreCustomerTestPageProps = {
   onBack: () => void;
   selectedCustomer: Customer | null;
+  setSelectedCustomerId: (id: null | string) => void;
 };
 
 export type StoreUpdateStatusPageProps = {
   onBack: () => void;
+  readOnly?: boolean;
   selectedCustomer: Customer | null;
 };
 
@@ -399,7 +387,7 @@ export type UserFormData = {
   storeName: string;
 };
 
-export type UserRole = 'admin' | 'optometrist' | 'store';
+export type UserRole = 'optometrist' | 'senior_optometrist' | 'store' | 'super_admin';
 
 export type UserState = {
   error: null | string;

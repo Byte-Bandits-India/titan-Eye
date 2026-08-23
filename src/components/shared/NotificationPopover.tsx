@@ -19,6 +19,7 @@ import type { CallSessionPayload, LogNotificationType, NotificationPopoverProps 
 
 import { fetchCustomersAction, initiateCallAction, rejectCallAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
+import { useBrowserNotifications } from '../../hooks/useBrowserNotifications';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -50,6 +51,7 @@ export function NotificationPopover({
 }: NotificationPopoverProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const { notify: notifyBrowser } = useBrowserNotifications();
   const { dismissLogNotification, logNotifications } = useNotificationLog();
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
@@ -311,7 +313,7 @@ export function NotificationPopover({
         });
     }
 
-    if (user.role === 'admin') {
+    if (user.role === 'senior_optometrist') {
       return customers
         .filter((c) => Boolean(c.patientFeedback && c.patientFeedback.trim()) && !dismissedIds.has(c.id))
         .map((c) => ({
@@ -340,6 +342,20 @@ export function NotificationPopover({
     [notifications, logNotifications]
   );
 
+  const notificationTextById = React.useMemo(() => {
+    const map = new Map<string, { body: string; title: string }>();
+
+    notifications.forEach((n) => {
+      map.set(n.id, { body: n.subtitle, title: n.title });
+    });
+
+    logNotifications.forEach((l) => {
+      map.set(l.id, { body: l.description, title: l.title });
+    });
+
+    return map;
+  }, [notifications, logNotifications]);
+
   const prevNotificationIdsRef = React.useRef<null | string>(null);
 
   React.useEffect(() => {
@@ -356,7 +372,8 @@ export function NotificationPopover({
     const prevIds = new Set(prevNotificationIdsRef.current.split(',').filter(Boolean));
     const currentIds = currentNotificationIds.split(',').filter(Boolean);
 
-    const hasNewNotification = currentIds.some((id) => !prevIds.has(id));
+    const newIds = currentIds.filter((id) => !prevIds.has(id));
+    const hasNewNotification = newIds.length > 0;
 
     if (hasNewNotification && currentIds.length > 0) {
       setOpen(true);
@@ -366,10 +383,26 @@ export function NotificationPopover({
       if (hasNewNonCallNotification && !isMuted) {
         playGenericNotificationSound();
       }
+
+      newIds.forEach((id) => {
+        const text = notificationTextById.get(id);
+
+        if (text) {
+          notifyBrowser(text.title, { body: text.body, icon: '/favicon.ico', tag: id });
+        }
+      });
     }
 
     prevNotificationIdsRef.current = currentNotificationIds;
-  }, [currentNotificationIds, nonCallNotificationIds, autoOpen, isMuted, playGenericNotificationSound]);
+  }, [
+    currentNotificationIds,
+    nonCallNotificationIds,
+    notificationTextById,
+    notifyBrowser,
+    autoOpen,
+    isMuted,
+    playGenericNotificationSound,
+  ]);
 
   React.useEffect(() => {
     const handleOpenNotificationDrawer = () => {
@@ -600,7 +633,7 @@ export function NotificationPopover({
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">No new notifications</p>
-            <p className="max-w-[220px] text-xs text-muted-foreground">
+            <p className="max-w-[220px] text-sm text-muted-foreground">
               You're all caught up! New updates and requests will appear here.
             </p>
           </div>
@@ -622,20 +655,20 @@ export function NotificationPopover({
 
               return (
                 <div
-                  className="shadow-xs group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                  className="group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
                   key={`log-${item.id}`}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 ring-2 ring-blue-100 dark:bg-blue-950/60 dark:text-blue-400 dark:ring-blue-900/40">
                     <Icon className="w-4.5 h-4.5" />
                   </div>
                   <div className="min-w-0 flex-1 space-y-1 pr-24">
-                    <div className="text-xs font-medium leading-snug text-foreground">{item.title}</div>
+                    <div className="text-sm font-medium leading-snug text-foreground">{item.title}</div>
                     <div className="text-[11px] leading-relaxed text-muted-foreground">
                       {item.description}
                     </div>
                     {item.logType === 'no_optometrist_available' && item.customerId && (
                       <button
-                        className="shadow-xs mt-1.5 cursor-pointer rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="mt-1.5 cursor-pointer rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-blue-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={retryingLogId === item.id}
                         onClick={() => handleRetryFromLog(item.customerId!, item.id)}
                         type="button"
@@ -674,23 +707,23 @@ export function NotificationPopover({
 
             return (
               <div
-                className="shadow-xs group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                className="group relative flex items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
                 key={`cust-${item.id}`}
               >
-                <Avatar className="shadow-xs h-9 w-9 shrink-0 ring-2 ring-blue-100 dark:ring-zinc-700">
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-xs font-medium text-white">
+                <Avatar className="h-9 w-9 shrink-0 shadow-sm ring-2 ring-blue-100 dark:ring-zinc-700">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-sm font-medium text-white">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1 space-y-1 pr-24">
-                  <div className="truncate text-xs font-medium leading-snug text-foreground">
+                  <div className="truncate text-sm font-medium leading-snug text-foreground">
                     {item.title}
                   </div>
                   <div className="text-[11px] leading-relaxed text-muted-foreground">{item.subtitle}</div>
                   {item.type === 'incoming_call' && (
                     <div className="flex items-center gap-2 pt-2">
                       <button
-                        className="shadow-xs flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-medium text-white transition-all hover:bg-emerald-700 active:scale-95"
+                        className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-700 active:scale-95"
                         onClick={() => handleAccept(item.customer.id)}
                         type="button"
                       >
@@ -698,7 +731,7 @@ export function NotificationPopover({
                       </button>
 
                       <button
-                        className="shadow-xs cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        className="cursor-pointer rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-100 active:scale-95 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
                         onClick={() => handleDecline(item.customer.id)}
                         type="button"
                       >
@@ -748,7 +781,9 @@ export function NotificationPopover({
               const isRetryable =
                 item.category === 'log' && item.logType === 'no_optometrist_available' && item.customerId;
               const hasCustomerLog =
-                item.category === 'log' && Boolean(item.customerId) && item.logType !== 'no_optometrist_available';
+                item.category === 'log' &&
+                Boolean(item.customerId) &&
+                item.logType !== 'no_optometrist_available';
 
               return (
                 <div
@@ -767,44 +802,22 @@ export function NotificationPopover({
                       <p className="truncate text-base font-bold text-white">{title}</p>
                       <p className="mt-1.5 text-sm font-medium text-white/90">{subtitle}</p>
                     </div>
-                    <div className="flex items-center gap-1">
-                      {isIncomingCall && user?.role === 'optometrist' && (
+                    {!isIncomingCall && (
+                      <div className="flex items-center gap-1">
                         <button
                           className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                          onClick={() => {
-                            setIsMuted((prev) => {
-                              const next = !prev;
-
-                              if (next) {
-                                stopAudio();
-                              }
-
-                              return next;
-                            });
-                          }}
-                          title={isMuted ? 'Unmute chime' : 'Mute chime'}
+                          onClick={() =>
+                            item.category === 'customer'
+                              ? handleDismiss(dismissId)
+                              : dismissLogNotification(dismissId)
+                          }
+                          title="Close"
                           type="button"
                         >
-                          {isMuted ? (
-                            <VolumeX className="h-4 w-4 text-rose-300" />
-                          ) : (
-                            <Volume2 className="h-4 w-4 text-emerald-300" />
-                          )}
+                          <X className="h-4 w-4" />
                         </button>
-                      )}
-                      <button
-                        className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                        onClick={() =>
-                          item.category === 'customer'
-                            ? handleDismiss(dismissId)
-                            : dismissLogNotification(dismissId)
-                        }
-                        title="Close"
-                        type="button"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {isIncomingCall && (

@@ -172,8 +172,6 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE users ADD COLUMN lastPing TEXT`);
   } catch {}
 
-  await run(`UPDATE users SET role = 'optometrist' WHERE role = 'optom'`);
-
   await run(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
@@ -304,10 +302,6 @@ export async function initializeDatabase(): Promise<void> {
   try {
     await run(`ALTER TABLE customers ADD COLUMN nonConversionComment TEXT`);
   } catch {}
-
-  await run(
-    `UPDATE customers SET createdOn = lastUpdatedOn WHERE createdOn IS NULL AND lastUpdatedOn IS NOT NULL AND lastUpdatedOn != ''`
-  );
 
   await run(`
     CREATE TABLE IF NOT EXISTS feedback_tokens (
@@ -460,18 +454,6 @@ export async function initializeDatabase(): Promise<void> {
     )
   `);
 
-  const logsCount = await get<{ count: number }>('SELECT COUNT(*) as count FROM customer_logs');
-
-  if (logsCount && logsCount.count === 0) {
-    await run(`
-      INSERT INTO customer_logs (
-        customerId, lastUpdatedOn, status, callDuration, callTakenBy
-      ) SELECT 
-        id, lastUpdatedOn, status, callDuration, callTakenBy
-      FROM customers
-    `);
-  }
-
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
@@ -479,8 +461,6 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
-  const VALID_ROLES = ['store', 'optometrist', 'admin'];
-  await run(`DELETE FROM users WHERE role NOT IN (${VALID_ROLES.map(() => '?').join(',')})`, VALID_ROLES);
   const adminEmail = process.env.ADMIN_EMAIL;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
@@ -492,10 +472,14 @@ export async function initializeDatabase(): Promise<void> {
     if (!existingAdmin) {
       await run(
         'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [adminEmail, 'Admin', 'admin', null, null, 'active', hashPassword(adminPassword)]
+        [adminEmail, 'Admin', 'super_admin', null, null, 'active', hashPassword(adminPassword)]
       );
     } else {
-      await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', ['active', adminEmail]);
+      await run('UPDATE users SET status = ?, role = ? WHERE LOWER(email) = LOWER(?)', [
+        'active',
+        'super_admin',
+        adminEmail,
+      ]);
 
       if (!existingAdmin.password.includes(':')) {
         await run('UPDATE users SET password = ? WHERE email = ?', [
@@ -506,7 +490,7 @@ export async function initializeDatabase(): Promise<void> {
     }
   }
 
-  logger.info('Seeded default admin and optometrist accounts.');
+  logger.info('Seeded default super admin account.');
 }
 
 export function query<T>(sql: string, params: SqlParam[] = []): T[] {

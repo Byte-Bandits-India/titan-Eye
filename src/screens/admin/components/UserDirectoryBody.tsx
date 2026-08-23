@@ -47,62 +47,65 @@ export function UserDirectoryBody({
   const columns = React.useMemo<DataTableColumn<ManagedUser>[]>(
     () => [
       {
-        cellClassName: 'whitespace-nowrap font-mono text-xs font-medium',
-        headerClassName: 'w-[120px] whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap font-mono text-sm font-medium',
+        headerClassName: 'w-[120px] whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'userId',
         label: 'User ID',
         render: (u) => <RoleIdBadge role={u.role}>{getRoleBasedUserId(u, users)}</RoleIdBadge>,
       },
       {
-        cellClassName: 'whitespace-nowrap text-xs sm:text-sm font-medium text-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap text-sm sm:text-sm font-medium text-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'name',
         label: 'User Name',
         render: (u) => u.name,
       },
       {
-        cellClassName: 'whitespace-nowrap text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'email',
         label: 'Email',
         render: (u) => u.email,
       },
       {
         cellClassName: 'whitespace-nowrap',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'role',
         label: 'Type',
         render: (u) => <Badge variant={u.role}>{u.role.toUpperCase()}</Badge>,
       },
       {
-        cellClassName: 'whitespace-nowrap text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'mobile',
         label: 'Mobile',
         render: (u) => u.mobile || '—',
       },
       {
-        cellClassName: 'whitespace-nowrap text-xs text-muted-foreground',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        cellClassName: 'whitespace-nowrap text-sm text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'lastLogin',
         label: 'Last Login',
         render: (u) => (u.lastLogin ? new Date(u.lastLogin).toLocaleString() : 'Never'),
       },
       {
         cellClassName: 'whitespace-nowrap',
-        headerClassName: 'whitespace-nowrap text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        headerClassName: 'whitespace-nowrap text-sm font-semibold   text-muted-foreground',
         id: 'status',
         label: 'Status',
         render: (u) => (
           <div className="flex items-center gap-2">
-            <Switch checked={u.status === 'active'} onCheckedChange={() => onToggleStatus(u.email, u.status)} />
+            <Switch
+              checked={u.status === 'active'}
+              onCheckedChange={() => onToggleStatus(u.email, u.status)}
+            />
             <Badge variant={u.status}>{u.status.toUpperCase()}</Badge>
           </div>
         ),
       },
       {
         cellClassName: 'whitespace-nowrap pr-4 text-right',
-        headerClassName: 'whitespace-nowrap pr-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+        headerClassName: 'whitespace-nowrap pr-4 text-right text-sm font-semibold   text-muted-foreground',
         id: 'actions',
         label: 'Actions',
         render: (u) => (

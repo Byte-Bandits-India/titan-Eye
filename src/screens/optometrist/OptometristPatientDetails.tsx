@@ -1,11 +1,36 @@
-import { Calendar, ChevronLeft, Languages, Phone, Store, Users, Video } from 'lucide-react';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Images,
+  Languages,
+  Phone,
+  Store,
+  Users,
+  Video,
+  X,
+} from 'lucide-react';
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 
 import type { Customer, CustomerStatus, OptometristPatientDetailsProps, RxValues } from '../../types';
 
-import { dropCallAction, initiateCallAction, updateCustomerAction } from '../../Actions/customerActions';
+import {
+  dropCallAction,
+  initiateCallAction,
+  rejectCallAction,
+  updateCustomerAction,
+} from '../../Actions/customerActions';
 import { CardFrame } from '../../components/shared/CardFrame';
 import { Button } from '../../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast';
 import {
   API_BASE_URL,
@@ -42,12 +67,14 @@ function RxEyeColumn({ eyeLabel, values }: { eyeLabel: string; values?: RxValues
 }
 
 function RxDeviceCard({
+  children,
   imageAlt,
   imageSrc,
   leftValues,
   rightValues,
   title,
 }: {
+  children?: React.ReactNode;
   imageAlt: string;
   imageSrc: string;
   leftValues?: RxValues;
@@ -55,7 +82,7 @@ function RxDeviceCard({
   title: string;
 }) {
   return (
-    <CardFrame className="items-center justify-center p-4 sm:p-6 md:p-8">
+    <CardFrame className="items-center justify-center gap-3 p-4 sm:p-6 md:p-8">
       <div className="flex w-full items-center justify-between gap-2 sm:gap-4">
         <RxEyeColumn eyeLabel="Right" values={rightValues} />
 
@@ -66,7 +93,145 @@ function RxDeviceCard({
 
         <RxEyeColumn eyeLabel="Left" values={leftValues} />
       </div>
+      {children}
     </CardFrame>
+  );
+}
+
+type LightboxImage = { alt: string; src: string };
+
+function ImageLightbox({
+  images,
+  onClose,
+  startIndex,
+}: {
+  images: LightboxImage[];
+  onClose: () => void;
+  startIndex: number;
+}) {
+  const [index, setIndex] = React.useState(startIndex);
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === 'ArrowRight') {
+        setIndex((i) => (i + 1) % images.length);
+      } else if (e.key === 'ArrowLeft') {
+        setIndex((i) => (i - 1 + images.length) % images.length);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, onClose]);
+
+  const current = images[index];
+
+  if (!current) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        className="absolute right-4 top-4 cursor-pointer rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+        onClick={onClose}
+        title="Close"
+        type="button"
+      >
+        <X size={26} />
+      </button>
+
+      {images.length > 1 && (
+        <span className="absolute top-5 left-1/2 -translate-x-1/2 text-sm font-medium text-white/80">
+          {index + 1} / {images.length}
+        </span>
+      )}
+
+      {images.length > 1 && (
+        <button
+          className="absolute left-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white sm:left-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIndex((i) => (i - 1 + images.length) % images.length);
+          }}
+          title="Previous"
+          type="button"
+        >
+          <ChevronLeft size={32} />
+        </button>
+      )}
+
+      <img
+        alt={current.alt}
+        className="max-h-[85vh] max-w-[92vw] rounded-md object-contain shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        src={current.src}
+      />
+
+      {images.length > 1 && (
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white sm:right-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIndex((i) => (i + 1) % images.length);
+          }}
+          title="Next"
+          type="button"
+        >
+          <ChevronRight size={32} />
+        </button>
+      )}
+    </div>,
+    document.body
+  );
+}
+
+function SpotlightOverlay({ targetRef }: { targetRef: React.RefObject<HTMLElement | null> }) {
+  const [rect, setRect] = React.useState<DOMRect | null>(null);
+
+  React.useEffect(() => {
+    const update = () => {
+      if (targetRef.current) {
+        setRect(targetRef.current.getBoundingClientRect());
+      }
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [targetRef]);
+
+  if (!rect) {
+    return null;
+  }
+
+  const padding = 6;
+
+  return createPortal(
+    <div className="pointer-events-none fixed inset-0 z-50">
+      <div
+        className="absolute rounded-md ring-4 ring-blue-400"
+        style={{
+          boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+          height: rect.height + padding * 2,
+          left: rect.left - padding,
+          top: rect.top - padding,
+          width: rect.width + padding * 2,
+        }}
+      />
+    </div>,
+    document.body
   );
 }
 
@@ -82,6 +247,16 @@ export function OptometristPatientDetails({
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
   const [isConsultationOpen, setIsConsultationOpen] = React.useState(false);
   const [isConsultationMinimized, setIsConsultationMinimized] = React.useState(false);
+  const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = React.useState(false);
+  const [isAcceptHighlighted, setIsAcceptHighlighted] = React.useState(false);
+  const [openLightbox, setOpenLightbox] = React.useState<'autoRef' | 'pgp' | null>(null);
+  const acceptButtonRef = React.useRef<HTMLButtonElement | null>(null);
+
+  const highlightAcceptButton = () => {
+    acceptButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setIsAcceptHighlighted(true);
+    window.setTimeout(() => setIsAcceptHighlighted(false), 2000);
+  };
 
   const buildTimestamp = (): string =>
     new Date().toLocaleString('en-US', {
@@ -206,11 +381,62 @@ export function OptometristPatientDetails({
     }
   };
 
+  const handleBackClick = () => {
+    if (selectedCustomer?.status === 'Initiated') {
+      setIsLeaveConfirmOpen(true);
+
+      return;
+    }
+
+    onBack();
+  };
+
+  const handleConfirmLeave = async () => {
+    if (!selectedCustomer) {
+      setIsLeaveConfirmOpen(false);
+      onBack();
+
+      return;
+    }
+
+    try {
+      await dispatch(rejectCallAction(selectedCustomer.id));
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      toast({
+        description: err.message || 'Failed to release this call.',
+        title: 'Error Releasing Call',
+        type: 'error',
+      });
+    } finally {
+      setIsLeaveConfirmOpen(false);
+      onBack();
+    }
+  };
+
   const languages = [selectedCustomer?.preferredLanguage, selectedCustomer?.preferredLanguage2].filter(
     (lang): lang is string => Boolean(lang) && lang !== 'None'
   );
 
   const hasOtherActiveCall = Boolean(activeCallTakenByMe && activeCallTakenByMe.id !== selectedCustomer?.id);
+
+  const autoRefImages: LightboxImage[] = selectedCustomer?.storeFeedbackImage1
+    ? [
+        {
+          alt: 'Auto Ref attachment',
+          src: `${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/1`,
+        },
+      ]
+    : [];
+
+  const pgpImages: LightboxImage[] = selectedCustomer?.storeFeedbackImage2
+    ? [
+        {
+          alt: 'PGP attachment',
+          src: `${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/2`,
+        },
+      ]
+    : [];
 
   return (
     <main className="font-pro mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
@@ -220,9 +446,9 @@ export function OptometristPatientDetails({
         <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
           <Button
             className="active:scale-98 flex h-10 cursor-pointer items-center gap-1.5 rounded-md border-gray-200 bg-white px-4 text-sm font-normal text-gray-600 shadow-sm transition-all hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
-            onClick={onBack}
+            onClick={handleBackClick}
             type="button"
-            variant="outline"
+            variant="secondary"
           >
             <ChevronLeft size={16} />
             Back
@@ -252,12 +478,15 @@ export function OptometristPatientDetails({
             selectedCustomer?.status !== 'Completed' &&
             selectedCustomer?.status !== 'Closed' && (
               <Button
-                className="active:scale-98 flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-6 text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                className={`active:scale-98 relative flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-6 text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                  isAcceptHighlighted ? 'z-[60] animate-pulse' : ''
+                }`}
                 disabled={isUpdatingStatus || hasOtherActiveCall}
                 onClick={handleAcceptCall}
+                ref={acceptButtonRef}
                 title={hasOtherActiveCall ? 'You already have an active call in progress.' : undefined}
                 type="button"
-                variant="gradient"
+                variant="primary"
               >
                 Accept
               </Button>
@@ -314,7 +543,19 @@ export function OptometristPatientDetails({
           leftValues={selectedCustomer?.rxData?.autoRefLe}
           rightValues={selectedCustomer?.rxData?.autoRefRe}
           title="Auto Ref"
-        />
+        >
+          {autoRefImages.length > 0 && (
+            <Button
+              className="active:scale-98 flex h-8 cursor-pointer items-center gap-1.5 rounded-md border-gray-200 bg-white px-3 text-xs font-normal text-gray-600 shadow-sm transition-all hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
+              onClick={() => setOpenLightbox('autoRef')}
+              type="button"
+              variant="secondary"
+            >
+              <Images size={14} />
+              View
+            </Button>
+          )}
+        </RxDeviceCard>
 
         <RxDeviceCard
           imageAlt="PGP"
@@ -322,7 +563,19 @@ export function OptometristPatientDetails({
           leftValues={selectedCustomer?.rxData?.pgpLe}
           rightValues={selectedCustomer?.rxData?.pgpRe}
           title="PGP"
-        />
+        >
+          {pgpImages.length > 0 && (
+            <Button
+              className="active:scale-98 flex h-8 cursor-pointer items-center gap-1.5 rounded-md border-gray-200 bg-white px-3 text-xs font-normal text-gray-600 shadow-sm transition-all hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground"
+              onClick={() => setOpenLightbox('pgp')}
+              type="button"
+              variant="secondary"
+            >
+              <Images size={14} />
+              View
+            </Button>
+          )}
+        </RxDeviceCard>
       </div>
 
       <div className="space-y-2">
@@ -335,25 +588,6 @@ export function OptometristPatientDetails({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">No store action or feedback recorded yet.</p>
-          )}
-
-          {(selectedCustomer?.storeFeedbackImage1 || selectedCustomer?.storeFeedbackImage2) && (
-            <div className="mt-4 flex gap-3">
-              {selectedCustomer?.storeFeedbackImage1 && (
-                <img
-                  alt="Store feedback attachment 1"
-                  className="h-24 w-24 rounded-md border border-border object-cover"
-                  src={`${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/1`}
-                />
-              )}
-              {selectedCustomer?.storeFeedbackImage2 && (
-                <img
-                  alt="Store feedback attachment 2"
-                  className="h-24 w-24 rounded-md border border-border object-cover"
-                  src={`${API_BASE_URL}/customers/${encodeURIComponent(selectedCustomer.id)}/feedback-image/2`}
-                />
-              )}
-            </div>
           )}
         </CardFrame>
       </div>
@@ -429,11 +663,7 @@ export function OptometristPatientDetails({
               }
 
               if (selectedCustomer.status !== 'Accepted') {
-                toast({
-                  description: 'Accept the customer to start consulting.',
-                  title: 'Patient Not Accepted',
-                  type: 'error',
-                });
+                highlightAcceptButton();
 
                 return;
               }
@@ -453,7 +683,7 @@ export function OptometristPatientDetails({
                   : undefined
             }
             type="button"
-            variant="gradient"
+            variant="primary"
           >
             <Video size={16} />
             {isConsultationOpen && isConsultationMinimized ? 'Resume Consultation' : 'Start Consultation'}
@@ -472,6 +702,17 @@ export function OptometristPatientDetails({
         </div>
       )}
 
+
+      {openLightbox === 'autoRef' && autoRefImages.length > 0 && (
+        <ImageLightbox images={autoRefImages} onClose={() => setOpenLightbox(null)} startIndex={0} />
+      )}
+
+      {openLightbox === 'pgp' && pgpImages.length > 0 && (
+        <ImageLightbox images={pgpImages} onClose={() => setOpenLightbox(null)} startIndex={0} />
+      )}
+
+      {isAcceptHighlighted && <SpotlightOverlay targetRef={acceptButtonRef} />}
+
       {isConsultationOpen && selectedCustomer && (
         <OptometristCallDrawer
           customer={selectedCustomer}
@@ -483,6 +724,27 @@ export function OptometristPatientDetails({
           onMinimize={() => setIsConsultationMinimized(true)}
         />
       )}
+
+      <Dialog onOpenChange={setIsLeaveConfirmOpen} open={isLeaveConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Leave without accepting?</DialogTitle>
+            <DialogDescription>
+              You haven't accepted this call yet. Going back now will release this customer so the call
+              can be transferred to another available Optometrist, or the request will be declined if no
+              one else is available.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setIsLeaveConfirmOpen(false)} type="button" variant="secondary">
+              Stay
+            </Button>
+            <Button onClick={handleConfirmLeave} type="button" variant="primary">
+              Leave &amp; Transfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

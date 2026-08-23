@@ -112,7 +112,7 @@ function FramePanel({ className, fit, ...props }: React.ComponentProps<'div'> & 
   return (
     <div
       className={cn(
-        'shadow-xs relative overflow-hidden rounded-[var(--frame-panel-radius)] border border-[var(--frame-panel-border-color)] bg-[var(--frame-panel-bg)] bg-clip-padding',
+        'relative overflow-hidden rounded-[var(--frame-panel-radius)] border border-[var(--frame-panel-border-color)] bg-[var(--frame-panel-bg)] bg-clip-padding shadow-sm',
         !fit && 'grow',
         'before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--frame-panel-radius)_-_1px)] before:shadow-black/5',
         'dark:bg-clip-border dark:before:shadow-white/5',

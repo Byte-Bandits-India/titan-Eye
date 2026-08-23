@@ -40,7 +40,7 @@ function AvailableDirectoryCard({
 
   return (
     <CardFrame className="flex h-[300px] flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5 dark:bg-muted/40">
+      <div className="dark:bg-muted/40 flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5">
         <div className="flex items-center gap-2.5">
           <div
             className={cn(
@@ -54,7 +54,7 @@ function AvailableDirectoryCard({
           <div className="flex gap-1 rounded-lg bg-muted p-1">
             <button
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
                 view === 'optometrists'
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
@@ -66,7 +66,7 @@ function AvailableDirectoryCard({
             </button>
             <button
               className={cn(
-                'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
                 view === 'stores'
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'

@@ -39,13 +39,13 @@ export function TagInput({ className, onChange, placeholder, suggestions, value 
   return (
     <div
       className={cn(
-        'rounded-xs flex min-h-10 w-full flex-wrap items-center gap-1.5 border border-border bg-card px-2 py-1.5 shadow-sm transition-all focus-within:border-transparent focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500',
+        'flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-sm border border-border bg-card px-2 py-1.5 shadow-sm transition-all focus-within:border-transparent focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500',
         className
       )}
     >
       {value.map((tag) => (
         <span
-          className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground"
+          className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-sm font-medium text-foreground"
           key={tag}
         >
           {tag}

@@ -40,20 +40,8 @@ const upload = multer({
 
 const router = Router();
 
-function getFormattedTimestamp(): string {
-  return new Date().toLocaleString('en-US', {
-    day: 'numeric',
-    hour: 'numeric',
-    hour12: true,
-    minute: '2-digit',
-    month: 'short',
-    second: '2-digit',
-    year: 'numeric',
-  });
-}
-
 function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || req.user.role !== 'admin') {
+  if (!req.user || req.user.role !== 'senior_optometrist') {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
@@ -203,18 +191,6 @@ router.post(
         youtubeUrl: null,
       };
 
-      await run(
-        'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          uploadedBy,
-          req.user?.name || 'Admin',
-          'VIDEO_UPLOADED',
-          title,
-          `Uploaded video "${file.originalname}" (${file.size} bytes)`,
-          getFormattedTimestamp(),
-        ]
-      );
-      broadcastEvent('ADMIN_LOG_CREATED', { action: 'VIDEO_UPLOADED', target: title });
       broadcastEvent('VIDEO_UPLOADED', { id: video.id, title });
       logSecurityEvent('ADMIN_VIDEO_UPLOADED', {
         adminEmail: uploadedBy,
@@ -265,19 +241,7 @@ router.put(
       );
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
-      const adminName = req.user?.name || 'Admin';
 
-      await run(
-        'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          adminEmail,
-          adminName,
-          'TVMODE_VIDEO_SET',
-          videoId ? String(videoId) : 'none',
-          videoId ? `Set TV Mode video to video #${videoId}` : 'Cleared TV Mode video',
-          getFormattedTimestamp(),
-        ]
-      );
       broadcastEvent('TVMODE_VIDEO_CHANGED', { videoId });
       logSecurityEvent('ADMIN_TVMODE_VIDEO_SET', {
         adminEmail,
@@ -323,20 +287,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response<DeleteVide
     }
 
     const adminEmail = req.user?.email || 'admin@gmail.com';
-    const adminName = req.user?.name || 'Admin';
 
-    await run(
-      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        adminEmail,
-        adminName,
-        'VIDEO_DELETED',
-        video.title,
-        `Deleted video "${video.originalName || video.youtubeUrl || video.title}"`,
-        getFormattedTimestamp(),
-      ]
-    );
-    broadcastEvent('ADMIN_LOG_CREATED', { action: 'VIDEO_DELETED', target: video.title });
     broadcastEvent('VIDEO_DELETED', { id });
     logSecurityEvent('ADMIN_VIDEO_DELETED', { adminEmail, requestId: req.requestId, target: video.title });
 

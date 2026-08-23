@@ -26,26 +26,6 @@ export const CUSTOMER_TABLE_COLUMNS: ColumnOption[] = [
 ];
 export const DEFAULT_CUSTOMER_COLUMNS = ['id', 'name', 'storeName', 'callDuration', 'status', 'report'];
 
-export const AUDIT_LOG_TABLE_COLUMNS: ColumnOption[] = [
-  { id: 'id', isMandatory: true, label: 'Log ID' },
-  { id: 'timestamp', label: 'Timestamp' },
-  { id: 'customerName', label: 'Name' },
-  { id: 'customerId', label: 'Patient ID' },
-  { id: 'storeName', label: 'Store Code' },
-  { id: 'timeStarted', label: 'Time Started' },
-  { id: 'callDuration', label: 'Call Duration' },
-  { id: 'status', isMandatory: true, label: 'Status' },
-  { id: 'performedBy', label: 'Performed By' },
-];
-export const DEFAULT_AUDIT_LOG_COLUMNS = [
-  'id',
-  'timestamp',
-  'customerName',
-  'storeName',
-  'status',
-  'performedBy',
-];
-
 export const FEEDBACK_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'id', label: 'Patient ID' },
   { id: 'name', isMandatory: true, label: 'Name' },
@@ -68,7 +48,7 @@ export const DEFAULT_FEEDBACK_COLUMNS = [
 export const ROLE_OPTIONS = [
   { label: 'Store', value: 'store' },
   { label: 'Optometrist', value: 'optometrist' },
-  { label: 'Admin', value: 'admin' },
+  { label: 'Senior Optometrist', value: 'senior_optometrist' },
 ];
 
 export const EMPTY_FORM: UserFormData = {
@@ -101,8 +81,10 @@ export function getRoleBasedUserId(user: ManagedUser, allUsers: ManagedUser[]): 
   const numStr = String(indexInRole > 0 ? indexInRole : 1).padStart(3, '0');
 
   switch (user.role.toLowerCase()) {
-    case 'admin':
-      return `ADMIN-${numStr}`;
+    case 'super_admin':
+      return `SUPERADMIN-${numStr}`;
+    case 'senior_optometrist':
+      return `SENIOROPTOM-${numStr}`;
     case 'optometrist':
       return `OPTOMETRIST-${numStr}`;
     case 'store':

@@ -42,3 +42,7 @@ localData
 scripts
 # Uploaded media
 uploads/
+
+#claude
+titan-claude-memory.md
+CLAUDE.md

@@ -6,7 +6,7 @@ import { fetchCustomersAction } from '../Actions/customerActions';
 import { fetchUsersAction } from '../Actions/userActions';
 import { useNotificationLog } from '../components/ui/notificationLog';
 import { API_BASE_URL } from '../options/Option';
-import { customerCreated, customerUpdated } from '../Reducers/customerReducer';
+import { customerCreated, customerDeleted, customerUpdated } from '../Reducers/customerReducer';
 import { useAppDispatch, useAppSelector } from '../store';
 import { decryptClientPayload, isEncryptedEnvelope } from '../Util/cryptoClient';
 
@@ -54,29 +54,15 @@ export function useSSE(): void {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
 
-          const currentUser = userRef.current;
-
-          if (currentUser?.role === 'optometrist') {
-            addLogNotification({
-              customerId: cust.id,
-              description: `${cust.name} was registered at ${cust.storeName || 'Store'}.`,
-              title: 'New Patient Registered',
-              type: 'patient_registered',
-            });
-          } else if (currentUser?.role === 'admin') {
-            addLogNotification({
-              customerId: cust.id,
-              description: `${cust.name} registered at ${cust.storeName || 'Store'}.`,
-              title: 'New Patient Registered',
-              type: 'patient_registered',
-            });
-          }
-
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'CUSTOMER_UPDATED') {
           dispatch(customerUpdated(eventData as Customer));
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
+          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
+        } else if (type === 'CUSTOMER_DELETED') {
+          const { id } = eventData as { id: string };
+          dispatch(customerDeleted(id));
           window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'NO_OPTOMETRIST_AVAILABLE' || type === 'OPTOMETRIST_NO_RESPONSE') {
           const payload = eventData as NoOptometristEventPayload;
@@ -87,7 +73,7 @@ export function useSSE(): void {
             !!payload.storeName &&
             currentUser.storeName.toLowerCase() === payload.storeName.toLowerCase();
 
-          if (type === 'NO_OPTOMETRIST_AVAILABLE' && currentUser?.role === 'admin') {
+          if (type === 'NO_OPTOMETRIST_AVAILABLE' && currentUser?.role === 'senior_optometrist') {
             addLogNotification({
               description: `${payload.storeName || 'A store'} requested an Optometrist for ${payload.customerName}, but no Optometrist are currently available.`,
               title: 'No Optometrists Available',
@@ -109,8 +95,7 @@ export function useSSE(): void {
           type === 'USER_CREATED' ||
           type === 'USER_UPDATED' ||
           type === 'USER_DELETED' ||
-          type === 'USER_STATUS_CHANGE' ||
-          type === 'ADMIN_LOG_CREATED'
+          type === 'USER_STATUS_CHANGE'
         ) {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());

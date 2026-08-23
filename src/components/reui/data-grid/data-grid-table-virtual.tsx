@@ -194,7 +194,7 @@ function DataGridTableVirtualBody<TData extends object>({
 
   if (showCompleteRow) {
     renderedRows.push(
-      <DataGridTableVirtualStatusRow className="py-3 text-xs" key="virtual-status-complete" table={table}>
+      <DataGridTableVirtualStatusRow className="py-3 text-sm" key="virtual-status-complete" table={table}>
         {allRowsLoadedMessage}
       </DataGridTableVirtualStatusRow>
     );

@@ -1,4 +1,4 @@
-import { Calendar, Hash, Phone, Stethoscope, User } from 'lucide-react';
+import { Calendar, CheckCircle2, Hash, Phone, Stethoscope, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, StoreUpdateStatusPageProps } from '../../types';
@@ -11,7 +11,7 @@ import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { useToast } from '../../components/ui/toast';
 import { isObjectiveRxComplete } from '../../options/Option';
-import { useAppDispatch } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store';
 import { parseTimestamp } from './components/formatters';
 
 const NON_CONVERSION_REASONS = [
@@ -68,19 +68,42 @@ function formatTestConductedOn(customer: Customer | null): string {
   });
 }
 
-export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateStatusPageProps) {
+function getStorePrefix(customer: Customer | null, user: null | { name: string; storeName?: null | string }) {
+  return (customer?.storeName || user?.storeName || '').trim().toUpperCase();
+}
+
+function formatSalesOrderNumber(digits: string, storePrefix: string): string {
+  if (!digits) {
+    return '';
+  }
+
+  return `${storePrefix}${digits}`;
+}
+
+export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: StoreUpdateStatusPageProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
+  const user = useAppSelector((state) => state.auth.user);
+  const storePrefix = getStorePrefix(selectedCustomer, user);
 
   const buildFormState = React.useCallback(
-    (customer: Customer | null) => ({
-      conversionStatus: customer?.conversionStatus || '',
-      nonConversionComment: customer?.nonConversionComment || '',
-      nonConversionReason: customer?.nonConversionReason || '',
-      orderDate: customer?.orderDate || '',
-      salesOrderNumber: customer?.salesOrderNumber || '',
-    }),
-    []
+    (customer: Customer | null) => {
+      const rawSalesOrderNumber = customer?.salesOrderNumber || '';
+      const prefix = getStorePrefix(customer, user);
+      const digitsOnly =
+        prefix && rawSalesOrderNumber.startsWith(prefix)
+          ? rawSalesOrderNumber.slice(prefix.length)
+          : rawSalesOrderNumber;
+
+      return {
+        conversionStatus: customer?.conversionStatus || '',
+        nonConversionComment: customer?.nonConversionComment || '',
+        nonConversionReason: customer?.nonConversionReason || '',
+        orderDate: customer?.orderDate || '',
+        salesOrderNumber: digitsOnly.replace(/\D/g, '').slice(0, 6),
+      };
+    },
+    [user]
   );
 
   const [form, setForm] = React.useState(() => buildFormState(selectedCustomer));
@@ -121,6 +144,8 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
     if (form.conversionStatus === 'Converted') {
       if (!form.salesOrderNumber.trim()) {
         newErrors.salesOrderNumber = 'Sales order number is required';
+      } else if (form.salesOrderNumber.trim().length !== 6) {
+        newErrors.salesOrderNumber = 'Sales order number must be exactly 6 digits';
       }
 
       if (!form.orderDate.trim()) {
@@ -178,7 +203,7 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
           : null,
       nonConversionReason: isConverted ? null : form.nonConversionReason,
       orderDate: isConverted ? form.orderDate.trim() : null,
-      salesOrderNumber: isConverted ? form.salesOrderNumber.trim() : null,
+      salesOrderNumber: isConverted ? formatSalesOrderNumber(form.salesOrderNumber.trim(), storePrefix) : null,
       status: selectedCustomer.status === 'Closed' ? 'Closed' : 'Completed',
     };
 
@@ -207,7 +232,9 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
   return (
     <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 duration-200 animate-in fade-in sm:space-y-6 sm:px-6 sm:py-8 md:px-8">
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-lg font-bold text-foreground sm:text-xl">Update Status</h1>
+        <h1 className="text-lg font-bold text-foreground sm:text-xl">
+          {readOnly ? 'Conversion Details' : 'Update Status'}
+        </h1>
 
         <BackButton onClick={onBack} />
       </div>
@@ -228,95 +255,146 @@ export function StoreUpdateStatusPage({ onBack, selectedCustomer }: StoreUpdateS
         </CardFrame>
 
         <CardFrame className="h-full space-y-4 p-4 sm:p-6 md:p-8">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-muted-foreground">Conversion Status *</label>
-            <Select
-              className="rounded-none"
-              onChange={(e) => setField('conversionStatus')(e.target.value)}
-              options={[
-                { label: 'Select status', value: '' },
-                { label: 'Converted', value: 'Converted' },
-                { label: 'Not Converted', value: 'Not Converted' },
-              ]}
-              value={form.conversionStatus}
-            />
-            {errors.conversionStatus && (
-              <p className="text-sm font-medium text-red-500">{errors.conversionStatus}</p>
-            )}
-          </div>
-
-          {form.conversionStatus === 'Converted' && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-muted-foreground">Sales Order Number *</label>
-                <Input
-                  onChange={(e) => setField('salesOrderNumber')(e.target.value)}
-                  placeholder="Enter sales order number"
-                  value={form.salesOrderNumber}
-                />
-                {errors.salesOrderNumber && (
-                  <p className="text-sm font-medium text-red-500">{errors.salesOrderNumber}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-muted-foreground">Order Date *</label>
-                <Input
-                  onChange={(e) => setField('orderDate')(e.target.value)}
-                  type="date"
-                  value={form.orderDate}
-                />
-                {errors.orderDate && <p className="text-sm font-medium text-red-500">{errors.orderDate}</p>}
-              </div>
+          {readOnly ? (
+            <div className="space-y-3.5">
+              <SummaryRow
+                Icon={CheckCircle2}
+                label="Conversion Status"
+                value={selectedCustomer?.conversionStatus ?? ''}
+              />
+              {selectedCustomer?.conversionStatus === 'Converted' ? (
+                <>
+                  <SummaryRow
+                    Icon={Hash}
+                    label="Sales Order Number"
+                    value={selectedCustomer?.salesOrderNumber ?? ''}
+                  />
+                  <SummaryRow Icon={Calendar} label="Order Date" value={selectedCustomer?.orderDate ?? ''} />
+                </>
+              ) : (
+                <>
+                  <SummaryRow
+                    Icon={Hash}
+                    label="Reason"
+                    value={selectedCustomer?.nonConversionReason ?? ''}
+                  />
+                  {selectedCustomer?.nonConversionComment && (
+                    <SummaryRow
+                      Icon={Hash}
+                      label="Comments"
+                      value={selectedCustomer.nonConversionComment}
+                    />
+                  )}
+                </>
+              )}
             </div>
-          )}
-
-          {form.conversionStatus === 'Not Converted' && (
-            <div className="space-y-4">
+          ) : (
+            <>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-muted-foreground">Reason *</label>
+                <label className="text-sm font-medium text-muted-foreground">Conversion Status *</label>
                 <Select
                   className="rounded-none"
-                  onChange={(e) => setField('nonConversionReason')(e.target.value)}
+                  onChange={(e) => setField('conversionStatus')(e.target.value)}
                   options={[
-                    { label: 'Select a reason', value: '' },
-                    ...NON_CONVERSION_REASONS.map((reason) => ({ label: reason, value: reason })),
+                    { label: 'Select status', value: '' },
+                    { label: 'Converted', value: 'Converted' },
+                    { label: 'Not Converted', value: 'Not Converted' },
                   ]}
-                  value={form.nonConversionReason}
+                  value={form.conversionStatus}
                 />
-                {errors.nonConversionReason && (
-                  <p className="text-sm font-medium text-red-500">{errors.nonConversionReason}</p>
+                {errors.conversionStatus && (
+                  <p className="text-sm font-medium text-red-500">{errors.conversionStatus}</p>
                 )}
               </div>
 
-              {form.nonConversionReason === OTHER_REASON && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-muted-foreground">Comments *</label>
-                  <textarea
-                    className="min-h-[90px] w-full rounded-md border border-input bg-background p-3 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                    onChange={(e) => setField('nonConversionComment')(e.target.value)}
-                    placeholder="Please specify the reason..."
-                    value={form.nonConversionComment}
-                  />
-                  {errors.nonConversionComment && (
-                    <p className="text-sm font-medium text-red-500">{errors.nonConversionComment}</p>
+              {form.conversionStatus === 'Converted' && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Sales Order Number *
+                    </label>
+                    <div className="relative w-full">
+                      {storePrefix && (
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                          {storePrefix}
+                        </span>
+                      )}
+                      <Input
+                        className={storePrefix ? 'pl-[3.25rem]' : undefined}
+                        inputMode="numeric"
+                        maxLength={6}
+                        onChange={(e) => setField('salesOrderNumber')(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="007231"
+                        value={form.salesOrderNumber}
+                      />
+                    </div>
+                    {errors.salesOrderNumber && (
+                      <p className="text-sm font-medium text-red-500">{errors.salesOrderNumber}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Order Date *</label>
+                    <Input
+                      onChange={(e) => setField('orderDate')(e.target.value)}
+                      type="date"
+                      value={form.orderDate}
+                    />
+                    {errors.orderDate && (
+                      <p className="text-sm font-medium text-red-500">{errors.orderDate}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {form.conversionStatus === 'Not Converted' && (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-muted-foreground">Reason *</label>
+                    <Select
+                      className="rounded-none"
+                      onChange={(e) => setField('nonConversionReason')(e.target.value)}
+                      options={[
+                        { label: 'Select a reason', value: '' },
+                        ...NON_CONVERSION_REASONS.map((reason) => ({ label: reason, value: reason })),
+                      ]}
+                      value={form.nonConversionReason}
+                    />
+                    {errors.nonConversionReason && (
+                      <p className="text-sm font-medium text-red-500">{errors.nonConversionReason}</p>
+                    )}
+                  </div>
+
+                  {form.nonConversionReason === OTHER_REASON && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-muted-foreground">Comments *</label>
+                      <textarea
+                        className="min-h-[90px] w-full rounded-md border border-input bg-background p-3 text-sm text-foreground shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                        onChange={(e) => setField('nonConversionComment')(e.target.value)}
+                        placeholder="Please specify the reason..."
+                        value={form.nonConversionComment}
+                      />
+                      {errors.nonConversionComment && (
+                        <p className="text-sm font-medium text-red-500">{errors.nonConversionComment}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          <div className="flex justify-end border-t border-border pt-4">
-            <Button
-              className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-xs font-medium shadow-md transition-all sm:w-auto"
-              disabled={isSaving}
-              onClick={handleSave}
-              type="button"
-              variant="gradient"
-            >
-              {isSaving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
+              <div className="flex justify-end border-t border-border pt-4">
+                <Button
+                  className="active:scale-98 h-10 w-full cursor-pointer rounded-[50px] px-6 text-sm font-medium shadow-md transition-all sm:w-auto"
+                  disabled={isSaving}
+                  onClick={handleSave}
+                  type="button"
+                  variant="primary"
+                >
+                  {isSaving ? 'Saving…' : 'Save'}
+                </Button>
+              </div>
+            </>
+          )}
         </CardFrame>
       </div>
     </main>

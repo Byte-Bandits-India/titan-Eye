@@ -5,7 +5,7 @@ import * as React from 'react';
 import { cn } from '../../lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500',
   {
     defaultVariants: {
       variant: 'default',
@@ -16,8 +16,10 @@ const badgeVariants = cva(
           'border-transparent bg-blue-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-blue-600',
         active:
           'border-transparent bg-emerald-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-emerald-700',
-        admin:
+        senior_optometrist:
           'border-transparent bg-violet-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-violet-700',
+        super_admin:
+          'border-transparent bg-fuchsia-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-fuchsia-700',
         Cancelled:
           'border-transparent bg-rose-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-rose-600',
         Closed:

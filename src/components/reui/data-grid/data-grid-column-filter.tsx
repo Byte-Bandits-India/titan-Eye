@@ -43,7 +43,7 @@ function DataGridColumnFilter<TData extends object, TValue>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="secondary">
           <CirclePlusIcon className="size-4" />
           {title}
           {selectedValues?.size > 0 && (
@@ -129,7 +129,7 @@ function DataGridColumnFilter<TData extends object, TValue>({
                     {option.icon && <option.icon className="h-4 w-4 text-muted-foreground" />}
                     <span>{option.label}</span>
                     {facetCount !== undefined && (
-                      <span className="ms-auto flex h-4 w-4 items-center justify-center font-mono text-xs">
+                      <span className="ms-auto flex h-4 w-4 items-center justify-center font-mono text-sm">
                         {facetCount}
                       </span>
                     )}

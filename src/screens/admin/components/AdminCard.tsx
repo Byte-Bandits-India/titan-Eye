@@ -1,7 +1,6 @@
-import { Download, FileText, MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
+import { Download, MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
 
 import type {
-  AuditLog,
   Customer,
   CustomerStatusTab,
   DateFilterRange,
@@ -19,20 +18,13 @@ import { cn } from '../../../lib/utils';
 import { exportAllCustomersReport } from '../../../utils/excelExport';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
 import { OptometristUsersBody } from '../../store/components/OptometristUsersBody';
-import {
-  AUDIT_LOG_TABLE_COLUMNS,
-  CUSTOMER_TABLE_COLUMNS,
-  FEEDBACK_TABLE_COLUMNS,
-  USER_TABLE_COLUMNS,
-} from './adminUtils';
-import { AuditLogsBody } from './AuditLogsBody';
+import { CUSTOMER_TABLE_COLUMNS, FEEDBACK_TABLE_COLUMNS, USER_TABLE_COLUMNS } from './adminUtils';
 import { AvailableStoresBody } from './AvailableStoresBody';
 import { CustomerDirectoryBody } from './CustomerDirectoryBody';
 import { FeedbackDirectoryBody } from './FeedbackDirectoryBody';
 import { UserDirectoryBody } from './UserDirectoryBody';
 
 export type AdminCardProps =
-  | AuditLogsVariant
   | CustomerRecordsVariant
   | FeedbackRecordsVariant
   | MetricsVariant
@@ -57,26 +49,6 @@ type FeedbackRecordsVariant = {
   totalItems: number;
   totalPages: number;
   variant: 'feedback';
-  visibleColumns: string[];
-};
-
-type AuditLogsVariant = {
-  currentPage: number;
-  dateRange: DateFilterRange;
-  isLoadingLogs: boolean;
-  onDateRangeChange: (v: DateFilterRange) => void;
-  onNextPage: () => void;
-  onPageSizeChange: (size: number) => void;
-  onPrevPage: () => void;
-  onResetColumns: () => void;
-  onSearchChange: (v: string) => void;
-  onToggleColumn: (id: string) => void;
-  pageSize: number;
-  paginatedAuditLogs: AuditLog[];
-  searchTerm: string;
-  totalItems: number;
-  totalPages: number;
-  variant: 'audit-logs';
   visibleColumns: string[];
 };
 
@@ -275,10 +247,10 @@ export function AdminCard(props: AdminCardProps) {
         dateRange={dateRange}
         extra={
           <Button
-            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-xs font-medium shadow-sm transition-all"
+            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-sm font-medium shadow-sm transition-all"
             onClick={() => exportAllCustomersReport(filteredCustomers)}
             title="Download full Excel report for all patients"
-            variant="gradient"
+            variant="primary"
           >
             <Download size={14} />
             <span>Export All Excel Reports</span>
@@ -376,59 +348,5 @@ export function AdminCard(props: AdminCardProps) {
     );
   }
 
-  const {
-    currentPage,
-    dateRange,
-    isLoadingLogs,
-    onDateRangeChange,
-    onNextPage,
-    onPageSizeChange,
-    onPrevPage,
-    onResetColumns,
-    onSearchChange,
-    onToggleColumn,
-    pageSize,
-    paginatedAuditLogs,
-    searchTerm,
-    totalItems,
-    totalPages,
-    visibleColumns,
-  } = props;
-
-  const headerControls = (
-    <TableToolbar
-      columns={AUDIT_LOG_TABLE_COLUMNS}
-      dateRange={dateRange}
-      onDateRangeChange={onDateRangeChange}
-      onResetColumns={onResetColumns}
-      onSearchChange={onSearchChange}
-      onToggleColumn={onToggleColumn}
-      searchPlaceholder="Search audit logs..."
-      searchValue={searchTerm}
-      visibleColumns={visibleColumns}
-    />
-  );
-
-  return (
-    <CardFrame className="!mt-4 flex h-[600px] flex-col">
-      <CardHeader
-        icon={FileText}
-        iconGradient="from-gray-600 to-gray-900"
-        right={headerControls}
-        title="System Audit Logs"
-      />
-      <AuditLogsBody
-        currentPage={currentPage}
-        isLoadingLogs={isLoadingLogs}
-        onNextPage={onNextPage}
-        onPageSizeChange={onPageSizeChange}
-        onPrevPage={onPrevPage}
-        pageSize={pageSize}
-        paginatedAuditLogs={paginatedAuditLogs}
-        totalItems={totalItems}
-        totalPages={totalPages}
-        visibleColumns={visibleColumns}
-      />
-    </CardFrame>
-  );
+  return null;
 }

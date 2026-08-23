@@ -1382,7 +1382,7 @@ function DataGridTableResizeIndicator({
     >
       <div className="bg-primary/85 absolute inset-y-0 left-0 w-px -translate-x-1/2" />
       <div
-        className="shadow-xs absolute left-0 top-0 -translate-x-1/2 rounded-b-sm bg-primary"
+        className="absolute left-0 top-0 -translate-x-1/2 rounded-b-sm bg-primary shadow-sm"
         ref={indicatorHeadRef}
         style={{ width: 5 }}
       />

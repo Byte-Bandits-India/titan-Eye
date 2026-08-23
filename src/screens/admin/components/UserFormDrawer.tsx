@@ -16,6 +16,10 @@ import { EMPTY_FORM, ROLE_OPTIONS } from './adminUtils';
 
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{4}$/;
 
+function isAdminLikeRole(role: UserRole): boolean {
+  return role === 'super_admin' || role === 'senior_optometrist';
+}
+
 interface UserFormDrawerProps {
   editingEmail: null | string;
   onSubmitUser: (data: UserFormData, isEdit: boolean) => Promise<void>;
@@ -156,7 +160,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
         <div className="space-y-4">
           {/* User Type */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
+            <label className="text-sm font-medium text-muted-foreground">
               User Type <span className="text-rose-500">*</span>
             </label>
             <Select
@@ -187,7 +191,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Store Code (store only) */}
           {form.role === 'store' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-muted-foreground">
                 Store Code <span className="text-rose-500">*</span>
               </label>
               <Input
@@ -216,7 +220,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Optometrist Name (optometrist only) */}
           {form.role === 'optometrist' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-muted-foreground">
                 Optometrist Name <span className="text-rose-500">*</span>
               </label>
               <Input
@@ -239,8 +243,8 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              {form.role === 'admin' ? 'Admin Email' : 'Email Address'}{' '}
+            <label className="text-sm font-medium text-muted-foreground">
+              {isAdminLikeRole(form.role) ? 'Admin Email' : 'Email Address'}{' '}
               <span className="text-rose-500">*</span>
             </label>
             <Input
@@ -262,8 +266,8 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              {form.role === 'admin' ? 'Admin Password' : 'Password'}{' '}
+            <label className="text-sm font-medium text-muted-foreground">
+              {isAdminLikeRole(form.role) ? 'Admin Password' : 'Password'}{' '}
               {!editingEmail && <span className="text-rose-500">*</span>}
             </label>
             <div className="relative">
@@ -294,9 +298,9 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           </div>
 
           {/* Mobile Number (store & optometrist) */}
-          {form.role !== 'admin' && (
+          {!isAdminLikeRole(form.role) && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-muted-foreground">
                 Mobile Number {form.role === 'optometrist' && <span className="text-rose-500">*</span>}
               </label>
               <Input
@@ -319,7 +323,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Languages Known (optometrist only) */}
           {form.role === 'optometrist' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
+              <label className="text-sm font-medium text-muted-foreground">
                 Languages Known <span className="text-rose-500">*</span>
               </label>
               <TagInput
@@ -344,7 +348,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* City (store only) */}
           {form.role === 'store' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">City</label>
+              <label className="text-sm font-medium text-muted-foreground">City</label>
               <Input
                 icon={MapPin}
                 onChange={(e) => setForm({ ...form, city: e.target.value })}
@@ -357,7 +361,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Location (store only) */}
           {form.role === 'store' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Location</label>
+              <label className="text-sm font-medium text-muted-foreground">Location</label>
               <Input
                 icon={MapPin}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
@@ -371,10 +375,10 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
 
       <SheetFooter className="sticky bottom-0 bg-card px-6 py-4">
         <Button
-          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-xs font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
           disabled={submitting}
           type="submit"
-          variant="gradient"
+          variant="primary"
         >
           {submitting ? 'Saving...' : editingEmail ? 'Save Changes' : 'Create User'}
         </Button>

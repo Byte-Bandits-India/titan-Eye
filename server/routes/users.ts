@@ -22,7 +22,7 @@ const router = Router();
 
 const onlineEmails = new Set<string>();
 
-const VALID_ROLES = ['store', 'optometrist', 'admin'];
+const VALID_ROLES = ['store', 'optometrist', 'senior_optometrist', 'super_admin'];
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {
@@ -93,21 +93,9 @@ function serializeLanguages(role: string, languages?: string[]): null | string {
 
 type UserListResponseBody = ErrorResponse | ManagedUserResponse[];
 
-function getFormattedTimestamp(): string {
-  return new Date().toLocaleString('en-US', {
-    day: 'numeric',
-    hour: 'numeric',
-    hour12: true,
-    minute: '2-digit',
-    month: 'short',
-    second: '2-digit',
-    year: 'numeric',
-  });
-}
-
-function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
+  if (!req.user || req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super Admin access required' });
   }
 
   next();
@@ -186,7 +174,7 @@ router.post('/offline', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.use(requireAdmin);
+router.use(requireSuperAdmin);
 
 router.post(
   '/',
@@ -243,21 +231,7 @@ router.post(
       );
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
-      const adminName = req.user?.name || 'Admin';
-      const timestamp = getFormattedTimestamp();
 
-      await run(
-        'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          adminEmail,
-          adminName,
-          'USER_CREATED',
-          normalizedEmail,
-          `Role: ${role.toUpperCase()}${finalStoreName ? `, Store: ${finalStoreName}` : ''}`,
-          timestamp,
-        ]
-      );
-      broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_CREATED', target: normalizedEmail });
       broadcastEvent('USER_CREATED', { email: normalizedEmail, name: derivedName, role });
       logSecurityEvent('ADMIN_USER_CREATED', {
         adminEmail,
@@ -343,14 +317,7 @@ router.put(
       );
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
-      const adminName = req.user?.name || 'Admin';
-      const timestamp = getFormattedTimestamp();
 
-      await run(
-        'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [adminEmail, adminName, 'USER_UPDATED', existing.email, `Role: ${role.toUpperCase()}`, timestamp]
-      );
-      broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_UPDATED', target: existing.email });
       broadcastEvent('USER_UPDATED', { email: existing.email, name: derivedName, role });
       logSecurityEvent('ADMIN_USER_UPDATED', {
         adminEmail,
@@ -400,21 +367,7 @@ router.delete('/:email', async (req: AuthenticatedRequest, res: Response<DeleteU
     await run('DELETE FROM users WHERE LOWER(email) = LOWER(?)', [email]);
 
     const adminEmail = req.user?.email || 'admin@gmail.com';
-    const adminName = req.user?.name || 'Admin';
-    const timestamp = getFormattedTimestamp();
 
-    await run(
-      'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        adminEmail,
-        adminName,
-        'USER_DELETED',
-        existing.email,
-        `Deleted user account ${existing.email}`,
-        timestamp,
-      ]
-    );
-    broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_DELETED', target: existing.email });
     broadcastEvent('USER_DELETED', { email: existing.email });
     logSecurityEvent('ADMIN_USER_DELETED', { adminEmail, requestId: req.requestId, target: existing.email });
 
@@ -452,21 +405,7 @@ router.put(
       await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', [status, email]);
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
-      const adminName = req.user?.name || 'Admin';
-      const timestamp = getFormattedTimestamp();
 
-      await run(
-        'INSERT INTO admin_logs (adminEmail, adminName, action, target, details, timestamp) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          adminEmail,
-          adminName,
-          'USER_STATUS_CHANGE',
-          existing.email,
-          `Account status updated to ${status.toUpperCase()}`,
-          timestamp,
-        ]
-      );
-      broadcastEvent('ADMIN_LOG_CREATED', { action: 'USER_STATUS_CHANGE', target: existing.email });
       broadcastEvent('USER_STATUS_CHANGE', { email: existing.email, status });
       logSecurityEvent('ADMIN_USER_STATUS_CHANGE', {
         adminEmail,

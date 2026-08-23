@@ -23,7 +23,10 @@ function isUser(obj: StoredUserPayload | object | null | undefined): obj is User
   return (
     typeof candidate.email === 'string' &&
     typeof candidate.name === 'string' &&
-    (candidate.role === 'admin' || candidate.role === 'optometrist' || candidate.role === 'store')
+    (candidate.role === 'optometrist' ||
+      candidate.role === 'senior_optometrist' ||
+      candidate.role === 'store' ||
+      candidate.role === 'super_admin')
   );
 }
 

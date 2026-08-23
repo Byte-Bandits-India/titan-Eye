@@ -9,10 +9,10 @@ export type BackButtonProps = {
 export function BackButton({ onClick }: BackButtonProps) {
   return (
     <Button
-      className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 self-start rounded-[50px] border-border bg-card px-4 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:h-10 sm:self-auto"
+      className="active:scale-98 flex h-10 shrink-0 cursor-pointer items-center gap-2 self-start border-border bg-card px-5 text-sm font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted sm:self-auto"
       onClick={onClick}
       type="button"
-      variant="outline"
+      variant="secondary"
     >
       <ChevronLeft size={16} />
       Back

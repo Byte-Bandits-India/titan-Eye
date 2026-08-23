@@ -40,10 +40,10 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
         <table className="w-full border-collapse text-left">
           <thead className="sticky top-0 z-10 bg-card">
             <tr className="border-b border-border">
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Optometrist</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Languages Known</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Call Duration</th>
+              <th className="px-4 py-3 text-sm font-semibold text-muted-foreground">Optometrist</th>
+              <th className="px-4 py-3 text-sm font-semibold text-muted-foreground">Languages Known</th>
+              <th className="px-4 py-3 text-sm font-semibold text-muted-foreground">Status</th>
+              <th className="px-4 py-3 text-sm font-semibold text-muted-foreground">Call Duration</th>
             </tr>
           </thead>
           <tbody>
@@ -78,21 +78,21 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
                         {row.languages && row.languages.length > 0 ? (
                           row.languages.map((lang) => (
                             <span
-                              className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-xs font-normal text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              className="inline-flex rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-sm font-normal text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                               key={lang}
                             >
                               {lang}
                             </span>
                           ))
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span
                         className={cn(
-                          'inline-flex rounded-full border px-2.5 py-0.5 text-xs font-normal',
+                          'inline-flex rounded-full border px-2.5 py-0.5 text-sm font-normal',
                           classes
                         )}
                       >

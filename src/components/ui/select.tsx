@@ -25,7 +25,7 @@ const SelectTrigger = React.forwardRef<
 >(({ children, className, size = 'default', ...props }, ref) => (
   <SelectPrimitive.Trigger
     className={cn(
-      'shadow-xs flex w-full cursor-pointer items-center justify-between rounded-md border border-input bg-card px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800/50 [&>span]:line-clamp-1',
+      'flex w-full cursor-pointer items-center justify-between rounded-md border border-input bg-card px-2.5 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-800/50 [&>span]:line-clamp-1',
       size === 'sm' ? 'h-7' : 'h-9',
       className
     )}
@@ -72,7 +72,7 @@ const SelectItem = React.forwardRef<
 >(({ children, className, ...props }, ref) => (
   <SelectPrimitive.Item
     className={cn(
-      'relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-xs font-medium outline-none transition-colors focus:bg-blue-50 focus:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/50 dark:focus:text-blue-300',
+      'relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-7 pr-2 text-sm font-medium outline-none transition-colors focus:bg-blue-50 focus:text-blue-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:focus:bg-blue-950/50 dark:focus:text-blue-300',
       className
     )}
     ref={ref}
@@ -93,7 +93,7 @@ const LegacySelect = React.forwardRef<HTMLSelectElement, LegacySelectProps>(
     <div className={cn('relative w-full', containerClassName)}>
       <select
         className={cn(
-          'rounded-xs flex h-10 w-full cursor-pointer appearance-none border border-border bg-card px-3 py-2 pr-8 text-sm text-foreground shadow-sm transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 w-full cursor-pointer appearance-none rounded-sm border border-border bg-card px-3 py-2 pr-8 text-sm text-foreground shadow-sm transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         ref={ref}

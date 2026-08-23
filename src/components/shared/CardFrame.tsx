@@ -17,7 +17,7 @@ export type CardHeaderProps = {
 export function CardFrame({ children, className }: CardFrameProps) {
   return (
     <div
-      className={`flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-xs${className ? ` ${className}` : ''}`}
+      className={`flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm${className ? ` ${className}` : ''}`}
     >
       {children}
     </div>

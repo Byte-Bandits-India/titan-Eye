@@ -5,6 +5,7 @@ import type { Customer, CustomerLog } from '../types';
 import { logout } from '../Reducers/authReducer';
 import {
   customerCreated,
+  customerDeleted,
   customerUpdated,
   fetchFailure,
   fetchStart,
@@ -21,7 +22,11 @@ const handleApiError = (err: Error, dispatch: AppDispatch, defaultMsg: string): 
       return 'Session expired. Please log in again.';
     }
 
-    const data = err.response?.data as undefined | { error?: string };
+    const data = err.response?.data as undefined | { details?: string[]; error?: string };
+
+    if (data?.details?.length) {
+      return `${data.error || defaultMsg}: ${data.details.join(', ')}`;
+    }
 
     return data?.error || defaultMsg;
   }
@@ -73,6 +78,17 @@ export const updateCustomerAction =
       throw new Error(msg);
     }
   };
+
+export const deleteCustomerAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    await apiClient.delete<{ ok: boolean }>(`/customers/${encodeURIComponent(id)}`);
+    dispatch(customerDeleted(id));
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    const msg = handleApiError(err, dispatch, 'Failed to delete customer.');
+    throw new Error(msg);
+  }
+};
 
 export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) => {
   try {

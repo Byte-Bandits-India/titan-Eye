@@ -55,7 +55,7 @@ export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
               />
             </div>
             <div className="min-w-0">
-              <div className="truncate text-xs font-normal text-foreground">{row.original.name}</div>
+              <div className="truncate text-sm font-normal text-foreground">{row.original.name}</div>
               <div className="mt-0.5 flex flex-wrap gap-1">
                 {row.original.languages && row.original.languages.length > 0 ? (
                   row.original.languages.map((lang) => (

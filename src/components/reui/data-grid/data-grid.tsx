@@ -263,7 +263,7 @@ function DataGrid<TFeatures extends TableFeatures, TData extends object>({
       footer: '',
       header: '',
       headerRow: '',
-      headerSticky: 'sticky top-0 z-40 bg-background/90 backdrop-blur-xs',
+      headerSticky: 'sticky top-0 z-40 bg-background/90 backdrop-blur-sm',
     },
     tableLayout: {
       cellBorder: false,

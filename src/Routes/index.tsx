@@ -5,6 +5,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
 
 import { AdminScreen } from '../screens/admin/AdminScreen';
+import { SuperAdminScreen } from '../screens/admin/SuperAdminScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
 import { OptometristScreen } from '../screens/optometrist/OptometristScreen';
@@ -40,8 +41,12 @@ export function getHomeRoute(role: UserRole): string {
     return '/store';
   }
 
-  if (role === 'admin') {
+  if (role === 'senior_optometrist') {
     return '/admin';
+  }
+
+  if (role === 'super_admin') {
+    return '/super-admin';
   }
 
   return '/optometrist';
@@ -119,11 +124,19 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="admin">
+      <ProtectedRoute allowedRole="senior_optometrist">
         <AdminScreen />
       </ProtectedRoute>
     ),
     path: '/admin',
+  },
+  {
+    element: (
+      <ProtectedRoute allowedRole="super_admin">
+        <SuperAdminScreen />
+      </ProtectedRoute>
+    ),
+    path: '/super-admin',
   },
   {
     element: <SsoCallbackScreen />,

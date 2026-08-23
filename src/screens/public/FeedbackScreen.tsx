@@ -58,7 +58,7 @@ export function FeedbackScreen() {
         {loadState === 'error' && (
           <>
             <h1 className="mb-1 text-base font-bold text-foreground">Link Unavailable</h1>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               This feedback link is invalid or has expired. Please check with the store if you&apos;d like to
               leave feedback.
             </p>
@@ -73,7 +73,7 @@ export function FeedbackScreen() {
             <h1 className="mb-1 text-base font-bold text-foreground">
               Thanks for visiting{customerName ? `, ${customerName}` : ''}!
             </h1>
-            <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+            <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
               We&apos;d love to hear how your consultation went. Feedback is optional.
             </p>
             <Textarea
@@ -85,7 +85,7 @@ export function FeedbackScreen() {
               value={feedback}
             />
             <Button
-              className="h-9 w-full rounded-xl text-xs font-medium"
+              className="h-9 w-full rounded-xl text-sm font-medium"
               disabled={isSubmitting}
               onClick={handleSubmit}
             >
@@ -100,7 +100,7 @@ export function FeedbackScreen() {
               <CheckCircle2 size={18} />
             </div>
             <h1 className="mb-1 text-base font-bold text-foreground">Thank You!</h1>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               Your feedback has been received. You can close this page now.
             </p>
           </>
