@@ -12,6 +12,7 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 import { validateCustomerData } from '../utils/validation.js';
+import { sendTeamsDirectMessage } from '../services/microsoft/graph.js';
 
 const router = Router();
 
@@ -47,11 +48,8 @@ async function findNextAvailableOptometrist(
   excludeEmails: string[]
 ): Promise<null | { email: string; name: string }> {
   const presenceCutoff = new Date(Date.now() - PRESENCE_IDLE_MS).toISOString();
-  const optometristUsers = await all<{ email: string; name: string }>(
-    `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
-    [presenceCutoff]
-  );
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
+
   const busyRows = await all<{ callTakenBy: null | string }>(
     `SELECT callTakenBy FROM customers WHERE status IN ('Initiated', 'Accepted', 'Queued', 'Testing') AND callTakenBy IS NOT NULL`
   );
@@ -65,7 +63,13 @@ async function findNextAvailableOptometrist(
     callCountByName.set((row.callTakenBy || '').toLowerCase(), row.callCount);
   }
 
-  const sortedOptometrists = [...optometristUsers].sort((a, b) => {
+  // Phase 1: Search regular optometrists
+  const regularOptometrists = await all<{ email: string; name: string }>(
+    `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
+    [presenceCutoff]
+  );
+
+  const sortedRegular = [...regularOptometrists].sort((a, b) => {
     const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
     const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
 
@@ -76,7 +80,7 @@ async function findNextAvailableOptometrist(
     return a.name.localeCompare(b.name);
   });
 
-  for (const optometrist of sortedOptometrists) {
+  for (const optometrist of sortedRegular) {
     if (excludeLower.includes(optometrist.email.toLowerCase())) {
       continue;
     }
@@ -88,10 +92,45 @@ async function findNextAvailableOptometrist(
     return optometrist;
   }
 
-  logger.info('findNextAvailableOptometrist found nobody', {
+  // Phase 2: Escalation to Senior Optometrists (when all regular optometrists are busy or unavailable)
+  const seniorOptometrists = await all<{ email: string; name: string }>(
+    `SELECT email, name FROM users WHERE role = 'senior_optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
+    [presenceCutoff]
+  );
+
+  const sortedSenior = [...seniorOptometrists].sort((a, b) => {
+    const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
+    const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
+
+    if (aCount !== bCount) {
+      return aCount - bCount;
+    }
+
+    return a.name.localeCompare(b.name);
+  });
+
+  for (const seniorOptom of sortedSenior) {
+    if (excludeLower.includes(seniorOptom.email.toLowerCase())) {
+      continue;
+    }
+
+    if (busyLower.has(seniorOptom.email.toLowerCase()) || busyLower.has(seniorOptom.name.toLowerCase())) {
+      continue;
+    }
+
+    logger.info('Escalating call to Senior Optometrist because regular optometrists are unavailable or busy', {
+      seniorEmail: seniorOptom.email,
+      seniorName: seniorOptom.name,
+    });
+
+    return seniorOptom;
+  }
+
+  logger.info('findNextAvailableOptometrist found nobody (neither regular nor senior optometrists available)', {
     busyNames: Array.from(busyLower),
-    candidateEmails: optometristUsers.map((o) => o.email),
     excludeEmails: excludeLower,
+    regularCandidateEmails: regularOptometrists.map((o) => o.email),
+    seniorCandidateEmails: seniorOptometrists.map((o) => o.email),
   });
 
   return null;
@@ -660,7 +699,8 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
         }
       }
 
-      const isOptometristRequester = requesterRole === 'optometrist';
+      const isOptometristRequester =
+        requesterRole === 'optometrist' || requesterRole === 'senior_optometrist';
       const isUnclaimedOffer =
         (customer.status === 'Initiated' || customer.status === 'Queued') && !customer.callTakenBy;
 
@@ -757,9 +797,66 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
   }
 });
 
+router.post('/:id/notify-admin-teams', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    const adminUsers = await all<UserRow>(
+      `SELECT email, microsoftUpn, name, role FROM users WHERE role IN ('super_admin', 'senior_optometrist') AND status = 'active'`
+    );
+
+    const recipientEmails = adminUsers
+      .map((u) => u.microsoftUpn || u.email)
+      .filter(Boolean);
+
+    const storeName = customer.storeName || req.user?.storeName || req.user?.name || 'Store';
+    const messageContent = `Urgent Notification: Store ${storeName} has a customer waiting (${customer.name}, ID: ${id}), but all Optometrists are currently busy. Please assist.`;
+    const senderUpn = req.user?.email || process.env.TEAMS_MEETING_ORGANIZER_UPN;
+
+    const result = await sendTeamsDirectMessage(recipientEmails, messageContent, senderUpn);
+
+    broadcastEvent('STORE_NOTIFIED_ADMIN', {
+      customerId: id,
+      customerName: customer.name,
+      storeName,
+      timestamp: Date.now(),
+    });
+
+    logger.info('[Customers] Store notified admin & senior optometrist via Teams', {
+      customerId: id,
+      recipients: recipientEmails,
+      sender: senderUpn,
+      storeName,
+      teamsResult: result,
+    });
+
+    if (!result.ok && result.error) {
+      console.error('[Notify Admin Route] Teams delivery failed:', result.error);
+    }
+
+    return res.json({
+      graphError: result.error,
+      message: 'Admin & Senior Optometrists notified successfully',
+      ok: true,
+      recipients: recipientEmails,
+      teamsSent: result.ok,
+    });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Notify admin teams error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (req.user!.role !== 'optometrist') {
+    if (req.user!.role !== 'optometrist' && req.user!.role !== 'senior_optometrist') {
       return res.status(403).json({ error: 'Only Optometrist users can reject a call offer.' });
     }
 
@@ -798,7 +895,7 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
 
 router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (req.user!.role !== 'optometrist') {
+    if (req.user!.role !== 'optometrist' && req.user!.role !== 'senior_optometrist') {
       return res.status(403).json({ error: 'Only Optometrist users can drop a call.' });
     }
 
@@ -1047,7 +1144,7 @@ router.post('/:id/complete', async (req: AuthenticatedRequest, res: Response) =>
       return;
     }
 
-    if (customer.status !== 'Accepted' || customer.callActive) {
+    if ((customer.status !== 'Accepted' && customer.status !== 'Test Completed') || customer.callActive) {
       return res.status(409).json({ error: 'This customer has no completed consultation to close out yet.' });
     }
 

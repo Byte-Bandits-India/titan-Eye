@@ -41,7 +41,7 @@ const upload = multer({
 const router = Router();
 
 function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || req.user.role !== 'senior_optometrist') {
+  if (!req.user || (req.user.role !== 'senior_optometrist' && req.user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Admin access required' });
   }
 

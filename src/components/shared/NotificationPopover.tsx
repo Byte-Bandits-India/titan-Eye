@@ -40,6 +40,7 @@ const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: s
   no_optometrist_available: AlertTriangle,
   optometrist_available: UserCheck,
   patient_registered: UserPlus,
+  store_notified_admin: AlertTriangle,
 };
 
 export function NotificationPopover({
@@ -216,7 +217,7 @@ export function NotificationPopover({
       return [];
     }
 
-    if (user.role === 'optometrist') {
+    if (user.role === 'optometrist' || user.role === 'senior_optometrist') {
       const isOptometristUserInCall = customers.some((c) => {
         if (!(c.status === 'Initiated' || c.status === 'Accepted') || !c.callTakenBy) {
           return false;
@@ -227,44 +228,59 @@ export function NotificationPopover({
         return takenByLower === user.name.toLowerCase() || takenByLower === user.email.toLowerCase();
       });
 
-      if (isOptometristUserInCall) {
-        return [];
+      const incomingCalls = isOptometristUserInCall
+        ? []
+        : customers
+            .filter((c) => {
+              if (c.status !== 'Initiated') {
+                return false;
+              }
+
+              const offeredTo = (c.offeredToOptometristEmail || '').toLowerCase();
+
+              if (offeredTo !== user.email.toLowerCase()) {
+                return false;
+              }
+
+              const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
+
+              return !dismissedIds.has(itemKey);
+            })
+            .map((c) => {
+              const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
+              const startMs = parseTimestamp(c.callStartTime || c.lastUpdatedOn);
+              const waitSecs = startMs > 0 ? Math.floor((now - startMs) / 1000) : 0;
+              const waitMins = Math.floor(waitSecs / 60);
+              const isUrgent = waitMins >= 49 && waitMins < 59;
+
+              return {
+                customer: c,
+                id: itemKey,
+                subtitle: isUrgent
+                  ? `URGENT ALERT (Minute ${waitMins}/59): Patient waiting for ${waitMins} mins! Pick up call immediately • Store: ${c.storeName || 'Store'}`
+                  : `Requesting access permission • Store: ${c.storeName || 'Store'}`,
+                timestamp: c.lastUpdatedOn || now,
+                title: isUrgent ? `🚨 URGENT CALL (Min ${waitMins}/59): ${c.name}` : c.name,
+                type: 'incoming_call' as const,
+              };
+            });
+
+      if (user.role === 'senior_optometrist') {
+        const feedbackItems = customers
+          .filter((c) => Boolean(c.patientFeedback && c.patientFeedback.trim()) && !dismissedIds.has(c.id))
+          .map((c) => ({
+            customer: c,
+            id: c.id,
+            subtitle: `${c.name} (${c.storeName || 'Store'})`,
+            timestamp: c.lastUpdatedOn || now,
+            title: 'New Patient Feedback',
+            type: 'admin_status' as const,
+          }));
+
+        return [...incomingCalls, ...feedbackItems];
       }
 
-      return customers
-        .filter((c) => {
-          if (c.status !== 'Initiated') {
-            return false;
-          }
-
-          const offeredTo = (c.offeredToOptometristEmail || '').toLowerCase();
-
-          if (offeredTo !== user.email.toLowerCase()) {
-            return false;
-          }
-
-          const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
-
-          return !dismissedIds.has(itemKey);
-        })
-        .map((c) => {
-          const itemKey = `${c.id}_${c.callStartTime || c.lastUpdatedOn || ''}`;
-          const startMs = parseTimestamp(c.callStartTime || c.lastUpdatedOn);
-          const waitSecs = startMs > 0 ? Math.floor((now - startMs) / 1000) : 0;
-          const waitMins = Math.floor(waitSecs / 60);
-          const isUrgent = waitMins >= 49 && waitMins < 59;
-
-          return {
-            customer: c,
-            id: itemKey,
-            subtitle: isUrgent
-              ? `URGENT ALERT (Minute ${waitMins}/59): Patient waiting for ${waitMins} mins! Pick up call immediately • Store: ${c.storeName || 'Store'}`
-              : `Requesting access permission • Store: ${c.storeName || 'Store'}`,
-            timestamp: c.lastUpdatedOn || now,
-            title: isUrgent ? `🚨 URGENT CALL (Min ${waitMins}/59): ${c.name}` : c.name,
-            type: 'incoming_call' as const,
-          };
-        });
+      return incomingCalls;
     }
 
     if (user.role === 'store') {
@@ -311,19 +327,6 @@ export function NotificationPopover({
             type: 'call_accepted' as const,
           };
         });
-    }
-
-    if (user.role === 'senior_optometrist') {
-      return customers
-        .filter((c) => Boolean(c.patientFeedback && c.patientFeedback.trim()) && !dismissedIds.has(c.id))
-        .map((c) => ({
-          customer: c,
-          id: c.id,
-          subtitle: `${c.name} (${c.storeName || 'Store'})`,
-          timestamp: c.lastUpdatedOn || now,
-          title: 'New Patient Feedback',
-          type: 'admin_status' as const,
-        }));
     }
 
     return [];
@@ -417,7 +420,14 @@ export function NotificationPopover({
   }, []);
 
   React.useEffect(() => {
-    if (!user || user.role !== 'optometrist' || notifications.length === 0 || isMuted) {
+    const hasIncomingCall = notifications.some((n) => n.type === 'incoming_call');
+
+    if (
+      !user ||
+      (user.role !== 'optometrist' && user.role !== 'senior_optometrist') ||
+      !hasIncomingCall ||
+      isMuted
+    ) {
       stopAudio();
 
       return;
@@ -444,7 +454,7 @@ export function NotificationPopover({
     return () => {
       stopAudio();
     };
-  }, [user, notifications.length, isMuted, stopAudio, getAudioElement]);
+  }, [user, notifications, isMuted, stopAudio, getAudioElement]);
 
   const handleDecline = (customerId: string) => {
     setDismissedIds((prev) => {
@@ -531,7 +541,9 @@ export function NotificationPopover({
 
   const unreadCount = notifications.length + logNotifications.length;
 
-  const muteButton = user?.role === 'optometrist' && unreadCount > 0 && (
+  const muteButton =
+    (user?.role === 'optometrist' || user?.role === 'senior_optometrist') &&
+    unreadCount > 0 && (
     <Button
       className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       onClick={() => {

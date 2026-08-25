@@ -274,7 +274,7 @@ export function Header({
                 className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}
                 size={16}
               />
-              <span className="whitespace-nowrap">Dashboard</span>
+              <span className="whitespace-nowrap">{user?.role === 'super_admin' ? 'Users' : 'Dashboard'}</span>
             </button>
             <button
               className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
@@ -404,8 +404,8 @@ export function Header({
                 size={15}
               />
               <span className="truncate whitespace-nowrap font-medium">
-                <span className="inline sm:hidden">Customers</span>
-                <span className="hidden sm:inline">Dashboard</span>
+                <span className="inline sm:hidden">{user?.role === 'super_admin' ? 'Users' : 'Customers'}</span>
+                <span className="hidden sm:inline">{user?.role === 'super_admin' ? 'User Directory' : 'Dashboard'}</span>
               </span>
             </button>
             <button

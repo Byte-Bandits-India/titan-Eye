@@ -148,7 +148,7 @@ function ImageLightbox({
       </button>
 
       {images.length > 1 && (
-        <span className="absolute top-5 left-1/2 -translate-x-1/2 text-sm font-medium text-white/80">
+        <span className="absolute left-1/2 top-5 -translate-x-1/2 text-sm font-medium text-white/80">
           {index + 1} / {images.length}
         </span>
       )}
@@ -454,7 +454,8 @@ export function OptometristPatientDetails({
             Back
           </Button>
 
-          {readOnly ? null : selectedCustomer?.status === 'Accepted' || selectedCustomer?.status === 'Testing' ? (
+          {readOnly ? null : selectedCustomer?.status === 'Accepted' ||
+            selectedCustomer?.status === 'Testing' ? (
             <div className="inline-flex h-10 items-center overflow-hidden rounded-md border border-border">
               <button
                 className="h-full cursor-pointer bg-white px-4 text-sm font-normal text-foreground transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-card"
@@ -702,7 +703,6 @@ export function OptometristPatientDetails({
         </div>
       )}
 
-
       {openLightbox === 'autoRef' && autoRefImages.length > 0 && (
         <ImageLightbox images={autoRefImages} onClose={() => setOpenLightbox(null)} startIndex={0} />
       )}
@@ -730,9 +730,9 @@ export function OptometristPatientDetails({
           <DialogHeader>
             <DialogTitle>Leave without accepting?</DialogTitle>
             <DialogDescription>
-              You haven't accepted this call yet. Going back now will release this customer so the call
-              can be transferred to another available Optometrist, or the request will be declined if no
-              one else is available.
+              You haven't accepted this call yet. Going back now will release this customer so the call can be
+              transferred to another available Optometrist, or the request will be declined if no one else is
+              available.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -16,6 +16,7 @@ export type DataTableProps<T> = {
   getRowKey: (row: T) => string;
   headerClassName?: string;
   headerRowClassName?: string;
+  onRowClick?: (row: T) => void;
   rowClassName?: (row: T) => string | undefined;
   rows: T[];
   visibleColumns: string[];
@@ -27,6 +28,7 @@ export function DataTable<T>({
   getRowKey,
   headerClassName = 'sticky top-0 z-10 bg-card',
   headerRowClassName,
+  onRowClick,
   rowClassName,
   rows,
   visibleColumns,
@@ -62,7 +64,11 @@ export function DataTable<T>({
             </TableRow>
           ) : (
             rows.map((row) => (
-              <TableRow className={rowClassName?.(row)} key={getRowKey(row)}>
+              <TableRow
+                className={rowClassName?.(row)}
+                key={getRowKey(row)}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+              >
                 {visibleColumnDefs.map((col) => (
                   <TableCell className={col.cellClassName} key={col.id}>
                     {col.render(row)}

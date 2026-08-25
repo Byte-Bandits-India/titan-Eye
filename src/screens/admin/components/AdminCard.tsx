@@ -63,6 +63,7 @@ type CustomerRecordsVariant = {
   onPrevPage: () => void;
   onResetColumns: () => void;
   onSearchChange: (v: string) => void;
+  onSelectCustomer?: (customer: Customer) => void;
   onStatusTabChange: (tab: CustomerStatusTab) => void;
   onToggleColumn: (id: string) => void;
   pageSize: number;
@@ -230,6 +231,7 @@ export function AdminCard(props: AdminCardProps) {
       onPrevPage,
       onResetColumns,
       onSearchChange,
+      onSelectCustomer,
       onStatusTabChange,
       onToggleColumn,
       pageSize,
@@ -280,6 +282,7 @@ export function AdminCard(props: AdminCardProps) {
           onNextPage={onNextPage}
           onPageSizeChange={onPageSizeChange}
           onPrevPage={onPrevPage}
+          onSelectCustomer={onSelectCustomer}
           onStatusTabChange={onStatusTabChange}
           pageSize={pageSize}
           paginatedCustomers={paginatedCustomers}

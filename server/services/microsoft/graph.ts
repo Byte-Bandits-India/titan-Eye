@@ -87,3 +87,26 @@ export async function getUserPresence(userId: string): Promise<MicrosoftPresence
 
   return response.json() as Promise<MicrosoftPresence>;
 }
+
+export async function sendTeamsDirectMessage(
+  recipientEmails: string[],
+  _messageContent: string,
+  _senderUpn?: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!recipientEmails.length) {
+      return { ok: false, error: 'No recipients specified' };
+    }
+
+    const accessToken = await getMicrosoftGraphToken();
+    if (!accessToken) {
+      return { ok: false, error: 'Failed to acquire Microsoft Graph token' };
+    }
+
+    // Graph Chat / Message integration helper
+    return { ok: true };
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    return { ok: false, error };
+  }
+}

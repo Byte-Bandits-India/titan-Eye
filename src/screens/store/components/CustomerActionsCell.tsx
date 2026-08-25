@@ -138,7 +138,7 @@ type CustomerActionsCellProps = {
   onSelectCustomer: (id: string) => void;
   onSetEditing: (v: boolean) => void;
   onSetEditingRx: (v: boolean) => void;
-  onUpdateStatus: (id: string) => void;
+  onUpdateStatus?: (id: string) => void;
   statusTab?: StatusTab;
   user: null | User;
 };
@@ -153,7 +153,7 @@ export function CustomerActionsCell({
   onSelectCustomer,
   onSetEditing,
   onSetEditingRx,
-  onUpdateStatus,
+  onUpdateStatus: _onUpdateStatus,
   statusTab,
 }: CustomerActionsCellProps) {
   const primaryBtn = (() => {
@@ -203,14 +203,15 @@ export function CustomerActionsCell({
       if (isRxComplete) {
         return (
           <Button
-            className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm"
-            onClick={() => onUpdateStatus(cust.id)}
+            className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={completingCallId === cust.id}
+            onClick={() => onCompleteCall(cust.id, cust.name)}
             size="sm"
+            title="Complete consultation and show customer feedback QR"
             variant="primary"
-            title="Complete consultation and sales checkout"
           >
             <CheckCircle2 size={14} />
-            Completed
+            {completingCallId === cust.id ? 'Completing…' : 'Completed'}
           </Button>
         );
       }
@@ -336,12 +337,13 @@ export function CustomerActionsCell({
               <>
                 <div className="my-1 h-px bg-border" />
                 <button
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30"
-                  onClick={() => onUpdateStatus(cust.id)}
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={completingCallId === cust.id}
+                  onClick={() => onCompleteCall(cust.id, cust.name)}
                   type="button"
                 >
                   <CheckCircle2 className="shrink-0 text-indigo-600 dark:text-indigo-400" size={14} />
-                  <span>Completed</span>
+                  <span>{completingCallId === cust.id ? 'Completing…' : 'Completed'}</span>
                 </button>
               </>
             )}

@@ -16,8 +16,8 @@ import { EMPTY_FORM, ROLE_OPTIONS } from './adminUtils';
 
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{4}$/;
 
-function isAdminLikeRole(role: UserRole): boolean {
-  return role === 'super_admin' || role === 'senior_optometrist';
+function isOptomLikeRole(role: UserRole): boolean {
+  return role === 'optometrist' || role === 'senior_optometrist';
 }
 
 interface UserFormDrawerProps {
@@ -108,9 +108,11 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
       }
     }
 
-    if (form.role === 'optometrist') {
+    if (isOptomLikeRole(form.role)) {
+      const roleLabel = form.role === 'senior_optometrist' ? 'Senior Optometrist' : 'Optometrist';
+
       if (!form.name.trim()) {
-        newErrors.name = 'Optometrist name is required';
+        newErrors.name = `${roleLabel} name is required`;
       } else if (!NAME_REGEX.test(form.name.trim())) {
         newErrors.name = 'Name must be between 3 and 50 characters and contain only letters and spaces';
       }
@@ -170,9 +172,9 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
                 setForm((prev: UserFormData) => ({
                   ...prev,
                   city: nextRole === 'store' ? prev.city : '',
-                  languages: nextRole === 'optometrist' ? prev.languages : [],
+                  languages: isOptomLikeRole(nextRole) ? prev.languages : [],
                   location: nextRole === 'store' ? prev.location : '',
-                  name: nextRole === 'optometrist' ? prev.name : '',
+                  name: isOptomLikeRole(nextRole) ? prev.name : '',
                   role: nextRole,
                   storeName: nextRole === 'store' ? prev.storeName : '',
                 }));
@@ -217,11 +219,12 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
             </div>
           )}
 
-          {/* Optometrist Name (optometrist only) */}
-          {form.role === 'optometrist' && (
+          {/* Optometrist / Senior Optometrist Name */}
+          {isOptomLikeRole(form.role) && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">
-                Optometrist Name <span className="text-rose-500">*</span>
+                {form.role === 'senior_optometrist' ? 'Senior Optometrist Name' : 'Optometrist Name'}{' '}
+                <span className="text-rose-500">*</span>
               </label>
               <Input
                 className={cn(errors.name && 'border-rose-500 focus-visible:ring-rose-500')}
@@ -244,7 +247,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Email */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">
-              {isAdminLikeRole(form.role) ? 'Admin Email' : 'Email Address'}{' '}
+              {form.role === 'super_admin' ? 'Admin Email' : 'Email Address'}{' '}
               <span className="text-rose-500">*</span>
             </label>
             <Input
@@ -267,7 +270,7 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
           {/* Password */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">
-              {isAdminLikeRole(form.role) ? 'Admin Password' : 'Password'}{' '}
+              {form.role === 'super_admin' ? 'Admin Password' : 'Password'}{' '}
               {!editingEmail && <span className="text-rose-500">*</span>}
             </label>
             <div className="relative">
@@ -297,11 +300,11 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
             {errors.password && <p className="text-[10px] font-medium text-rose-500">{errors.password}</p>}
           </div>
 
-          {/* Mobile Number (store & optometrist) */}
-          {!isAdminLikeRole(form.role) && (
+          {/* Mobile Number (store, optometrist & senior optometrist) */}
+          {form.role !== 'super_admin' && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">
-                Mobile Number {form.role === 'optometrist' && <span className="text-rose-500">*</span>}
+                Mobile Number {isOptomLikeRole(form.role) && <span className="text-rose-500">*</span>}
               </label>
               <Input
                 className={cn(errors.mobile && 'border-rose-500 focus-visible:ring-rose-500')}
@@ -313,15 +316,15 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
                     clearError('mobile');
                   }
                 }}
-                placeholder={form.role === 'optometrist' ? '10-digit mobile' : '10-digit mobile (optional)'}
+                placeholder={isOptomLikeRole(form.role) ? '10-digit mobile' : '10-digit mobile (optional)'}
                 value={form.mobile}
               />
               {errors.mobile && <p className="text-[10px] font-medium text-rose-500">{errors.mobile}</p>}
             </div>
           )}
 
-          {/* Languages Known (optometrist only) */}
-          {form.role === 'optometrist' && (
+          {/* Languages Known (optometrist & senior optometrist) */}
+          {isOptomLikeRole(form.role) && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">
                 Languages Known <span className="text-rose-500">*</span>

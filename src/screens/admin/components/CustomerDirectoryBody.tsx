@@ -17,6 +17,7 @@ interface CustomerDirectoryBodyProps {
   onNextPage: () => void;
   onPageSizeChange: (size: number) => void;
   onPrevPage: () => void;
+  onSelectCustomer?: (customer: Customer) => void;
   onStatusTabChange: (tab: CustomerStatusTab) => void;
   pageSize: number;
   paginatedCustomers: Customer[];
@@ -32,6 +33,7 @@ export function CustomerDirectoryBody({
   onNextPage,
   onPageSizeChange,
   onPrevPage,
+  onSelectCustomer,
   onStatusTabChange,
   pageSize,
   paginatedCustomers,
@@ -114,7 +116,10 @@ export function CustomerDirectoryBody({
         render: (cust) => (
           <Button
             className="h-7 cursor-pointer gap-1 rounded-[50px] border-blue-200 bg-blue-50 px-2.5 text-sm font-medium text-blue-700 transition-all hover:bg-blue-100 active:scale-95 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
-            onClick={() => exportSingleCustomerReport(cust)}
+            onClick={(e) => {
+              e.stopPropagation();
+              exportSingleCustomerReport(cust);
+            }}
             size="sm"
             title={`Download ${cust.name} Excel Report`}
             variant="secondary"
@@ -142,6 +147,10 @@ export function CustomerDirectoryBody({
         columns={columns}
         emptyMessage="No customers found."
         getRowKey={(cust) => cust.id}
+        onRowClick={onSelectCustomer}
+        rowClassName={() =>
+          'group cursor-pointer transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40'
+        }
         rows={paginatedCustomers}
         visibleColumns={visibleColumns}
       />

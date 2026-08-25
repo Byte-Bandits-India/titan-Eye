@@ -66,7 +66,7 @@ export function RxScrollPicker({
       <SelectTrigger
         className={cn(
           'h-9 w-full justify-center gap-1 border-0 bg-transparent px-1 font-mono text-sm font-medium text-foreground shadow-none hover:bg-slate-100/60 focus-visible:ring-1 focus-visible:ring-blue-500 dark:hover:bg-zinc-800/60',
-          hasError && 'bg-rose-50 font-medium text-rose-600'
+          hasError && 'bg-rose-50 font-medium text-rose-600 ring-2 ring-inset ring-rose-500 dark:bg-rose-950/40 dark:text-rose-300 dark:ring-rose-500'
         )}
         size="sm"
       >

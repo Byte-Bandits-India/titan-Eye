@@ -441,9 +441,15 @@ export function StoreScreen() {
 
     try {
       const result = await dispatch(completeCallAction(customerId));
+      const origin = window.location.origin.replace(/^https:\/\/(localhost|127\.0\.0\.1)/i, 'http://$1');
       setCompleteCallModalData({
         customerName,
-        feedbackUrl: `${window.location.origin}/feedback/${result.token}`,
+        feedbackUrl: `${origin}/feedback/${result.token}`,
+      });
+      toast({
+        description: `Consultation marked as completed for ${customerName}.`,
+        title: 'Consultation Completed',
+        type: 'success',
       });
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));

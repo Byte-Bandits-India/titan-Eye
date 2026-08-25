@@ -58,7 +58,7 @@ interface UpdateUserBody {
 }
 
 function deriveName(role: string, email: string, name?: string, storeName?: string): string {
-  if (role === 'optometrist' && name?.trim()) {
+  if ((role === 'optometrist' || role === 'senior_optometrist') && name?.trim()) {
     return name.trim();
   }
 
@@ -84,7 +84,11 @@ function parseLanguages(raw: null | string): null | string[] {
 }
 
 function serializeLanguages(role: string, languages?: string[]): null | string {
-  if (role !== 'optometrist' || !Array.isArray(languages) || languages.length === 0) {
+  if (
+    (role !== 'optometrist' && role !== 'senior_optometrist') ||
+    !Array.isArray(languages) ||
+    languages.length === 0
+  ) {
     return null;
   }
 

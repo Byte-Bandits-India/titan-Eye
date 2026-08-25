@@ -190,7 +190,8 @@ export type LogNotificationType =
   | 'call_initiated'
   | 'no_optometrist_available'
   | 'optometrist_available'
-  | 'patient_registered';
+  | 'patient_registered'
+  | 'store_notified_admin';
 
 export type ManagedUser = {
   city?: null | string;
@@ -301,6 +302,15 @@ export type SSEEventDetail =
   | { data: Customer; type: 'CUSTOMER_CREATED' | 'CUSTOMER_UPDATED' }
   | { data: { id: string }; type: 'CUSTOMER_DELETED' }
   | { data: NoOptometristEventPayload; type: 'NO_OPTOMETRIST_AVAILABLE' | 'OPTOMETRIST_NO_RESPONSE' }
+  | {
+      data: {
+        customerId: string;
+        customerName: string;
+        storeName: string;
+        timestamp: number;
+      };
+      type: 'STORE_NOTIFIED_ADMIN';
+    }
   | { data: CallSessionPayload; type: 'CALL_SESSION_READY' }
   | { data: { customerId: string }; type: 'CALL_SESSION_ENDED' }
   | { data: { videoId: null | number }; type: 'TVMODE_VIDEO_CHANGED' };

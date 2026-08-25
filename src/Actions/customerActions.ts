@@ -108,6 +108,24 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
   }
 };
 
+export const notifyAdminTeamsAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.post<{
+      graphError?: string;
+      message: string;
+      ok: boolean;
+      recipients: string[];
+      teamsSent?: boolean;
+    }>(`/customers/${encodeURIComponent(id)}/notify-admin-teams`);
+
+    return response.data;
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    const msg = handleApiError(err, dispatch, 'Failed to notify admin.');
+    throw new Error(msg);
+  }
+};
+
 export const dropCustomerAction = (id: string, reason: string) => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.post<{ customer: Customer; ok: boolean }>(

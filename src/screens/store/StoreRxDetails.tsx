@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { AlertCircle, FileText } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, RxValues, StoreRxDetailsProps } from '../../types';
@@ -114,6 +114,37 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
     }
   };
 
+  const getMissingRequiredAutoRefFields = (): { keys: string[]; labels: string[] } => {
+    const requiredFields: { field: 'axis' | 'cyl' | 'pd' | 'sph'; label: string }[] = [
+      { field: 'sph', label: 'Sph' },
+      { field: 'cyl', label: 'Cyl' },
+      { field: 'axis', label: 'Axis' },
+      { field: 'pd', label: 'PD' },
+    ];
+    const rows: { eyeLabel: string; row: 'autoRefLe' | 'autoRefRe' }[] = [
+      { eyeLabel: 'RE', row: 'autoRefRe' },
+      { eyeLabel: 'LE', row: 'autoRefLe' },
+    ];
+
+    const keys: string[] = [];
+    const labels: string[] = [];
+
+    rows.forEach(({ eyeLabel, row }) => {
+      const data = rxForm[row];
+
+      requiredFields.forEach(({ field, label }) => {
+        const val = data[field];
+
+        if (!val || !val.trim() || val === '____') {
+          keys.push(`${row}.${field}`);
+          labels.push(`Auto Ref ${eyeLabel} ${label}`);
+        }
+      });
+    });
+
+    return { keys, labels };
+  };
+
   const validatePrescriptionFields = (): boolean => {
     const errors: Record<string, boolean> = {};
     const rows: ('autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe')[] = [
@@ -174,6 +205,27 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
       return;
     }
 
+    const { keys: missingKeys, labels: missingLabels } = getMissingRequiredAutoRefFields();
+
+    if (selectedCustomer.status === 'Test Completed' && missingKeys.length > 0) {
+      setRxErrors((prev) => {
+        const next = { ...prev };
+        missingKeys.forEach((k) => {
+          next[k] = true;
+        });
+
+        return next;
+      });
+
+      toast({
+        description: `Please fill all required Auto Ref fields before saving: ${missingLabels.join(', ')}.`,
+        title: 'Required Fields Missing',
+        type: 'error',
+      });
+
+      return;
+    }
+
     if (!validatePrescriptionFields()) {
       toast({
         description: 'Some prescription fields contain invalid values. Please fix them before saving.',
@@ -231,7 +283,21 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
         <BackButton onClick={onBack} />
       </div>
 
-      <CardFrame className="p-3 sm:p-6 md:p-8">
+      <CardFrame className="space-y-6 p-3 sm:p-6 md:p-8">
+        {selectedCustomer?.status === 'Test Completed' && (
+          <div className="flex items-center gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+            <AlertCircle className="shrink-0 text-amber-600 dark:text-amber-400" size={18} />
+            <div>
+              <span className="font-semibold">Action Required: </span>
+              <span>
+                Please fill in all mandatory Auto Ref fields (
+                <span className="font-medium">Sph *, Cyl *, Axis *, PD *</span> for both RE and LE) before
+                completing this consultation.
+              </span>
+            </div>
+          </div>
+        )}
+
         <form className="space-y-6 sm:space-y-8" onSubmit={handleSaveRx}>
           <div className="space-y-4">
             <div className="w-full overflow-x-auto rounded-lg border border-slate-300 shadow-sm dark:border-zinc-700">
@@ -252,27 +318,6 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                       Objective prescription
                     </TableHead>
                   </TableRow>
-                  <TableRow className="border-b border-slate-400 bg-slate-100/50 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:hover:bg-zinc-800/50">
-                    <TableHead
-                      className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"
-                      colSpan={2}
-                    ></TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                      *
-                    </TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                      *
-                    </TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                      *
-                    </TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400">
-                      *
-                    </TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
-                    <TableHead className="border-r border-slate-400 py-1 text-center text-sm font-medium text-blue-600 dark:border-zinc-700 dark:text-blue-400"></TableHead>
-                    <TableHead className="py-1 text-center text-sm font-medium text-blue-600 dark:text-blue-400"></TableHead>
-                  </TableRow>
                   <TableRow className="border-b border-slate-400 bg-slate-100/70 hover:bg-slate-100/50 dark:border-zinc-700 dark:bg-zinc-800/70 dark:hover:bg-zinc-800/50">
                     <TableHead
                       className="whitespace-nowrap border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] dark:border-zinc-700 dark:text-blue-400"
@@ -280,14 +325,19 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                     >
                       R X
                     </TableHead>
-                    {rxHeaders.map((h) => (
-                      <TableHead
-                        className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
-                        key={h}
-                      >
-                        {h}
-                      </TableHead>
-                    ))}
+                    {rxHeaders.map((h) => {
+                      const isMandatory = ['Sph', 'Cyl', 'Axis', 'PD'].includes(h);
+
+                      return (
+                        <TableHead
+                          className="border-r border-slate-400 px-3 py-2 text-center text-sm font-medium text-[#1a2b6e] last:border-r-0 dark:border-zinc-700 dark:text-blue-400"
+                          key={h}
+                        >
+                          {h}
+                          {isMandatory && <span className="ml-0.5 font-bold text-red-500">*</span>}
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
                 </TableHeader>
                 <TableBody>

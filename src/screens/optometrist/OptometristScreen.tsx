@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { renderCallDuration, WaitingCell } from '../store/components/cells';
 import { parseTimestamp } from '../store/components/formatters';
+import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
 import { OptometristActionsCell } from './components/OptometristActionsCell';
 import { OptometristCard } from './components/OptometristCard';
 import { OptometristPatientDetails } from './OptometristPatientDetails';
@@ -738,10 +739,9 @@ export function OptometristScreen() {
 
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             <OptometristCard tabCounts={tabCounts} variant="metrics" />
-            <OptometristCard
-              data={optometristUsersWithStatus}
+            <AvailableDirectoryCard
+              optometristData={optometristUsersWithStatus}
               storeData={storeUsersWithStatus}
-              variant="optometrist-users"
             />
           </div>
 

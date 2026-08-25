@@ -1,7 +1,6 @@
 import type { Table } from '@tanstack/react-table';
 
-import { Radio, RefreshCw, Stethoscope, Store } from 'lucide-react';
-import * as React from 'react';
+import { Radio, RefreshCw } from 'lucide-react';
 
 import type { DataGridFeatures } from '../../../components/reui/data-grid/data-grid';
 import type {
@@ -13,83 +12,14 @@ import type {
   TabCounts,
 } from '../../../types';
 
-import { ActiveCountBadge } from '../../../components/shared/ActiveCountBadge';
+import { AvailableDirectoryCard } from '../../../components/shared/AvailableDirectoryCard';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
 import { Button } from '../../../components/ui/button';
-import { cn } from '../../../lib/utils';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
-import { AvailableStoresBody } from '../../admin/components/AvailableStoresBody';
 import { IncomingRequestsBody } from './IncomingRequestsBody';
-import { OptometristUsersInfiniteBody } from './OptometristUsersInfiniteBody';
 
 export type OptometristCardProps = IncomingRequestsVariant | MetricsVariant | OptometristUsersVariant;
-
-type AvailableView = 'optometrists' | 'stores';
-
-function AvailableDirectoryCard({
-  optometristData,
-  storeData,
-}: {
-  optometristData: OptometristUserRow[];
-  storeData: OptometristUserRow[];
-}) {
-  const [view, setView] = React.useState<AvailableView>('optometrists');
-  const activeData = view === 'optometrists' ? optometristData : storeData;
-  const activeCount = activeData.filter((d) => d.avail.statusLabel !== 'Offline').length;
-
-  return (
-    <CardFrame className="flex h-[300px] flex-col">
-      <div className="dark:bg-muted/40 flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br text-white',
-              view === 'optometrists' ? 'from-teal-500 to-teal-800' : 'from-blue-500 to-blue-800'
-            )}
-          >
-            {view === 'optometrists' ? <Stethoscope size={13} /> : <Store size={13} />}
-          </div>
-          <span className="text-sm font-semibold text-foreground">Available</span>
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
-            <button
-              className={cn(
-                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
-                view === 'optometrists'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              onClick={() => setView('optometrists')}
-              type="button"
-            >
-              Optometrists
-            </button>
-            <button
-              className={cn(
-                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
-                view === 'stores'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              onClick={() => setView('stores')}
-              type="button"
-            >
-              Stores
-            </button>
-          </div>
-        </div>
-
-        <ActiveCountBadge count={activeCount} />
-      </div>
-
-      {view === 'optometrists' ? (
-        <OptometristUsersInfiniteBody data={optometristData} />
-      ) : (
-        <AvailableStoresBody data={storeData} />
-      )}
-    </CardFrame>
-  );
-}
 
 type IncomingRequestsVariant = {
   columns?: ColumnOption[];

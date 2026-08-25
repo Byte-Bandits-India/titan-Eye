@@ -461,36 +461,84 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'pass@123';
+  const defaultHashedPassword = hashPassword(defaultPassword);
 
-  if (adminEmail && adminPassword) {
-    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [
-      adminEmail,
+  const initialUsers: Array<{
+    email: string;
+    microsoftUpn: string;
+    name: string;
+    role: string;
+    storeName: null | string;
+  }> = [
+    {
+      email: 'admin@thebytebandits.onmicrosoft.com',
+      microsoftUpn: 'admin@thebytebandits.onmicrosoft.com',
+      name: 'Super Admin',
+      role: 'super_admin',
+      storeName: null,
+    },
+    {
+      email: 'optom-a@thebytebandits.onmicrosoft.com',
+      microsoftUpn: 'optom-a@thebytebandits.onmicrosoft.com',
+      name: 'senior optom',
+      role: 'senior_optometrist',
+      storeName: null,
+    },
+    {
+      email: 'optom-b@thebytebandits.onmicrosoft.com',
+      microsoftUpn: 'optom-b@thebytebandits.onmicrosoft.com',
+      name: 'optom a',
+      role: 'optometrist',
+      storeName: null,
+    },
+    {
+      email: 'store-a@thebytebandits.onmicrosoft.com',
+      microsoftUpn: 'store-a@thebytebandits.onmicrosoft.com',
+      name: 'store a',
+      role: 'store',
+      storeName: 'STRA',
+    },
+    {
+      email: 'store-b@thebytebandits.onmicrosoft.com',
+      microsoftUpn: 'store-b@thebytebandits.onmicrosoft.com',
+      name: 'store b',
+      role: 'store',
+      storeName: 'STRB',
+    },
+  ];
+
+  for (const u of initialUsers) {
+    const existingUser = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [
+      u.email,
     ]);
 
-    if (!existingAdmin) {
+    if (!existingUser) {
       await run(
-        'INSERT INTO users (email, name, role, storeName, mobile, status, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [adminEmail, 'Admin', 'super_admin', null, null, 'active', hashPassword(adminPassword)]
+        `INSERT INTO users (email, name, role, storeName, mobile, status, password, microsoftUpn)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [u.email, u.name, u.role, u.storeName, null, 'active', defaultHashedPassword, u.microsoftUpn]
       );
     } else {
-      await run('UPDATE users SET status = ?, role = ? WHERE LOWER(email) = LOWER(?)', [
-        'active',
-        'super_admin',
-        adminEmail,
-      ]);
+      await run(
+        `UPDATE users
+         SET role = ?, name = ?, storeName = ?, status = 'active', microsoftUpn = ?
+         WHERE LOWER(email) = LOWER(?)`,
+        [u.role, u.name, u.storeName, u.microsoftUpn, u.email]
+      );
 
-      if (!existingAdmin.password.includes(':')) {
-        await run('UPDATE users SET password = ? WHERE email = ?', [
-          hashPassword(adminPassword),
-          existingAdmin.email,
+      if (!existingUser.password || !existingUser.password.includes(':')) {
+        await run('UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)', [
+          defaultHashedPassword,
+          u.email,
         ]);
       }
     }
   }
 
-  logger.info('Seeded default super admin account.');
+  await run("DELETE FROM users WHERE LOWER(email) = 'admin@gmail.com'");
+
+  logger.info('Seeded default user accounts.');
 }
 
 export function query<T>(sql: string, params: SqlParam[] = []): T[] {

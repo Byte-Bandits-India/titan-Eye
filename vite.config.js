@@ -39,6 +39,7 @@ const zapCommentFix = () => {
 export default defineConfig({
   plugins: [react(), zapCommentFix()],
   server: {
+    host: true,
     proxy: {
       '/api': 'http://localhost:3001',
     },

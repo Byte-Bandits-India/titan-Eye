@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { AdminTab, CustomerStatusTab, ManagedVideo, OptometristUserRow } from '../../types';
+import type { AdminTab, Customer, CustomerStatusTab, ManagedVideo, OptometristUserRow } from '../../types';
 
 import { fetchCustomersAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
@@ -11,13 +11,19 @@ import { usePagination } from '../../hooks/usePagination';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { apiClient } from '../../Util/apiClient';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
-import { computeOptometristAvailability } from '../../utils/optometristAvailability';
+import {
+  computeOptometristAvailability,
+  computeStoreAvailability,
+} from '../../utils/optometristAvailability';
+import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
+import { OptometristPatientDetails } from '../optometrist/OptometristPatientDetails';
 import { AdminCard } from './components/AdminCard';
 import { DEFAULT_CUSTOMER_COLUMNS, DEFAULT_FEEDBACK_COLUMNS } from './components/adminUtils';
 import { VideoDirectoryBody } from './components/VideoDirectoryBody';
 import { VideoUploadDialog } from './components/VideoUploadDialog';
 
 export function AdminScreen() {
+  const user = useAppSelector((state) => state.auth.user);
   const users = useAppSelector((state) => state.users.users);
   const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
@@ -26,6 +32,8 @@ export function AdminScreen() {
 
   const [activeTab, setActiveTab] = React.useState<AdminTab>('customers');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>(null);
+  const [isEditing, setIsEditing] = React.useState(false);
 
   const [dateRange, setDateRange] = React.useState<DateFilterRange>('all');
 
@@ -58,6 +66,7 @@ export function AdminScreen() {
   if (activeTab !== prevActiveTab) {
     setPrevActiveTab(activeTab);
     setSearchTerm('');
+    setIsEditing(false);
   }
 
   const [customerStatusTab, setCustomerStatusTab] = React.useState<CustomerStatusTab>('all');
@@ -269,6 +278,11 @@ export function AdminScreen() {
     [users, customers]
   );
 
+  const storeUsersWithStatus = React.useMemo<OptometristUserRow[]>(
+    () => computeStoreAvailability(users),
+    [users]
+  );
+
   const availableOptometristDoctors = React.useMemo(
     () => computeOptometristAvailability(users, customers).filter((u) => u.avail.statusLabel === 'Available'),
     [users, customers]
@@ -301,15 +315,48 @@ export function AdminScreen() {
     prevAvailableCountRef.current = currentCount;
   }, [availableOptometristDoctors, addLogNotification, users.length]);
 
+  const activeCallTakenByMe = React.useMemo(() => {
+    if (!user) {
+      return null;
+    }
+
+    const userNameLower = user.name.toLowerCase();
+    const userEmailLower = user.email.toLowerCase();
+
+    return (
+      customers.find((c) => {
+        if (!c.callActive || !c.callTakenBy) {
+          return false;
+        }
+
+        const takenByLower = c.callTakenBy.toLowerCase();
+
+        return takenByLower === userNameLower || takenByLower === userEmailLower;
+      }) ?? null
+    );
+  }, [customers, user]);
+
+  const selectedCustomer = React.useMemo(
+    () => (selectedCustomerId ? (customers.find((c) => c.id === selectedCustomerId) ?? null) : null),
+    [customers, selectedCustomerId]
+  );
+
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomerId(customer.id);
+    setIsEditing(true);
+  };
+
   const handleSelectCustomerFromNotification = (customerId: string) => {
     const cust = customers.find((c) => c.id === customerId);
 
-    if (cust?.patientFeedback) {
+    if (cust?.patientFeedback && cust.status !== 'Initiated') {
       setActiveTab('feedback');
       setSearchTerm(cust.name || cust.id);
+      setIsEditing(false);
     } else {
       setActiveTab('customers');
-      setSearchTerm(customerId);
+      setSelectedCustomerId(customerId);
+      setIsEditing(true);
     }
   };
 
@@ -320,97 +367,110 @@ export function AdminScreen() {
       onSelectCustomer={handleSelectCustomerFromNotification}
       setActiveTab={setActiveTab}
     >
-      <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-[28px]">
-              {activeTab === 'customers'
-                ? 'Customer Directory'
-                : activeTab === 'feedback'
-                  ? 'Customer & Store Feedback'
-                  : 'Video Library'}
-            </h1>
-            <p className="mt-0.5 text-sm font-normal text-muted-foreground sm:text-sm">
-              {activeTab === 'customers'
-                ? 'Search and view registered customer transactions'
-                : activeTab === 'feedback'
-                  ? 'View store action notes, optometrist assessments, and direct patient feedback'
-                  : 'Upload and manage videos available in the admin console'}
-            </p>
+      {isEditing ? (
+        <OptometristPatientDetails
+          activeCallTakenByMe={activeCallTakenByMe}
+          onBack={() => setIsEditing(false)}
+          readOnly={activeTab !== 'customers'}
+          selectedCustomer={selectedCustomer}
+        />
+      ) : (
+        <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-[28px]">
+                {activeTab === 'customers'
+                  ? 'Customer Directory'
+                  : activeTab === 'feedback'
+                    ? 'Customer & Store Feedback'
+                    : 'Video Library'}
+              </h1>
+              <p className="mt-0.5 text-sm font-normal text-muted-foreground sm:text-sm">
+                {activeTab === 'customers'
+                  ? 'Search and view registered customer transactions'
+                  : activeTab === 'feedback'
+                    ? 'View store action notes, optometrist assessments, and direct patient feedback'
+                    : 'Upload and manage videos available in the admin console'}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Layout Row 1: Metrics Grid (left) + Optometrist Users Card (right) stretched to same height */}
-        {activeTab === 'videos' ? null : (
-          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-            <AdminCard tabCounts={customerTabCounts} variant="metrics" />
-            <AdminCard data={optometristUsersWithStatus} variant="optometrist-users" />
-          </div>
-        )}
+          {/* Layout Row 1: Metrics Grid (left) + Available Directory Card (right) stretched to same height */}
+          {activeTab === 'videos' ? null : (
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+              <AdminCard tabCounts={customerTabCounts} variant="metrics" />
+              <AvailableDirectoryCard
+                optometristData={optometristUsersWithStatus}
+                storeData={storeUsersWithStatus}
+              />
+            </div>
+          )}
 
-        {/* Layout Row 2: Selected Directory Table View */}
-        {activeTab === 'customers' ? (
-          <AdminCard
-            currentPage={customerCurrentPage}
-            customerStatusTab={customerStatusTab}
-            dateRange={dateRange}
-            filteredCustomers={filteredCustomers}
-            onDateRangeChange={setDateRange}
-            onNextPage={customerNextPage}
-            onPageSizeChange={(size) => {
-              setCustomerPageSize(size);
-              customerResetPage();
-            }}
-            onPrevPage={customerPrevPage}
-            onResetColumns={() => setVisibleCustomerCols(DEFAULT_CUSTOMER_COLUMNS)}
-            onSearchChange={setSearchTerm}
-            onStatusTabChange={(tab) => {
-              setCustomerStatusTab(tab);
-              customerResetPage();
-            }}
-            onToggleColumn={handleToggleCustomerCol}
-            pageSize={customerPageSize}
-            paginatedCustomers={paginatedCustomers}
-            searchTerm={searchTerm}
-            tabCounts={customerTabCounts}
-            totalItems={customerTotalItems}
-            totalPages={customerTotalPages}
-            variant="customer-records"
-            visibleColumns={visibleCustomerCols}
-          />
-        ) : activeTab === 'feedback' ? (
-          <AdminCard
-            currentPage={feedbackCurrentPage}
-            dateRange={dateRange}
-            filteredCustomers={filteredFeedbackCustomers}
-            onDateRangeChange={setDateRange}
-            onNextPage={feedbackNextPage}
-            onPageSizeChange={(size) => {
-              setFeedbackPageSize(size);
-              feedbackResetPage();
-            }}
-            onPrevPage={feedbackPrevPage}
-            onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
-            onSearchChange={setSearchTerm}
-            onToggleColumn={handleToggleFeedbackCol}
-            pageSize={feedbackPageSize}
-            paginatedCustomers={paginatedFeedbackCustomers}
-            searchTerm={searchTerm}
-            totalItems={feedbackTotalItems}
-            totalPages={feedbackTotalPages}
-            variant="feedback"
-            visibleColumns={visibleFeedbackCols}
-          />
-        ) : (
-          <VideoDirectoryBody
-            onDelete={handleDeleteVideo}
-            onSetTvModeVideo={handleSetTvModeVideo}
-            onUploadClick={() => setIsUploadDialogOpen(true)}
-            tvModeVideoId={tvModeVideoId}
-            videos={videos}
-          />
-        )}
-      </main>
+          {/* Layout Row 2: Selected Directory Table View */}
+          {activeTab === 'customers' ? (
+            <AdminCard
+              currentPage={customerCurrentPage}
+              customerStatusTab={customerStatusTab}
+              dateRange={dateRange}
+              filteredCustomers={filteredCustomers}
+              onDateRangeChange={setDateRange}
+              onNextPage={customerNextPage}
+              onPageSizeChange={(size) => {
+                setCustomerPageSize(size);
+                customerResetPage();
+              }}
+              onPrevPage={customerPrevPage}
+              onResetColumns={() => setVisibleCustomerCols(DEFAULT_CUSTOMER_COLUMNS)}
+              onSearchChange={setSearchTerm}
+              onSelectCustomer={handleSelectCustomer}
+              onStatusTabChange={(tab) => {
+                setCustomerStatusTab(tab);
+                customerResetPage();
+              }}
+              onToggleColumn={handleToggleCustomerCol}
+              pageSize={customerPageSize}
+              paginatedCustomers={paginatedCustomers}
+              searchTerm={searchTerm}
+              tabCounts={customerTabCounts}
+              totalItems={customerTotalItems}
+              totalPages={customerTotalPages}
+              variant="customer-records"
+              visibleColumns={visibleCustomerCols}
+            />
+          ) : activeTab === 'feedback' ? (
+            <AdminCard
+              currentPage={feedbackCurrentPage}
+              dateRange={dateRange}
+              filteredCustomers={filteredFeedbackCustomers}
+              onDateRangeChange={setDateRange}
+              onNextPage={feedbackNextPage}
+              onPageSizeChange={(size) => {
+                setFeedbackPageSize(size);
+                feedbackResetPage();
+              }}
+              onPrevPage={feedbackPrevPage}
+              onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
+              onSearchChange={setSearchTerm}
+              onToggleColumn={handleToggleFeedbackCol}
+              pageSize={feedbackPageSize}
+              paginatedCustomers={paginatedFeedbackCustomers}
+              searchTerm={searchTerm}
+              totalItems={feedbackTotalItems}
+              totalPages={feedbackTotalPages}
+              variant="feedback"
+              visibleColumns={visibleFeedbackCols}
+            />
+          ) : (
+            <VideoDirectoryBody
+              onDelete={handleDeleteVideo}
+              onSetTvModeVideo={handleSetTvModeVideo}
+              onUploadClick={() => setIsUploadDialogOpen(true)}
+              tvModeVideoId={tvModeVideoId}
+              videos={videos}
+            />
+          )}
+        </main>
+      )}
 
       <VideoUploadDialog
         isUploading={isUploadingVideo}

@@ -91,6 +91,23 @@ export function useSSE(): void {
               type: 'no_optometrist_available',
             });
           }
+        } else if (type === 'STORE_NOTIFIED_ADMIN') {
+          const payload = eventData as {
+            customerId: string;
+            customerName: string;
+            storeName: string;
+            timestamp: number;
+          };
+          const currentUser = userRef.current;
+
+          if (currentUser?.role === 'super_admin' || currentUser?.role === 'senior_optometrist') {
+            addLogNotification({
+              customerId: payload.customerId,
+              description: `Store ${payload.storeName || 'Store'} requested immediate Optometrist support for customer ${payload.customerName} (${payload.customerId}).`,
+              title: 'Urgent: Store Requested Support',
+              type: 'store_notified_admin',
+            });
+          }
         } else if (
           type === 'USER_CREATED' ||
           type === 'USER_UPDATED' ||

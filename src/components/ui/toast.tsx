@@ -3,6 +3,10 @@ import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import * as React from 'react';
 
 export interface ToastMessage {
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
   description: string;
   duration?: number;
   id: string;
@@ -24,7 +28,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<ToastMessage[]>([]);
 
   const toast = React.useCallback(
-    ({ description, duration = 5000, title, type = 'info' }: Omit<ToastMessage, 'id'>) => {
+    ({ action, description, duration = 5000, title, type = 'info' }: Omit<ToastMessage, 'id'>) => {
       setToasts((prev) => {
         const isDuplicate = prev.some((t) => t.title === title && t.description === description);
 
@@ -40,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           }, duration);
         }
 
-        return [...prev, { description, duration, id, title, type }];
+        return [...prev, { action, description, duration, id, title, type }];
       });
     },
     []
@@ -89,6 +93,20 @@ function Toaster({ dismiss, toasts }: { dismiss: (id: string) => void; toasts: T
             <div className="min-w-0 flex-1">
               {t.title && <p className="truncate text-base font-bold text-white">{t.title}</p>}
               <p className="mt-1.5 text-sm font-medium text-white/90">{t.description}</p>
+              {t.action && (
+                <div className="mt-3 flex items-center justify-end">
+                  <button
+                    className="cursor-pointer rounded-md bg-white px-3 py-1 text-xs font-bold text-[#4F59C9] shadow-sm transition-all hover:bg-slate-100 active:scale-95"
+                    onClick={() => {
+                      t.action?.onClick();
+                      dismiss(t.id);
+                    }}
+                    type="button"
+                  >
+                    {t.action.label}
+                  </button>
+                </div>
+              )}
             </div>
             <button
               className="shrink-0 cursor-pointer rounded-lg p-1 text-white/70 transition-colors hover:bg-white/10 hover:text-white"

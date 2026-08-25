@@ -180,7 +180,7 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
       return;
     }
 
-    if (selectedCustomer.status === 'Test Completed' && !isObjectiveRxComplete(selectedCustomer.rxData)) {
+    if (selectedCustomer.status !== 'Closed' && !isObjectiveRxComplete(selectedCustomer.rxData)) {
       toast({
         description:
           'Please fill in the required Auto Ref prescription fields (Sph, Cyl, Axis, PD for both eyes) in Store Rx before marking the consultation as Completed.',

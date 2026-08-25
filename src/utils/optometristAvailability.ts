@@ -42,7 +42,7 @@ function findActiveCall(user: ManagedUser, customers: Customer[]): Customer | nu
 
 export function computeOptometristAvailability(users: ManagedUser[], customers: Customer[]): OptometristUserRow[] {
   return users
-    .filter((u) => u.role === 'optometrist')
+    .filter((u) => u.role === 'optometrist' || u.role === 'senior_optometrist')
     .map((user) => {
       if (user.status === 'inactive' || !(user.isLoggedIn ?? false)) {
         return { ...user, activeCall: null, avail: OFFLINE_AVAIL };
