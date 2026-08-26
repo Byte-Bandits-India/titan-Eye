@@ -6,13 +6,17 @@ import { DataGrid, type DataGridFeatures } from '../../../components/reui/data-g
 import { DataGridScrollArea } from '../../../components/reui/data-grid/data-grid-scroll-area';
 import { DataGridTable } from '../../../components/reui/data-grid/data-grid-table';
 import { PaginationBar } from '../../../components/shared/PaginationBar';
+import { TableSkeleton } from '../../../components/shared/TableSkeleton';
 import { StatusTabs } from './StatusTabs';
+
+const RECENT_CUSTOMERS_SKELETON_COLUMN_WIDTHS = ['80px', '150px', '160px', '110px', '110px', '100px'];
 
 type RecentCustomersBodyProps = {
   columns?: ColumnOption[];
   currentPage?: number;
   customersTable: Table<DataGridFeatures, Customer>;
   hideStatusTabs?: boolean;
+  isLoading?: boolean;
   onlyPendingAndAll?: boolean;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
@@ -35,6 +39,7 @@ export function RecentCustomersBody({
   currentPage = 1,
   customersTable,
   hideStatusTabs,
+  isLoading,
   onlyPendingAndAll,
   onNextPage,
   onPageSizeChange,
@@ -66,22 +71,26 @@ export function RecentCustomersBody({
       <div className="border-b border-gray-200" />
 
       <div className="flex-1 overflow-x-auto">
-        <DataGrid
-          emptyMessage="No transactions found."
-          recordCount={paginatedCustomers.length}
-          table={customersTable}
-          tableLayout={{
-            dense: false,
-            headerBackground: false,
-            headerBorder: true,
-            rowBorder: false,
-            width: 'auto',
-          }}
-        >
-          <DataGridScrollArea>
-            <DataGridTable />
-          </DataGridScrollArea>
-        </DataGrid>
+        {isLoading ? (
+          <TableSkeleton columnWidths={RECENT_CUSTOMERS_SKELETON_COLUMN_WIDTHS} />
+        ) : (
+          <DataGrid
+            emptyMessage="No transactions found."
+            recordCount={paginatedCustomers.length}
+            table={customersTable}
+            tableLayout={{
+              dense: false,
+              headerBackground: false,
+              headerBorder: true,
+              rowBorder: false,
+              width: 'auto',
+            }}
+          >
+            <DataGridScrollArea>
+              <DataGridTable />
+            </DataGridScrollArea>
+          </DataGrid>
+        )}
       </div>
 
       {onNextPage && onPrevPage && (

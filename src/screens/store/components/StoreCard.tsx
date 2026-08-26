@@ -18,6 +18,7 @@ import {
   ConversionStatusFilter,
   type ConversionStatusFilterValue,
 } from '../../../components/shared/ConversionStatusFilter';
+import { DirectoryListSkeleton } from '../../../components/shared/DirectoryListSkeleton';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
 import { Button } from '../../../components/ui/button';
 import { OptometristUsersInfiniteBody } from '../../optometrist/components/OptometristUsersInfiniteBody';
@@ -27,6 +28,7 @@ import { RecentCustomersBody } from './RecentCustomersBody';
 export type StoreCardProps = MetricsVariant | OptometristUsersVariant | RecentCustomersVariant;
 
 type MetricsVariant = {
+  isLoading?: boolean;
   isTabletMode?: boolean;
   tabCounts: TabCounts;
   variant: 'metrics';
@@ -34,6 +36,7 @@ type MetricsVariant = {
 
 type OptometristUsersVariant = {
   data: OptometristUserRow[];
+  isLoading?: boolean;
   variant: 'optometrist-users';
 };
 
@@ -45,6 +48,7 @@ type RecentCustomersVariant = {
   data: Customer[];
   dateRange: DateFilterRange;
   hideStatusTabs?: boolean;
+  isLoading?: boolean;
   onConversionStatusFilterChange?: (value: ConversionStatusFilterValue) => void;
   onExportCsv?: () => void;
   onlyPendingAndAll?: boolean;
@@ -71,7 +75,9 @@ type RecentCustomersVariant = {
 
 export function StoreCard(props: StoreCardProps) {
   if (props.variant === 'metrics') {
-    return <MetricCardGrid isTabletMode={props.isTabletMode} tabCounts={props.tabCounts} />;
+    return (
+      <MetricCardGrid isLoading={props.isLoading} isTabletMode={props.isTabletMode} tabCounts={props.tabCounts} />
+    );
   }
 
   if (props.variant === 'optometrist-users') {
@@ -85,7 +91,7 @@ export function StoreCard(props: StoreCardProps) {
           right={<ActiveCountBadge count={activeCount} />}
           title="Available Optometrists"
         />
-        <OptometristUsersInfiniteBody data={props.data} />
+        {props.isLoading ? <DirectoryListSkeleton /> : <OptometristUsersInfiniteBody data={props.data} />}
       </CardFrame>
     );
   }
@@ -98,6 +104,7 @@ export function StoreCard(props: StoreCardProps) {
     data,
     dateRange,
     hideStatusTabs,
+    isLoading,
     onConversionStatusFilterChange,
     onExportCsv,
     onlyPendingAndAll,
@@ -173,6 +180,7 @@ export function StoreCard(props: StoreCardProps) {
         currentPage={currentPage}
         customersTable={customersTable}
         hideStatusTabs={hideStatusTabs}
+        isLoading={isLoading}
         onlyPendingAndAll={onlyPendingAndAll}
         onNextPage={onNextPage}
         onPageSizeChange={onPageSizeChange}

@@ -12,20 +12,6 @@ export const USER_TABLE_COLUMNS: ColumnOption[] = [
 ];
 export const DEFAULT_USER_COLUMNS = ['userId', 'name', 'email', 'role', 'status', 'actions'];
 
-export const CUSTOMER_TABLE_COLUMNS: ColumnOption[] = [
-  { id: 'id', label: 'ID' },
-  { id: 'name', isMandatory: true, label: 'Name' },
-  { id: 'storeName', label: 'Store Code' },
-  { id: 'timeStarted', label: 'Time Started' },
-  { id: 'callDuration', label: 'Call Duration' },
-  { id: 'ageGender', label: 'Age / Gender' },
-  { id: 'mobile', label: 'Mobile' },
-  { id: 'status', label: 'Status' },
-  { id: 'lastUpdated', label: 'Last Updated' },
-  { id: 'report', isMandatory: true, label: 'Report' },
-];
-export const DEFAULT_CUSTOMER_COLUMNS = ['id', 'name', 'storeName', 'callDuration', 'status', 'report'];
-
 export const FEEDBACK_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'id', label: 'Patient ID' },
   { id: 'name', isMandatory: true, label: 'Name' },

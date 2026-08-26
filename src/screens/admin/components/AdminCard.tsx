@@ -1,8 +1,7 @@
-import { Download, MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
+import { MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
 
 import type {
   Customer,
-  CustomerStatusTab,
   DateFilterRange,
   ManagedUser,
   OptometristUserRow,
@@ -13,19 +12,16 @@ import type {
 import { ActiveCountBadge } from '../../../components/shared/ActiveCountBadge';
 import { CardFrame, CardHeader } from '../../../components/shared/CardFrame';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
-import { Button } from '../../../components/ui/button';
+import { TableSkeleton } from '../../../components/shared/TableSkeleton';
 import { cn } from '../../../lib/utils';
-import { exportAllCustomersReport } from '../../../utils/excelExport';
 import { MetricCardGrid } from '../../store/components/MetricCardGrid';
 import { OptometristUsersBody } from '../../store/components/OptometristUsersBody';
-import { CUSTOMER_TABLE_COLUMNS, FEEDBACK_TABLE_COLUMNS, USER_TABLE_COLUMNS } from './adminUtils';
+import { FEEDBACK_TABLE_COLUMNS, USER_TABLE_COLUMNS } from './adminUtils';
 import { AvailableStoresBody } from './AvailableStoresBody';
-import { CustomerDirectoryBody } from './CustomerDirectoryBody';
 import { FeedbackDirectoryBody } from './FeedbackDirectoryBody';
 import { UserDirectoryBody } from './UserDirectoryBody';
 
 export type AdminCardProps =
-  | CustomerRecordsVariant
   | FeedbackRecordsVariant
   | MetricsVariant
   | OptometristUsersVariant
@@ -36,6 +32,7 @@ type FeedbackRecordsVariant = {
   currentPage: number;
   dateRange: DateFilterRange;
   filteredCustomers: Customer[];
+  isLoading?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage: () => void;
   onPageSizeChange: (size: number) => void;
@@ -52,31 +49,8 @@ type FeedbackRecordsVariant = {
   visibleColumns: string[];
 };
 
-type CustomerRecordsVariant = {
-  currentPage: number;
-  customerStatusTab: CustomerStatusTab;
-  dateRange: DateFilterRange;
-  filteredCustomers: Customer[];
-  onDateRangeChange: (v: DateFilterRange) => void;
-  onNextPage: () => void;
-  onPageSizeChange: (size: number) => void;
-  onPrevPage: () => void;
-  onResetColumns: () => void;
-  onSearchChange: (v: string) => void;
-  onSelectCustomer?: (customer: Customer) => void;
-  onStatusTabChange: (tab: CustomerStatusTab) => void;
-  onToggleColumn: (id: string) => void;
-  pageSize: number;
-  paginatedCustomers: Customer[];
-  searchTerm: string;
-  tabCounts: TabCounts;
-  totalItems: number;
-  totalPages: number;
-  variant: 'customer-records';
-  visibleColumns: string[];
-};
-
 type MetricsVariant = {
+  isLoading?: boolean;
   tabCounts: TabCounts;
   variant: 'metrics';
 };
@@ -96,6 +70,7 @@ type UserManagementVariant = {
   currentPage: number;
   currentUser: ManagedUser | null | User;
   dateRange: DateFilterRange;
+  isLoading?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onDelete: (u: ManagedUser) => void;
   onEdit: (u: ManagedUser) => void;
@@ -118,7 +93,7 @@ type UserManagementVariant = {
 
 export function AdminCard(props: AdminCardProps) {
   if (props.variant === 'metrics') {
-    return <MetricCardGrid tabCounts={props.tabCounts} />;
+    return <MetricCardGrid isLoading={props.isLoading} tabCounts={props.tabCounts} />;
   }
 
   if (props.variant === 'optometrist-users') {
@@ -158,6 +133,7 @@ export function AdminCard(props: AdminCardProps) {
       currentPage,
       currentUser,
       dateRange,
+      isLoading,
       onDateRangeChange,
       onDelete,
       onEdit,
@@ -199,98 +175,26 @@ export function AdminCard(props: AdminCardProps) {
           right={headerControls}
           title="User Directory"
         />
-        <UserDirectoryBody
-          currentPage={currentPage}
-          currentUser={currentUser}
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onNextPage={onNextPage}
-          onPageSizeChange={onPageSizeChange}
-          onPrevPage={onPrevPage}
-          onToggleStatus={onToggleStatus}
-          pageSize={pageSize}
-          paginatedUsers={paginatedUsers}
-          totalItems={totalItems}
-          totalPages={totalPages}
-          users={users}
-          visibleColumns={visibleColumns}
-        />
-      </CardFrame>
-    );
-  }
-
-  if (props.variant === 'customer-records') {
-    const {
-      currentPage,
-      customerStatusTab,
-      dateRange,
-      filteredCustomers,
-      onDateRangeChange,
-      onNextPage,
-      onPageSizeChange,
-      onPrevPage,
-      onResetColumns,
-      onSearchChange,
-      onSelectCustomer,
-      onStatusTabChange,
-      onToggleColumn,
-      pageSize,
-      paginatedCustomers,
-      searchTerm,
-      tabCounts,
-      totalItems,
-      totalPages,
-      visibleColumns,
-    } = props;
-
-    const headerControls = (
-      <TableToolbar
-        columns={CUSTOMER_TABLE_COLUMNS}
-        dateRange={dateRange}
-        extra={
-          <Button
-            className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-[50px] border-0 px-4 text-sm font-medium shadow-sm transition-all"
-            onClick={() => exportAllCustomersReport(filteredCustomers)}
-            title="Download full Excel report for all patients"
-            variant="primary"
-          >
-            <Download size={14} />
-            <span>Export All Excel Reports</span>
-          </Button>
-        }
-        onDateRangeChange={onDateRangeChange}
-        onResetColumns={onResetColumns}
-        onSearchChange={onSearchChange}
-        onToggleColumn={onToggleColumn}
-        searchPlaceholder="Search patients..."
-        searchValue={searchTerm}
-        visibleColumns={visibleColumns}
-      />
-    );
-
-    return (
-      <CardFrame className="!mt-4 flex h-[600px] flex-col">
-        <CardHeader
-          icon={Users2}
-          iconGradient="from-[#EF427F] to-[#892649]"
-          right={headerControls}
-          title="Customer Directory"
-        />
-        <CustomerDirectoryBody
-          currentPage={currentPage}
-          customerStatusTab={customerStatusTab}
-          onNextPage={onNextPage}
-          onPageSizeChange={onPageSizeChange}
-          onPrevPage={onPrevPage}
-          onSelectCustomer={onSelectCustomer}
-          onStatusTabChange={onStatusTabChange}
-          pageSize={pageSize}
-          paginatedCustomers={paginatedCustomers}
-          tabCounts={tabCounts}
-          totalItems={totalItems}
-          totalPages={totalPages}
-          visibleColumns={visibleColumns}
-        />
+        {isLoading ? (
+          <TableSkeleton columnWidths={['100px', '140px', '180px', '80px', '110px', '140px', '90px']} />
+        ) : (
+          <UserDirectoryBody
+            currentPage={currentPage}
+            currentUser={currentUser}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onNextPage={onNextPage}
+            onPageSizeChange={onPageSizeChange}
+            onPrevPage={onPrevPage}
+            onToggleStatus={onToggleStatus}
+            pageSize={pageSize}
+            paginatedUsers={paginatedUsers}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            users={users}
+            visibleColumns={visibleColumns}
+          />
+        )}
       </CardFrame>
     );
   }
@@ -299,6 +203,7 @@ export function AdminCard(props: AdminCardProps) {
     const {
       currentPage,
       dateRange,
+      isLoading,
       onDateRangeChange,
       onNextPage,
       onPageSizeChange,
@@ -336,17 +241,21 @@ export function AdminCard(props: AdminCardProps) {
           right={headerControls}
           title="Patient Feedback Directory"
         />
-        <FeedbackDirectoryBody
-          currentPage={currentPage}
-          onNextPage={onNextPage}
-          onPageSizeChange={onPageSizeChange}
-          onPrevPage={onPrevPage}
-          pageSize={pageSize}
-          paginatedCustomers={paginatedCustomers}
-          totalItems={totalItems}
-          totalPages={totalPages}
-          visibleColumns={visibleColumns}
-        />
+        {isLoading ? (
+          <TableSkeleton columnWidths={['90px', '140px', '110px', '220px', '280px', '90px']} />
+        ) : (
+          <FeedbackDirectoryBody
+            currentPage={currentPage}
+            onNextPage={onNextPage}
+            onPageSizeChange={onPageSizeChange}
+            onPrevPage={onPrevPage}
+            pageSize={pageSize}
+            paginatedCustomers={paginatedCustomers}
+            totalItems={totalItems}
+            totalPages={totalPages}
+            visibleColumns={visibleColumns}
+          />
+        )}
       </CardFrame>
     );
   }

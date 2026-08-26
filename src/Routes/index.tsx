@@ -4,7 +4,6 @@ import { Navigate, useLocation } from 'react-router-dom';
 
 import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
 
-import { AdminScreen } from '../screens/admin/AdminScreen';
 import { SuperAdminScreen } from '../screens/admin/SuperAdminScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
@@ -41,10 +40,6 @@ export function getHomeRoute(role: UserRole): string {
     return '/store';
   }
 
-  if (role === 'senior_optometrist') {
-    return '/admin';
-  }
-
   if (role === 'super_admin') {
     return '/super-admin';
   }
@@ -64,7 +59,9 @@ export function ProtectedRoute({ allowedRole, children }: ProtectedRouteProps) {
     return <Navigate replace state={{ from: location }} to="/login" />;
   }
 
-  if (user.role !== allowedRole) {
+  const isAllowed = Array.isArray(allowedRole) ? allowedRole.includes(user.role) : user.role === allowedRole;
+
+  if (!isAllowed) {
     return <Navigate replace to={getHomeRoute(user.role)} />;
   }
 
@@ -116,19 +113,11 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="optometrist">
+      <ProtectedRoute allowedRole={['optometrist', 'senior_optometrist']}>
         <OptometristScreen />
       </ProtectedRoute>
     ),
     path: '/optometrist',
-  },
-  {
-    element: (
-      <ProtectedRoute allowedRole="senior_optometrist">
-        <AdminScreen />
-      </ProtectedRoute>
-    ),
-    path: '/admin',
   },
   {
     element: (

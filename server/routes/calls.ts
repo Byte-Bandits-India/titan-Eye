@@ -172,7 +172,8 @@ router.get('/session/:customerId', (req: AuthenticatedRequest, res: Response) =>
     return res.status(404).json({ error: 'No active call session found for this customer' });
   }
 
-  const userRole = req.user?.role === 'optometrist' ? 'optometrist' : 'store';
+  const userRole =
+    req.user?.role === 'optometrist' || req.user?.role === 'senior_optometrist' ? 'optometrist' : 'store';
   const payload = userRole === 'optometrist' ? session.optometristSession : session.storeSession;
 
   return res.json(payload);

@@ -1,7 +1,7 @@
 import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
-export type AdminTab = 'customers' | 'feedback' | 'videos';
+export type AdminTab = 'customers' | 'feedback' | 'queue' | 'videos';
 export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
 export type AppLayoutProps = {
@@ -150,15 +150,6 @@ export type CustomerStatus =
   | 'Test Completed'
   | 'Testing';
 
-export type CustomerStatusTab = 'all' | 'Completed' | 'InProgress' | 'Pending';
-
-export type CustomerTabCounts = {
-  all: number;
-  completed: number;
-  inProgress: number;
-  pending: number;
-};
-
 export type HeaderProps = {
   activeTab?: AdminTab;
   consoleLabel?: string;
@@ -267,7 +258,7 @@ export type PaginationBarProps = {
 };
 
 export type ProtectedRouteProps = RouteProps & {
-  allowedRole: UserRole;
+  allowedRole: UserRole | UserRole[];
 };
 
 export type RouteProps = {

@@ -1,7 +1,16 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
+import { Download } from 'lucide-react';
 import * as React from 'react';
 
-import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
+import type {
+  AdminTab,
+  ColumnOption,
+  Customer,
+  ManagedVideo,
+  OptometristUserRow,
+  SSEEventDetail,
+  StatusTab,
+} from '../../types';
 
 import { fetchCustomersAction, updateCustomerAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
@@ -9,14 +18,22 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { useNotificationLog } from '../../components/ui/notificationLog';
+import { useToast } from '../../components/ui/toast';
 import { usePagination } from '../../hooks/usePagination';
 import { cn } from '../../lib/utils';
 import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
+import { apiClient } from '../../Util/apiClient';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
+import { exportAllCustomersReport } from '../../utils/excelExport';
 import { renderCallDuration, WaitingCell } from '../store/components/cells';
 import { parseTimestamp } from '../store/components/formatters';
 import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
+import { AdminCard } from '../admin/components/AdminCard';
+import { DEFAULT_FEEDBACK_COLUMNS } from '../admin/components/adminUtils';
+import { VideoDirectoryBody } from '../admin/components/VideoDirectoryBody';
+import { VideoUploadDialog } from '../admin/components/VideoUploadDialog';
+import { Button } from '../../components/ui/button';
 import { OptometristActionsCell } from './components/OptometristActionsCell';
 import { OptometristCard } from './components/OptometristCard';
 import { OptometristPatientDetails } from './OptometristPatientDetails';
@@ -64,7 +81,9 @@ const getQueueStatusLabel = (status: Customer['status']): string => {
 export function OptometristScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
+  const customersLoading = useAppSelector((state) => state.customers.loading);
   const users = useAppSelector((state) => state.users.users);
+  const usersLoading = useAppSelector((state) => state.users.loading);
   const dispatch = useAppDispatch();
 
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0484');
@@ -75,8 +94,21 @@ export function OptometristScreen() {
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTOMETRIST_PAGE_SIZE);
 
   const { addLogNotification } = useNotificationLog();
+  const { toast } = useToast();
+
+  const isSeniorOptometrist = user?.role === 'senior_optometrist';
 
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
+
+  const [activeTab, setActiveTab] = React.useState<AdminTab>('queue');
+  const [feedbackSearchTerm, setFeedbackSearchTerm] = React.useState('');
+  const [feedbackPageSize, setFeedbackPageSize] = React.useState<number>(10);
+  const [visibleFeedbackCols, setVisibleFeedbackCols] = React.useState<string[]>(DEFAULT_FEEDBACK_COLUMNS);
+
+  const [videos, setVideos] = React.useState<ManagedVideo[]>([]);
+  const [tvModeVideoId, setTvModeVideoId] = React.useState<null | number>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = React.useState(false);
 
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
@@ -199,6 +231,143 @@ export function OptometristScreen() {
     [customers, dateRange]
   );
 
+  const exportableCustomers = React.useMemo(
+    () => filterCustomersByDate(customers, dateRange),
+    [customers, dateRange]
+  );
+
+  const dateFilteredCustomersForFeedback = React.useMemo(
+    () => filterCustomersByDate(customers, dateRange),
+    [customers, dateRange]
+  );
+
+  const filteredFeedbackCustomers = React.useMemo(() => {
+    const term = feedbackSearchTerm.trim().toLowerCase();
+
+    return dateFilteredCustomersForFeedback.filter((c) => {
+      const hasPatientFeedback = Boolean(c.patientFeedback && c.patientFeedback.trim());
+
+      if (!hasPatientFeedback) {
+        return false;
+      }
+
+      if (!term) {
+        return true;
+      }
+
+      return (
+        c.name.toLowerCase().includes(term) ||
+        c.id.toLowerCase().includes(term) ||
+        (c.storeName && c.storeName.toLowerCase().includes(term)) ||
+        (c.storeContactEmail && c.storeContactEmail.toLowerCase().includes(term)) ||
+        (c.callTakenBy && c.callTakenBy.toLowerCase().includes(term)) ||
+        (c.patientFeedback && c.patientFeedback.toLowerCase().includes(term))
+      );
+    });
+  }, [dateFilteredCustomersForFeedback, feedbackSearchTerm]);
+
+  const {
+    currentPage: feedbackCurrentPage,
+    nextPage: feedbackNextPage,
+    paginatedItems: paginatedFeedbackCustomers,
+    prevPage: feedbackPrevPage,
+    resetPage: feedbackResetPage,
+    totalItems: feedbackTotalItems,
+    totalPages: feedbackTotalPages,
+  } = usePagination(filteredFeedbackCustomers, feedbackPageSize);
+
+  React.useEffect(() => {
+    feedbackResetPage();
+  }, [feedbackSearchTerm, dateRange, feedbackResetPage]);
+
+  const fetchVideos = React.useCallback(async () => {
+    try {
+      const [videosRes, tvModeRes] = await Promise.all([
+        apiClient.get<ManagedVideo[]>('/videos'),
+        apiClient.get<{ video: ManagedVideo | null }>('/videos/tvmode-active'),
+      ]);
+      setVideos(Array.isArray(videosRes.data) ? videosRes.data : []);
+      setTvModeVideoId(tvModeRes.data.video?.id ?? null);
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to fetch videos',
+        type: 'error',
+      });
+    }
+  }, [toast]);
+
+  React.useEffect(() => {
+    if (isSeniorOptometrist && activeTab === 'videos') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void fetchVideos();
+    }
+  }, [isSeniorOptometrist, activeTab, fetchVideos]);
+
+  const handleUploadVideoFile = async (file: File, title: string) => {
+    setIsUploadingVideo(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('title', title);
+
+      const res = await apiClient.post<ManagedVideo>('/videos', formData);
+      setVideos((prev) => [res.data, ...prev]);
+      setIsUploadDialogOpen(false);
+      toast({ description: `${title} has been uploaded.`, title: 'Video Uploaded', type: 'success' });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to upload video',
+        type: 'error',
+      });
+    } finally {
+      setIsUploadingVideo(false);
+    }
+  };
+
+  const handleDeleteVideo = async (video: ManagedVideo) => {
+    if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await apiClient.delete(`/videos/${video.id}`);
+      setVideos((prev) => prev.filter((v) => v.id !== video.id));
+
+      if (tvModeVideoId === video.id) {
+        setTvModeVideoId(null);
+      }
+
+      toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to delete video',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleSetTvModeVideo = async (video: ManagedVideo) => {
+    try {
+      await apiClient.put('/videos/tvmode-active', { videoId: video.id });
+      setTvModeVideoId(video.id);
+      toast({
+        description: `${video.title} will now play in TV Mode.`,
+        title: 'TV Mode Video Updated',
+        type: 'success',
+      });
+    } catch (err) {
+      toast({
+        description: (err instanceof Error ? err : new Error(String(err))).message,
+        title: 'Failed to set TV Mode video',
+        type: 'error',
+      });
+    }
+  };
+
   const tabCounts = React.useMemo(
     () => ({
       all: dateFilteredCustomers.length,
@@ -289,7 +458,7 @@ export function OptometristScreen() {
   const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () =>
       users
-        .filter((u) => u.role === 'optometrist')
+        .filter((u) => u.role === 'optometrist' || u.role === 'senior_optometrist')
         .map((optometristUser) => {
           if (optometristUser.status === 'inactive' || !(optometristUser.isLoggedIn ?? false)) {
             return {
@@ -429,6 +598,9 @@ export function OptometristScreen() {
     totalItems,
     totalPages,
   } = usePagination(filteredRequests, pageSize);
+
+  const isInitialCustomersLoading = customersLoading && customers.length === 0;
+  const isInitialUsersLoading = usersLoading && users.length === 0;
 
   const handleToggleColumn = React.useCallback((columnId: string) => {
     setColumnVisibility((prev) => ({
@@ -714,12 +886,42 @@ export function OptometristScreen() {
     return null;
   }
 
+  const handleSelectCustomerFromNotification = (customerId: string) => {
+    const cust = customers.find((c) => c.id === customerId);
+
+    if (isSeniorOptometrist && cust?.patientFeedback && cust.status !== 'Initiated') {
+      setActiveTab('feedback');
+      setFeedbackSearchTerm(cust.name || cust.id);
+      setIsEditing(false);
+
+      return;
+    }
+
+    setActiveTab('queue');
+    setSelectedCustomerId(customerId);
+    setIsEditing(true);
+  };
+
+  const pageTitle =
+    !isSeniorOptometrist || activeTab === 'queue'
+      ? 'Optometrist Console'
+      : activeTab === 'feedback'
+        ? 'Customer & Store Feedback'
+        : 'Video Library';
+
+  const pageSubtitle =
+    !isSeniorOptometrist || activeTab === 'queue'
+      ? user.name
+      : activeTab === 'feedback'
+        ? 'View store action notes, optometrist assessments, and direct patient feedback'
+        : 'Upload and manage videos available in the admin console';
+
   return (
     <AppLayout
-      onSelectCustomer={(id) => {
-        setSelectedCustomerId(id);
-        setIsEditing(true);
-      }}
+      activeTab={isSeniorOptometrist ? activeTab : undefined}
+      consoleLabel={isSeniorOptometrist ? 'Senior Optometrist Console' : undefined}
+      onSelectCustomer={handleSelectCustomerFromNotification}
+      setActiveTab={isSeniorOptometrist ? setActiveTab : undefined}
     >
       {isEditing ? (
         <OptometristPatientDetails
@@ -732,49 +934,113 @@ export function OptometristScreen() {
         <main className="font-pro mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-6 sm:px-6 sm:py-6 md:px-8">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-[28px] font-semibold leading-tight text-foreground">Optometrist Console</h1>
-              <p className="mt-0.5 text-sm font-normal text-muted-foreground">{user.name}</p>
+              <h1 className="text-[28px] font-semibold leading-tight text-foreground">{pageTitle}</h1>
+              <p className="mt-0.5 text-sm font-normal text-muted-foreground">{pageSubtitle}</p>
             </div>
+            {isSeniorOptometrist && activeTab === 'queue' && (
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
+                  onClick={() => exportAllCustomersReport(exportableCustomers)}
+                  title="Download full Excel report for all patients"
+                  variant="primary"
+                >
+                  <Download size={14} />
+                  Export All Excel Reports
+                </Button>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-            <OptometristCard tabCounts={tabCounts} variant="metrics" />
-            <AvailableDirectoryCard
-              optometristData={optometristUsersWithStatus}
-              storeData={storeUsersWithStatus}
+          {(!isSeniorOptometrist || activeTab !== 'videos') && (
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+              <OptometristCard isLoading={isInitialCustomersLoading} tabCounts={tabCounts} variant="metrics" />
+              <AvailableDirectoryCard
+                isLoading={isInitialUsersLoading}
+                optometristData={optometristUsersWithStatus}
+                storeData={storeUsersWithStatus}
+              />
+            </div>
+          )}
+
+          {!isSeniorOptometrist || activeTab === 'queue' ? (
+            <OptometristCard
+              columns={currentTabColumns}
+              currentPage={currentPage}
+              data={paginatedRequests}
+              dateRange={dateRange}
+              isLoading={isInitialCustomersLoading}
+              onDateRangeChange={setDateRange}
+              onNextPage={nextPage}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                resetPage();
+              }}
+              onPrevPage={prevPage}
+              onResetColumns={handleResetColumns}
+              onSearchChange={setSearchTerm}
+              onStatusTabChange={(tab) => {
+                setStatusTab(tab);
+                resetPage();
+              }}
+              onToggleColumn={handleToggleColumn}
+              pageSize={pageSize}
+              requestsTable={requestsTable}
+              searchValue={searchTerm}
+              statusTab={statusTab}
+              tabCounts={tabCounts}
+              totalItems={totalItems}
+              totalPages={totalPages}
+              variant="incoming-requests"
+              visibleColumns={visibleColumnIds}
             />
-          </div>
-
-          <OptometristCard
-            columns={currentTabColumns}
-            currentPage={currentPage}
-            data={paginatedRequests}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            onNextPage={nextPage}
-            onPageSizeChange={(newSize) => {
-              setPageSize(newSize);
-              resetPage();
-            }}
-            onPrevPage={prevPage}
-            onResetColumns={handleResetColumns}
-            onSearchChange={setSearchTerm}
-            onStatusTabChange={(tab) => {
-              setStatusTab(tab);
-              resetPage();
-            }}
-            onToggleColumn={handleToggleColumn}
-            pageSize={pageSize}
-            requestsTable={requestsTable}
-            searchValue={searchTerm}
-            statusTab={statusTab}
-            tabCounts={tabCounts}
-            totalItems={totalItems}
-            totalPages={totalPages}
-            variant="incoming-requests"
-            visibleColumns={visibleColumnIds}
-          />
+          ) : activeTab === 'feedback' ? (
+            <AdminCard
+              currentPage={feedbackCurrentPage}
+              dateRange={dateRange}
+              filteredCustomers={filteredFeedbackCustomers}
+              isLoading={isInitialCustomersLoading}
+              onDateRangeChange={setDateRange}
+              onNextPage={feedbackNextPage}
+              onPageSizeChange={(size) => {
+                setFeedbackPageSize(size);
+                feedbackResetPage();
+              }}
+              onPrevPage={feedbackPrevPage}
+              onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
+              onSearchChange={setFeedbackSearchTerm}
+              onToggleColumn={(id) =>
+                setVisibleFeedbackCols((prev) =>
+                  prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]
+                )
+              }
+              pageSize={feedbackPageSize}
+              paginatedCustomers={paginatedFeedbackCustomers}
+              searchTerm={feedbackSearchTerm}
+              totalItems={feedbackTotalItems}
+              totalPages={feedbackTotalPages}
+              variant="feedback"
+              visibleColumns={visibleFeedbackCols}
+            />
+          ) : (
+            <VideoDirectoryBody
+              onDelete={handleDeleteVideo}
+              onSetTvModeVideo={handleSetTvModeVideo}
+              onUploadClick={() => setIsUploadDialogOpen(true)}
+              tvModeVideoId={tvModeVideoId}
+              videos={videos}
+            />
+          )}
         </main>
+      )}
+
+      {isSeniorOptometrist && (
+        <VideoUploadDialog
+          isUploading={isUploadingVideo}
+          onOpenChange={setIsUploadDialogOpen}
+          onUploadFile={handleUploadVideoFile}
+          open={isUploadDialogOpen}
+        />
       )}
     </AppLayout>
   );

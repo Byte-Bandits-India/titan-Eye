@@ -277,7 +277,9 @@ function RxSubTable({ label, mandatoryHeaders = [], rows, rxErrors, rxForm, setR
                     className={cn(
                       rowIdx === 0 ? 'border-b border-slate-400 dark:border-zinc-700' : '',
                       'group relative p-0',
-                      idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : ''
+                      idx < 6 ? 'border-r border-slate-400 dark:border-zinc-700' : '',
+                      hasErr &&
+                        'border-2 border-rose-500 bg-rose-50 dark:border-rose-500 dark:bg-rose-950/40'
                     )}
                     key={field}
                   >
@@ -327,6 +329,7 @@ function ObjectiveRxContentComponent({
         <div className="space-y-4 overflow-x-auto p-3">
           <RxSubTable
             label="Auto ref"
+            mandatoryHeaders={['Sph', 'Cyl', 'Axis', 'PD']}
             rows={['autoRefRe', 'autoRefLe']}
             rxErrors={rxErrors}
             rxForm={rxForm}
@@ -620,6 +623,56 @@ export function StoreCustomerTestPage({
     return Object.keys(validationErrors).length === 0;
   };
 
+  const getMissingMandatoryFieldsForRequest = (): string[] => {
+    const missing: string[] = [];
+
+    if (!form.name.trim()) {
+      missing.push('Name');
+    }
+
+    if (!form.age.trim()) {
+      missing.push('Age');
+    }
+
+    if (!form.mobile.trim()) {
+      missing.push('Mobile Number');
+    }
+
+    if (!form.preferredLanguage.trim()) {
+      missing.push('Preferred Language 1');
+    }
+
+    return missing;
+  };
+
+  const getMissingMandatoryRxFieldsForRequest = (): { keys: string[]; labels: string[] } => {
+    const fieldLabels: { field: 'axis' | 'cyl' | 'pd' | 'sph'; label: string }[] = [
+      { field: 'sph', label: 'Sph' },
+      { field: 'cyl', label: 'Cyl' },
+      { field: 'axis', label: 'Axis' },
+      { field: 'pd', label: 'PD' },
+    ];
+    const rowGroups: { eyeLabel: string; groupLabel: string; row: RxRow }[] = [
+      { eyeLabel: 'RE', groupLabel: 'Auto Ref', row: 'autoRefRe' },
+      { eyeLabel: 'LE', groupLabel: 'Auto Ref', row: 'autoRefLe' },
+    ];
+    const keys: string[] = [];
+    const labels: string[] = [];
+
+    rowGroups.forEach(({ eyeLabel, groupLabel, row }) => {
+      const data = rxForm[row];
+
+      fieldLabels.forEach(({ field, label }) => {
+        if (!data[field]) {
+          keys.push(`${row}.${field}`);
+          labels.push(`${groupLabel} ${eyeLabel} ${label}`);
+        }
+      });
+    });
+
+    return { keys, labels };
+  };
+
   const buildTimestamp = (): string =>
     new Date().toLocaleString('en-US', {
       day: 'numeric',
@@ -770,8 +823,31 @@ export function StoreCustomerTestPage({
   };
 
   const handleSaveAndRequest = async () => {
+    const missingFields = getMissingMandatoryFieldsForRequest();
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
+
+    const { keys: missingRxKeys, labels: missingRxLabels } = getMissingMandatoryRxFieldsForRequest();
+    const allMissingFields = [...missingFields, ...missingRxLabels];
+
+    if (allMissingFields.length > 0) {
+      setRxErrors((prev) => {
+        const next = { ...prev };
+
+        missingRxKeys.forEach((key) => {
+          next[key] = true;
+        });
+
+        return next;
+      });
+      toast({
+        description: `Please fill the following required fields to request an Optometrist: ${allMissingFields.join(', ')}.`,
+        title: 'Missing Required Fields',
+        type: 'error',
+      });
+
+      return;
+    }
 
     if (Object.keys(customerErrors).length > 0) {
       toast({

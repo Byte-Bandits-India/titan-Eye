@@ -122,7 +122,7 @@ export function NotificationPopover({
   }, []);
 
   React.useEffect(() => {
-    if (user?.role !== 'optometrist') {
+    if (user?.role !== 'optometrist' && user?.role !== 'senior_optometrist') {
       return;
     }
 
@@ -379,8 +379,6 @@ export function NotificationPopover({
     const hasNewNotification = newIds.length > 0;
 
     if (hasNewNotification && currentIds.length > 0) {
-      setOpen(true);
-
       const hasNewNonCallNotification = nonCallNotificationIds.some((id) => !prevIds.has(id));
 
       if (hasNewNonCallNotification && !isMuted) {
@@ -780,6 +778,55 @@ export function NotificationPopover({
 
     return (
       <>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <div className="fixed right-4 top-16 z-50 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl">
+              <div className="flex items-center justify-between border-b border-border bg-slate-50 px-4 py-3.5 dark:bg-zinc-900/90">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">Notifications</span>
+                    {unreadCount > 0 && (
+                      <Badge
+                        className="border-blue-200 bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-600 dark:border-blue-800 dark:text-blue-400"
+                        variant="secondary"
+                      >
+                        {unreadCount} new
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <Button
+                      className="h-7 px-2 text-[11px] font-medium text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100"
+                      onClick={handleClearAll}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Clear all
+                    </Button>
+                  )}
+                  {muteButton}
+                  <button
+                    className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    onClick={() => setOpen(false)}
+                    title="Close"
+                    type="button"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {notificationList}
+            </div>
+          </>
+        )}
         {toastItems.length > 0 && (
           <div className="fixed bottom-4 right-4 z-50 flex w-full max-w-[22rem] flex-col-reverse gap-3">
             {toastItems.map((item) => {

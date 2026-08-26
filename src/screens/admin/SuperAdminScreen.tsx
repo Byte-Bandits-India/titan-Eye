@@ -13,6 +13,7 @@ import {
 } from '../../Actions/userActions';
 import { AppLayout } from '../../components/layout/AppLayout';
 import { MetricCard } from '../../components/shared/MetricCard';
+import { MetricCardSkeleton } from '../../components/shared/MetricCardSkeleton';
 import { Button } from '../../components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
@@ -34,7 +35,9 @@ import { VideoUploadDialog } from './components/VideoUploadDialog';
 export function SuperAdminScreen() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const users = useAppSelector((state) => state.users.users);
+  const usersLoading = useAppSelector((state) => state.users.loading);
   const customers = useAppSelector((state) => state.customers.customers);
+  const customersLoading = useAppSelector((state) => state.customers.loading);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
@@ -273,6 +276,9 @@ export function SuperAdminScreen() {
   );
   const totalStores = React.useMemo(() => users.filter((u) => u.role === 'store').length, [users]);
 
+  const isInitialUsersLoading = usersLoading && users.length === 0;
+  const isInitialCustomersLoading = customersLoading && customers.length === 0;
+
   // ── User management form handlers ─────────────────────────────────────
   const closeForm = () => {
     setIsFormOpen(false);
@@ -430,25 +436,35 @@ export function SuperAdminScreen() {
         {activeTab !== 'videos' && (
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
             <div className="grid grid-rows-2 gap-4">
-              <MetricCard
-                icon={Store}
-                iconGradient="from-blue-500 to-blue-800"
-                label="Total Stores"
-                unitPlural="Stores"
-                unitSingular="Store"
-                value={totalStores}
-              />
-              <MetricCard
-                icon={Stethoscope}
-                iconGradient="from-teal-500 to-teal-800"
-                label="Total Optometrists"
-                unitPlural="Optometrists"
-                unitSingular="Optometrist"
-                value={totalOptometrists}
-              />
+              {isInitialUsersLoading ? (
+                <>
+                  <MetricCardSkeleton />
+                  <MetricCardSkeleton />
+                </>
+              ) : (
+                <>
+                  <MetricCard
+                    icon={Store}
+                    iconGradient="from-blue-500 to-blue-800"
+                    label="Total Stores"
+                    unitPlural="Stores"
+                    unitSingular="Store"
+                    value={totalStores}
+                  />
+                  <MetricCard
+                    icon={Stethoscope}
+                    iconGradient="from-teal-500 to-teal-800"
+                    label="Total Optometrists"
+                    unitPlural="Optometrists"
+                    unitSingular="Optometrist"
+                    value={totalOptometrists}
+                  />
+                </>
+              )}
             </div>
             <AvailableDirectoryCard
               className="lg:col-span-2"
+              isLoading={isInitialUsersLoading}
               optometristData={optometristUsersWithStatus}
               storeData={storeUsersWithStatus}
             />
@@ -461,6 +477,7 @@ export function SuperAdminScreen() {
             currentPage={userCurrentPage}
             currentUser={currentUser}
             dateRange={dateRange}
+            isLoading={isInitialUsersLoading}
             onDateRangeChange={setDateRange}
             onDelete={handleDeleteUser}
             onEdit={handleEditClick}
@@ -488,6 +505,7 @@ export function SuperAdminScreen() {
             currentPage={feedbackCurrentPage}
             dateRange={dateRange}
             filteredCustomers={filteredFeedbackCustomers}
+            isLoading={isInitialCustomersLoading}
             onDateRangeChange={setDateRange}
             onNextPage={feedbackNextPage}
             onPageSizeChange={(size) => {

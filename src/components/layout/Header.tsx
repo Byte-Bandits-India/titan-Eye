@@ -11,6 +11,7 @@ import {
   Minimize2,
   Monitor,
   MonitorPlay,
+  Radio,
   Search,
   Wifi,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ import { useNetworkStatus } from '../../hooks/useNetworkStatus';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { apiClient } from '../../Util/apiClient';
 import { openTeamViewer } from '../../Util/teamViewer';
+import { useNotificationLog } from '../ui/notificationLog';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import {
   DropdownMenu,
@@ -52,11 +54,9 @@ export function Header({
   const { toast } = useToast();
   const { speed, statusColor, statusLabel, wifiIconColor } = useNetworkStatus();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
-  const {
-    isSupported: isNotificationsSupported,
-    permission: notificationPermission,
-    requestPermission: requestNotificationPermission,
-  } = useBrowserNotifications();
+  const { isSupported: isNotificationsSupported, permission: notificationPermission } =
+    useBrowserNotifications();
+  const { logNotifications } = useNotificationLog();
   const [photoUrl, setPhotoUrl] = useState<null | string>(null);
 
   const handleLogout = () => {
@@ -72,36 +72,16 @@ export function Header({
     navigate('/store/tvmode');
   };
 
-  const handleToggleNotifications = async () => {
+  const handleOpenNotifications = () => {
     if (notificationPermission === 'denied') {
       toast({
         description: 'Notifications are blocked for this site. Enable them from your browser settings.',
         title: 'Notifications Blocked',
         type: 'error',
       });
-
-      return;
     }
 
-    if (notificationPermission === 'granted') {
-      toast({
-        description: 'Desktop notifications are already enabled for this browser.',
-        title: 'Notifications Enabled',
-        type: 'info',
-      });
-
-      return;
-    }
-
-    const result = await requestNotificationPermission();
-
-    if (result === 'granted') {
-      toast({
-        description: "You'll now get notified even when this tab isn't focused.",
-        title: 'Notifications Enabled',
-        type: 'success',
-      });
-    }
+    window.dispatchEvent(new CustomEvent('titan:open_notifications'));
   };
 
   useEffect(() => {
@@ -149,6 +129,8 @@ export function Header({
     return null;
   }
 
+  const unreadNotificationCount = logNotifications.length;
+
   const roleBadge =
     user.role === 'super_admin'
       ? 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200'
@@ -173,6 +155,13 @@ export function Header({
     .join('')
     .toUpperCase()
     .slice(0, 2);
+
+  const firstTab = user.role === 'senior_optometrist' ? 'queue' : 'customers';
+  const firstTabLabel =
+    firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'Users' : 'Dashboard';
+  const firstTabLabelLong =
+    firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'User Directory' : 'Dashboard';
+  const firstTabLabelShort = firstTab === 'queue' ? 'Queue' : user.role === 'super_admin' ? 'Users' : 'Customers';
 
   const renderProfileDropdown = (avatarSize = 'w-8 h-8') => (
     <DropdownMenu>
@@ -264,17 +253,24 @@ export function Header({
           <div className="order-2 hidden items-center gap-2 overflow-x-auto py-0.5 [ms-overflow-style:none] [scrollbar-width:none] md:gap-3 xl:flex [&::-webkit-scrollbar]:hidden">
             <button
               className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                activeTab === 'customers'
+                activeTab === 'customers' || activeTab === 'queue'
                   ? 'bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
-              onClick={() => setActiveTab('customers')}
+              onClick={() => setActiveTab(firstTab)}
             >
-              <ClipboardList
-                className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}
-                size={16}
-              />
-              <span className="whitespace-nowrap">{user?.role === 'super_admin' ? 'Users' : 'Dashboard'}</span>
+              {firstTab === 'queue' ? (
+                <Radio
+                  className={activeTab === 'queue' ? 'text-[#1a2b6e]' : 'text-slate-400'}
+                  size={16}
+                />
+              ) : (
+                <ClipboardList
+                  className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}
+                  size={16}
+                />
+              )}
+              <span className="whitespace-nowrap">{firstTabLabel}</span>
             </button>
             <button
               className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
@@ -355,28 +351,33 @@ export function Header({
             </button>
           )}
 
-          {isNotificationsSupported && (
-            <button
-              className={`hidden cursor-pointer rounded-lg p-1.5 transition-all hover:bg-slate-50 sm:inline-flex sm:p-2 ${
-                notificationPermission === 'granted'
-                  ? 'text-emerald-600 hover:text-emerald-700'
-                  : notificationPermission === 'denied'
-                    ? 'text-rose-400 hover:text-rose-500'
-                    : 'text-gray-400 hover:text-gray-600'
-              }`}
-              onClick={handleToggleNotifications}
-              title={
-                notificationPermission === 'granted'
-                  ? 'Desktop notifications enabled'
-                  : notificationPermission === 'denied'
-                    ? 'Desktop notifications blocked — enable in browser settings'
-                    : 'Get desktop notifications'
-              }
-              type="button"
-            >
-              {notificationPermission === 'denied' ? <BellOff size={16} /> : <Bell size={16} />}
-            </button>
-          )}
+          <button
+            className={`relative hidden cursor-pointer rounded-lg p-1.5 transition-all hover:bg-slate-50 sm:inline-flex sm:p-2 ${
+              notificationPermission === 'granted'
+                ? 'text-emerald-600 hover:text-emerald-700'
+                : notificationPermission === 'denied'
+                  ? 'text-rose-400 hover:text-rose-500'
+                  : 'text-gray-400 hover:text-gray-600'
+            }`}
+            onClick={handleOpenNotifications}
+            title={
+              notificationPermission === 'denied'
+                ? 'Desktop notifications blocked — enable in browser settings'
+                : 'Notifications'
+            }
+            type="button"
+          >
+            {notificationPermission === 'denied' && isNotificationsSupported ? (
+              <BellOff size={16} />
+            ) : (
+              <Bell size={16} />
+            )}
+            {unreadNotificationCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 flex h-4 w-4 animate-pulse items-center justify-center rounded-full bg-rose-600 text-[10px] font-medium text-white ring-2 ring-white">
+                {unreadNotificationCount}
+              </span>
+            )}
+          </button>
 
           <button
             className="hidden cursor-pointer rounded-lg p-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 sm:inline-flex sm:p-2"
@@ -393,19 +394,26 @@ export function Header({
           <div className="order-3 flex w-full max-w-full items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 [ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 xl:hidden [&::-webkit-scrollbar]:hidden">
             <button
               className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
-                activeTab === 'customers'
+                activeTab === 'customers' || activeTab === 'queue'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
-              onClick={() => setActiveTab('customers')}
+              onClick={() => setActiveTab(firstTab)}
             >
-              <ClipboardList
-                className={`shrink-0 ${activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
-                size={15}
-              />
+              {firstTab === 'queue' ? (
+                <Radio
+                  className={`shrink-0 ${activeTab === 'queue' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
+                  size={15}
+                />
+              ) : (
+                <ClipboardList
+                  className={`shrink-0 ${activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
+                  size={15}
+                />
+              )}
               <span className="truncate whitespace-nowrap font-medium">
-                <span className="inline sm:hidden">{user?.role === 'super_admin' ? 'Users' : 'Customers'}</span>
-                <span className="hidden sm:inline">{user?.role === 'super_admin' ? 'User Directory' : 'Dashboard'}</span>
+                <span className="inline sm:hidden">{firstTabLabelShort}</span>
+                <span className="hidden sm:inline">{firstTabLabelLong}</span>
               </span>
             </button>
             <button

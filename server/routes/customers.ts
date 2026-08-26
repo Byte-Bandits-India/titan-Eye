@@ -553,7 +553,10 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
 
     const sanitized = validation.sanitized;
 
-    if (req.user!.role === 'optometrist' && (sanitized.status === 'Completed' || c.status === 'Completed')) {
+    if (
+      (req.user!.role === 'optometrist' || req.user!.role === 'senior_optometrist') &&
+      (sanitized.status === 'Completed' || c.status === 'Completed')
+    ) {
       sanitized.status = 'Test Completed';
     }
 

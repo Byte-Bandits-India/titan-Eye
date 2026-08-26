@@ -22,9 +22,248 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <style>
+      #boot-skeleton {
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        background: #f2f3f3;
+      }
+
+      .boot-sk-header {
+        display: flex;
+        min-height: 48px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #e5e7eb;
+        background: #ffffff;
+        padding: 10px 24px;
+      }
+
+      .boot-sk-main {
+        display: flex;
+        max-width: 1400px;
+        width: 100%;
+        flex: 1;
+        flex-direction: column;
+        gap: 24px;
+        margin: 0 auto;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      .boot-sk-titlebar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .boot-sk-row1 {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 16px;
+        align-items: stretch;
+      }
+
+      .boot-sk-metrics-col {
+        display: grid;
+        grid-template-rows: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .boot-sk-card {
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #e5e5e5;
+        background: #ffffff;
+      }
+
+      .boot-sk-card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        border-bottom: 1px solid #e5e5e5;
+        background: #f7f7f7;
+      }
+
+      .boot-sk-card-body {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 20px 24px;
+      }
+
+      .boot-sk-directory-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+
+      .boot-sk-directory-row:last-child {
+        border-bottom: none;
+      }
+
+      .boot-sk-avatar {
+        border-radius: 9999px;
+        background: #f5f5f5;
+        animation: boot-sk-pulse 1.5s ease-in-out infinite;
+        flex-shrink: 0;
+      }
+
+      .boot-sk-bar {
+        border-radius: 6px;
+        background: #f5f5f5;
+        animation: boot-sk-pulse 1.5s ease-in-out infinite;
+      }
+
+      .boot-sk-table {
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #e5e5e5;
+        background: #ffffff;
+      }
+
+      .boot-sk-row {
+        display: flex;
+        gap: 16px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e5e5;
+      }
+
+      .boot-sk-row:last-child {
+        border-bottom: none;
+      }
+
+      @keyframes boot-sk-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @media (max-width: 900px) {
+        .boot-sk-row1 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-skeleton">
+        <div class="boot-sk-header">
+          <div class="boot-sk-bar" style="width: 120px; height: 20px"></div>
+          <div class="boot-sk-avatar" style="width: 32px; height: 32px"></div>
+        </div>
+
+        <div class="boot-sk-main">
+          <div class="boot-sk-titlebar">
+            <div class="boot-sk-bar" style="width: 220px; height: 26px"></div>
+            <div class="boot-sk-bar" style="width: 320px; height: 14px"></div>
+          </div>
+
+          <div class="boot-sk-row1">
+            <div class="boot-sk-metrics-col">
+              <div class="boot-sk-card">
+                <div class="boot-sk-card-header">
+                  <div class="boot-sk-bar" style="width: 28px; height: 28px; border-radius: 4px"></div>
+                  <div class="boot-sk-bar" style="width: 96px; height: 14px"></div>
+                </div>
+                <div class="boot-sk-card-body">
+                  <div class="boot-sk-bar" style="width: 56px; height: 36px"></div>
+                  <div class="boot-sk-bar" style="width: 64px; height: 14px"></div>
+                </div>
+              </div>
+              <div class="boot-sk-card">
+                <div class="boot-sk-card-header">
+                  <div class="boot-sk-bar" style="width: 28px; height: 28px; border-radius: 4px"></div>
+                  <div class="boot-sk-bar" style="width: 96px; height: 14px"></div>
+                </div>
+                <div class="boot-sk-card-body">
+                  <div class="boot-sk-bar" style="width: 56px; height: 36px"></div>
+                  <div class="boot-sk-bar" style="width: 64px; height: 14px"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="boot-sk-card">
+              <div class="boot-sk-card-header">
+                <div class="boot-sk-bar" style="width: 28px; height: 28px; border-radius: 4px"></div>
+                <div class="boot-sk-bar" style="width: 140px; height: 14px"></div>
+              </div>
+              <div class="boot-sk-directory-row">
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <div class="boot-sk-avatar" style="width: 32px; height: 32px"></div>
+                  <div class="boot-sk-bar" style="width: 120px; height: 14px"></div>
+                </div>
+                <div class="boot-sk-bar" style="width: 64px; height: 18px; border-radius: 9999px"></div>
+              </div>
+              <div class="boot-sk-directory-row">
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <div class="boot-sk-avatar" style="width: 32px; height: 32px"></div>
+                  <div class="boot-sk-bar" style="width: 120px; height: 14px"></div>
+                </div>
+                <div class="boot-sk-bar" style="width: 64px; height: 18px; border-radius: 9999px"></div>
+              </div>
+              <div class="boot-sk-directory-row">
+                <div style="display: flex; align-items: center; gap: 12px">
+                  <div class="boot-sk-avatar" style="width: 32px; height: 32px"></div>
+                  <div class="boot-sk-bar" style="width: 120px; height: 14px"></div>
+                </div>
+                <div class="boot-sk-bar" style="width: 64px; height: 18px; border-radius: 9999px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="boot-sk-table">
+            <div class="boot-sk-row">
+              <div class="boot-sk-bar" style="width: 15%; height: 14px"></div>
+              <div class="boot-sk-bar" style="width: 20%; height: 14px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 14px"></div>
+              <div class="boot-sk-bar" style="width: 25%; height: 14px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 14px"></div>
+            </div>
+            <div class="boot-sk-row">
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 20%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 25%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+            </div>
+            <div class="boot-sk-row">
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 20%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 25%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+            </div>
+            <div class="boot-sk-row">
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 20%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 25%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+            </div>
+            <div class="boot-sk-row">
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 20%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 25%; height: 16px"></div>
+              <div class="boot-sk-bar" style="width: 15%; height: 16px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

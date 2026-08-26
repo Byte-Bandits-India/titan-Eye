@@ -8,12 +8,14 @@ import { AvailableStoresBody } from '../../screens/admin/components/AvailableSto
 import { OptometristUsersInfiniteBody } from '../../screens/optometrist/components/OptometristUsersInfiniteBody';
 import { ActiveCountBadge } from './ActiveCountBadge';
 import { CardFrame } from './CardFrame';
+import { DirectoryListSkeleton } from './DirectoryListSkeleton';
 
 export type AvailableView = 'optometrists' | 'stores';
 
 export interface AvailableDirectoryCardProps {
   className?: string;
   defaultView?: AvailableView;
+  isLoading?: boolean;
   optometristData: OptometristUserRow[];
   storeData: OptometristUserRow[];
 }
@@ -21,6 +23,7 @@ export interface AvailableDirectoryCardProps {
 export function AvailableDirectoryCard({
   className,
   defaultView = 'optometrists',
+  isLoading,
   optometristData,
   storeData,
 }: AvailableDirectoryCardProps) {
@@ -72,7 +75,9 @@ export function AvailableDirectoryCard({
         <ActiveCountBadge count={activeCount} />
       </div>
 
-      {view === 'optometrists' ? (
+      {isLoading ? (
+        <DirectoryListSkeleton />
+      ) : view === 'optometrists' ? (
         <OptometristUsersInfiniteBody data={optometristData} />
       ) : (
         <AvailableStoresBody data={storeData} />

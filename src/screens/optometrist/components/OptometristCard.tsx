@@ -26,6 +26,7 @@ type IncomingRequestsVariant = {
   currentPage?: number;
   data: Customer[];
   dateRange: DateFilterRange;
+  isLoading?: boolean;
   isSyncing?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage?: () => void;
@@ -48,23 +49,31 @@ type IncomingRequestsVariant = {
 };
 
 type MetricsVariant = {
+  isLoading?: boolean;
   tabCounts: TabCounts;
   variant: 'metrics';
 };
 
 type OptometristUsersVariant = {
   data: OptometristUserRow[];
+  isLoading?: boolean;
   storeData?: OptometristUserRow[];
   variant: 'optometrist-users';
 };
 
 export function OptometristCard(props: OptometristCardProps) {
   if (props.variant === 'metrics') {
-    return <MetricCardGrid tabCounts={props.tabCounts} />;
+    return <MetricCardGrid isLoading={props.isLoading} tabCounts={props.tabCounts} />;
   }
 
   if (props.variant === 'optometrist-users') {
-    return <AvailableDirectoryCard optometristData={props.data} storeData={props.storeData ?? []} />;
+    return (
+      <AvailableDirectoryCard
+        isLoading={props.isLoading}
+        optometristData={props.data}
+        storeData={props.storeData ?? []}
+      />
+    );
   }
 
   const {
@@ -72,6 +81,7 @@ export function OptometristCard(props: OptometristCardProps) {
     currentPage,
     data,
     dateRange,
+    isLoading,
     isSyncing,
     onDateRangeChange,
     onNextPage,
@@ -130,6 +140,7 @@ export function OptometristCard(props: OptometristCardProps) {
       <IncomingRequestsBody
         columns={columns}
         currentPage={currentPage}
+        isLoading={isLoading}
         onNextPage={onNextPage}
         onPageSizeChange={onPageSizeChange}
         onPrevPage={onPrevPage}

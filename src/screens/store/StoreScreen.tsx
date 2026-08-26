@@ -43,8 +43,13 @@ import { StoreUpdateStatusPage } from './StoreUpdateStatusPage';
 export function StoreScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
+  const customersLoading = useAppSelector((state) => state.customers.loading);
   const users = useAppSelector((state) => state.users.users);
+  const usersLoading = useAppSelector((state) => state.users.loading);
   const dispatch = useAppDispatch();
+
+  const isInitialCustomersLoading = customersLoading && customers.length === 0;
+  const isInitialUsersLoading = usersLoading && users.length === 0;
 
   const isTabletShortcut = React.useMemo(
     () => new URLSearchParams(window.location.search).get('src') === 'tablet-shortcut',
@@ -863,6 +868,7 @@ export function StoreScreen() {
       data={paginatedCustomers}
       dateRange={customerDateRange}
       hideStatusTabs={hideStatusTabs}
+      isLoading={isInitialCustomersLoading}
       onConversionStatusFilterChange={(val) => {
         setConversionStatusFilter(val);
         resetPage();
@@ -933,7 +939,12 @@ export function StoreScreen() {
         </main>
       ) : isTabletShortcut ? (
         <main className="mx-auto w-full max-w-[1400px] flex-1 space-y-4 px-3 py-4 sm:space-y-5 sm:px-6 sm:py-6 md:px-8">
-          <StoreCard isTabletMode={true} tabCounts={tabCounts} variant="metrics" />
+          <StoreCard
+            isLoading={isInitialCustomersLoading}
+            isTabletMode={true}
+            tabCounts={tabCounts}
+            variant="metrics"
+          />
           <div className="flex flex-col justify-between gap-3 pt-1 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-[26px] font-semibold leading-tight text-foreground sm:text-[28px]">
@@ -962,7 +973,11 @@ export function StoreScreen() {
           </div>
 
           <div className="w-full">
-            <StoreCard data={optometristUsersWithStatus} variant="optometrist-users" />
+            <StoreCard
+              data={optometristUsersWithStatus}
+              isLoading={isInitialUsersLoading}
+              variant="optometrist-users"
+            />
           </div>
 
           {renderRecentCustomersCard()}
@@ -995,8 +1010,12 @@ export function StoreScreen() {
           </div>
 
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-            <StoreCard tabCounts={tabCounts} variant="metrics" />
-            <StoreCard data={optometristUsersWithStatus} variant="optometrist-users" />
+            <StoreCard isLoading={isInitialCustomersLoading} tabCounts={tabCounts} variant="metrics" />
+            <StoreCard
+              data={optometristUsersWithStatus}
+              isLoading={isInitialUsersLoading}
+              variant="optometrist-users"
+            />
           </div>
 
           {renderRecentCustomersCard()}

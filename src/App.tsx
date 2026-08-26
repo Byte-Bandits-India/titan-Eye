@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { NotificationLogProvider } from './components/ui/notificationLog';
 import { ToastProvider, useToast } from './components/ui/toast';
+import { useBrowserNotifications } from './hooks/useBrowserNotifications';
 import { usePresenceHeartbeat } from './hooks/usePresenceHeartbeat';
 import { useSSE } from './hooks/useSSE';
 import { authCheckFailed, loginSuccess } from './Reducers/authReducer';
@@ -67,6 +68,23 @@ function SSEBridge() {
   return null;
 }
 
+function NotificationPermissionPrompt() {
+  const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
+  const { isSupported, permission, requestPermission } = useBrowserNotifications();
+  const requestedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isSupported || permission !== 'default' || requestedRef.current) {
+      return;
+    }
+
+    requestedRef.current = true;
+    requestPermission();
+  }, [isAuthenticated, isSupported, permission, requestPermission]);
+
+  return null;
+}
+
 function PresenceBridge() {
   usePresenceHeartbeat();
 
@@ -95,6 +113,7 @@ export default function App() {
           <SSEBridge />
           <PresenceBridge />
           <SessionGuard />
+          <NotificationPermissionPrompt />
           <div className="flex min-h-screen flex-col font-sans antialiased">
             <RouterProvider router={router} />
           </div>

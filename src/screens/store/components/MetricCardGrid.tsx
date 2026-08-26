@@ -3,13 +3,29 @@ import { CheckCircle2, Clock, FlaskConical, Users2 } from 'lucide-react';
 import type { TabCounts } from '../../../types';
 
 import { MetricCard } from '../../../components/shared/MetricCard';
+import { MetricCardSkeleton } from '../../../components/shared/MetricCardSkeleton';
 
 type MetricCardGridProps = {
+  isLoading?: boolean;
   isTabletMode?: boolean;
   tabCounts: TabCounts;
 };
 
-export function MetricCardGrid({ isTabletMode, tabCounts }: MetricCardGridProps) {
+export function MetricCardGrid({ isLoading, isTabletMode, tabCounts }: MetricCardGridProps) {
+  const gridClassName = isTabletMode
+    ? 'grid w-full grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4'
+    : 'grid w-full grid-cols-2 gap-4';
+
+  if (isLoading) {
+    return (
+      <div className={gridClassName}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <MetricCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   const cards = [
     {
       icon: Clock,
@@ -38,13 +54,7 @@ export function MetricCardGrid({ isTabletMode, tabCounts }: MetricCardGridProps)
   ] as const;
 
   return (
-    <div
-      className={
-        isTabletMode
-          ? 'grid w-full grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4'
-          : 'grid w-full grid-cols-2 gap-4'
-      }
-    >
+    <div className={gridClassName}>
       {cards.map((card) => (
         <MetricCard key={card.label} {...card} />
       ))}
