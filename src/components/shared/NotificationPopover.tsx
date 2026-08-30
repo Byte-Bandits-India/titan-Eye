@@ -67,6 +67,8 @@ export function NotificationPopover({
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const wantsPlayingRef = React.useRef(false);
   const genericAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const registrationAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const registrationStopTimeoutRef = React.useRef<null | ReturnType<typeof setTimeout>>(null);
 
   React.useEffect(() => {
     const handleStartOptometristCall = (e: Event) => {
@@ -120,6 +122,45 @@ export function NotificationPopover({
       console.warn('Notification sound playback error:', e);
     });
   }, []);
+
+  const stopRegistrationRingtone = React.useCallback(() => {
+    if (registrationStopTimeoutRef.current) {
+      clearTimeout(registrationStopTimeoutRef.current);
+      registrationStopTimeoutRef.current = null;
+    }
+
+    if (registrationAudioRef.current) {
+      registrationAudioRef.current.pause();
+      registrationAudioRef.current.currentTime = 0;
+    }
+  }, []);
+
+  const playRegistrationRingtone = React.useCallback(() => {
+    if (registrationStopTimeoutRef.current) {
+      clearTimeout(registrationStopTimeoutRef.current);
+      registrationStopTimeoutRef.current = null;
+    }
+
+    if (!registrationAudioRef.current) {
+      registrationAudioRef.current = new Audio('/call-Notification.mp3');
+      registrationAudioRef.current.loop = true;
+    }
+
+    const el = registrationAudioRef.current;
+
+    el.currentTime = 0;
+    el.play().catch((e) => {
+      console.warn('Registration ringtone playback error:', e);
+    });
+
+    registrationStopTimeoutRef.current = setTimeout(() => {
+      el.pause();
+      el.currentTime = 0;
+      registrationStopTimeoutRef.current = null;
+    }, 5000);
+  }, []);
+
+  React.useEffect(() => stopRegistrationRingtone, [stopRegistrationRingtone]);
 
   React.useEffect(() => {
     if (user?.role !== 'optometrist' && user?.role !== 'senior_optometrist') {
@@ -379,10 +420,19 @@ export function NotificationPopover({
     const hasNewNotification = newIds.length > 0;
 
     if (hasNewNotification && currentIds.length > 0) {
-      const hasNewNonCallNotification = nonCallNotificationIds.some((id) => !prevIds.has(id));
+      const newNonCallIds = nonCallNotificationIds.filter((id) => !prevIds.has(id));
+      const hasNewNonCallNotification = newNonCallIds.length > 0;
 
       if (hasNewNonCallNotification && !isMuted) {
-        playGenericNotificationSound();
+        const hasNewRegistration = newNonCallIds.some(
+          (id) => logNotifications.find((n) => n.id === id)?.type === 'patient_registered'
+        );
+
+        if (hasNewRegistration && user?.role === 'senior_optometrist') {
+          playRegistrationRingtone();
+        } else {
+          playGenericNotificationSound();
+        }
       }
 
       newIds.forEach((id) => {
@@ -403,6 +453,9 @@ export function NotificationPopover({
     autoOpen,
     isMuted,
     playGenericNotificationSound,
+    playRegistrationRingtone,
+    logNotifications,
+    user?.role,
   ]);
 
   React.useEffect(() => {
@@ -550,6 +603,7 @@ export function NotificationPopover({
 
           if (next) {
             stopAudio();
+            stopRegistrationRingtone();
           }
 
           return next;

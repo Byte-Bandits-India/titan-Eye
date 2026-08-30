@@ -14,6 +14,7 @@ import { PaginationBar } from '../../../components/shared/PaginationBar';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { usePagination } from '../../../hooks/usePagination';
 import { cn } from '../../../lib/utils';
+import { rankStoreAvailability } from '../../../utils/optometristStatusBadge';
 
 type AvailableStoresBodyProps = {
   data: OptometristUserRow[];
@@ -22,8 +23,13 @@ type AvailableStoresBodyProps = {
 export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
   const [pageSize, setPageSize] = React.useState<number>(5);
 
+  const sortedData = React.useMemo(
+    () => [...data].sort((a, b) => rankStoreAvailability(a) - rankStoreAvailability(b)),
+    [data]
+  );
+
   const { currentPage, nextPage, paginatedItems, prevPage, resetPage, totalItems, totalPages } =
-    usePagination(data, pageSize);
+    usePagination(sortedData, pageSize);
 
   const handlePageSizeChange = React.useCallback(
     (newSize: number) => {

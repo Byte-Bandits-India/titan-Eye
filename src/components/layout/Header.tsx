@@ -339,7 +339,7 @@ export function Header({
             </button>
           )}
 
-          {user.role === 'optometrist' && (
+          {(user.role === 'optometrist' || user.role === 'senior_optometrist') && (
             <button
               className="flex cursor-pointer items-center gap-1.5 rounded-md bg-[#4f46e5] px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#4338ca]"
               onClick={handleOpenTeamViewer}

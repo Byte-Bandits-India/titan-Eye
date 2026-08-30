@@ -46,13 +46,18 @@ function SummaryRow({
   );
 }
 
-function formatTestConductedOn(customer: Customer | null): string {
+function getTestConductedOnMs(customer: Customer | null): number {
   if (!customer) {
-    return '';
+    return 0;
   }
 
   const raw = customer.optometristCallStartTime || customer.callStartTime || customer.lastUpdatedOn;
-  const ms = parseTimestamp(raw);
+
+  return parseTimestamp(raw);
+}
+
+function formatTestConductedOn(customer: Customer | null): string {
+  const ms = getTestConductedOnMs(customer);
 
   if (!ms) {
     return '';
@@ -66,6 +71,16 @@ function formatTestConductedOn(customer: Customer | null): string {
     month: 'short',
     year: 'numeric',
   });
+}
+
+function toDateInputValue(ms: number): string {
+  const d = new Date(ms);
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
 }
 
 function getStorePrefix(customer: Customer | null, user: null | { name: string; storeName?: null | string }) {
@@ -85,6 +100,9 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
   const storePrefix = getStorePrefix(selectedCustomer, user);
+  const testConductedOnMs = getTestConductedOnMs(selectedCustomer);
+  const minOrderDate = testConductedOnMs ? toDateInputValue(testConductedOnMs) : undefined;
+  const [maxOrderDate] = React.useState(() => toDateInputValue(Date.now()));
 
   const buildFormState = React.useCallback(
     (customer: Customer | null) => {
@@ -150,6 +168,10 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
 
       if (!form.orderDate.trim()) {
         newErrors.orderDate = 'Order date is required';
+      } else if (form.orderDate > maxOrderDate) {
+        newErrors.orderDate = 'Order date cannot be in the future';
+      } else if (minOrderDate && form.orderDate < minOrderDate) {
+        newErrors.orderDate = 'Order date cannot be before the test conducted date';
       }
     } else {
       if (!form.nonConversionReason) {
@@ -336,6 +358,8 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-muted-foreground">Order Date *</label>
                     <Input
+                      max={maxOrderDate}
+                      min={minOrderDate}
                       onChange={(e) => setField('orderDate')(e.target.value)}
                       type="date"
                       value={form.orderDate}

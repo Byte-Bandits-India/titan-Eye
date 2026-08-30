@@ -15,3 +15,7 @@ export function rankAvailability(row: OptometristUserRow): number {
 export function getOptometristStatusBadge(row: OptometristUserRow): { classes: string; label: string } {
   return { classes: row.avail.badgeClass, label: row.avail.statusLabel };
 }
+
+export function rankStoreAvailability(row: OptometristUserRow): number {
+  return row.avail.statusLabel === 'Offline' ? 1 : 0;
+}
