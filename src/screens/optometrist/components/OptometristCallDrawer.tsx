@@ -58,7 +58,7 @@ const REGEX_BY_FIELD: Partial<Record<keyof OptometristRxValues, RegExp>> = {
   sph: SPH_REGEX,
 };
 
-export function OptometristCallDrawer({
+export const OptometristCallDrawer = React.memo(function OptometristCallDrawer({
   customer,
   minimized,
   onClose,
@@ -79,6 +79,12 @@ export function OptometristCallDrawer({
   const [callActive, setCallActive] = React.useState(false);
   const [isStartingCall, setIsStartingCall] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+
+  const callActiveRef = React.useRef(callActive);
+  React.useEffect(() => { callActiveRef.current = callActive; }, [callActive]);
+
+  const callSessionRef = React.useRef(callSession);
+  React.useEffect(() => { callSessionRef.current = callSession; }, [callSession]);
 
   const handleEmbeddedCallClose = React.useCallback(() => setCallActive(false), []);
 
@@ -104,24 +110,27 @@ export function OptometristCallDrawer({
   };
 
   const endCallIfActive = React.useCallback(async () => {
-    if (!callActive || !callSession) {
+    const active = callActiveRef.current;
+    const session = callSessionRef.current;
+
+    if (!active || !session) {
       return;
     }
 
     setCallActive(false);
 
     try {
-      await apiClient.post('/calls/end', { customerId: callSession.customerId });
+      await apiClient.post('/calls/end', { customerId: session.customerId });
     } catch (err) {
       console.error('[OptometristCallDrawer] Failed to send /calls/end request:', err);
     }
 
     try {
-      await apiClient.post(`/customers/${encodeURIComponent(callSession.customerId)}/end-call`);
+      await apiClient.post(`/customers/${encodeURIComponent(session.customerId)}/end-call`);
     } catch (err) {
       console.error('[OptometristCallDrawer] Failed to update customer end-call state:', err);
     }
-  }, [callActive, callSession]);
+  }, []);
 
   const handleMinimize = async () => {
     await endCallIfActive();
@@ -210,27 +219,80 @@ export function OptometristCallDrawer({
     }
   };
 
+interface OptometristRxCellProps {
+  eye: 'le' | 're';
+  field: keyof OptometristRxValues;
+  hasError: boolean;
+  onChange: (eye: 'le' | 're', field: keyof OptometristRxValues, val: string) => void;
+  options?: string[];
+  value: string;
+}
+
+const OptometristRxCell = React.memo(function OptometristRxCell({
+  eye,
+  field,
+  hasError,
+  onChange,
+  options,
+  value,
+}: OptometristRxCellProps) {
+  const handleChange = React.useCallback(
+    (val: string) => {
+      onChange(eye, field, val);
+    },
+    [eye, field, onChange]
+  );
+
+  const handleInputChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(eye, field, e.target.value);
+    },
+    [eye, field, onChange]
+  );
+
+  if (!options) {
+    return (
+      <Input
+        className={hasError ? 'border-rose-400 text-center text-sm' : 'text-center text-sm'}
+        onChange={handleInputChange}
+        value={value}
+      />
+    );
+  }
+
+  return (
+    <RxScrollPicker
+      defaultValue={MANDATORY_FIELDS.has(field) ? '____' : '0.00'}
+      hasError={hasError}
+      onChange={handleChange}
+      options={options}
+      value={value}
+    />
+  );
+});
+
+  const handleSetRxField = React.useCallback(
+    (eye: 'le' | 're', field: keyof OptometristRxValues, val: string) => {
+      if (eye === 're') {
+        setRe((prev) => ({ ...prev, [field]: val }));
+      } else {
+        setLe((prev) => ({ ...prev, [field]: val }));
+      }
+    },
+    []
+  );
+
   const renderValueCell = (eye: 'le' | 're', field: keyof OptometristRxValues) => {
     const data = eye === 're' ? re : le;
-    const setData = eye === 're' ? setRe : setLe;
     const options = OPTIONS_BY_FIELD[field];
     const hasError = !!rxErrors[`${eye}.${field}`];
 
-    if (!options) {
-      return (
-        <Input
-          className={hasError ? 'border-rose-400 text-center text-sm' : 'text-center text-sm'}
-          onChange={(e) => setData({ ...data, [field]: e.target.value })}
-          value={data[field]}
-        />
-      );
-    }
-
     return (
-      <RxScrollPicker
-        defaultValue={MANDATORY_FIELDS.has(field) ? '____' : '0.00'}
+      <OptometristRxCell
+        eye={eye}
+        field={field}
         hasError={hasError}
-        onChange={(val) => setData({ ...data, [field]: val })}
+        onChange={handleSetRxField}
         options={options}
         value={data[field]}
       />
@@ -359,4 +421,10 @@ export function OptometristCallDrawer({
       </SheetContent>
     </Sheet>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.customer.id === nextProps.customer.id &&
+  prevProps.customer.lastUpdatedOn === nextProps.customer.lastUpdatedOn &&
+  prevProps.customer.callActive === nextProps.customer.callActive &&
+  prevProps.minimized === nextProps.minimized
+);

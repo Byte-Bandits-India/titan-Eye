@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { RefObject } from 'react';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { useCountUp } from 'react-countup';
 
 import { cn } from '../../lib/utils';
@@ -15,7 +15,7 @@ export type MetricCardConfig = {
   value: number;
 };
 
-export function MetricCard({
+export const MetricCard = memo(function MetricCard({
   icon: Icon,
   iconGradient,
   label,
@@ -48,7 +48,12 @@ export function MetricCard({
       </div>
     </div>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.label === nextProps.label &&
+  prevProps.value === nextProps.value &&
+  prevProps.iconGradient === nextProps.iconGradient
+);
 
 function MetricCountUp({ className, value }: { className?: string; value: number }) {
   const ref = useRef<HTMLSpanElement>(null);

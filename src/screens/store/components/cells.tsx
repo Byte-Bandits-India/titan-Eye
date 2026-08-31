@@ -55,7 +55,7 @@ export function renderWaitingDuration(cust: Customer, now: number) {
   return <span className="text-sm font-normal text-foreground">{formatDurationLong(elapsedMs)}</span>;
 }
 
-export function WaitingCell({ cust }: { cust: Customer }) {
+export const WaitingCell = React.memo(function WaitingCell({ cust }: { cust: Customer }) {
   const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
@@ -74,4 +74,11 @@ export function WaitingCell({ cust }: { cust: Customer }) {
   }, [cust.optometristCallStartTime, cust.status]);
 
   return renderWaitingDuration(cust, now);
-}
+},
+(prev, next) =>
+  prev.cust.id === next.cust.id &&
+  prev.cust.status === next.cust.status &&
+  prev.cust.createdOn === next.cust.createdOn &&
+  prev.cust.optometristCallStartTime === next.cust.optometristCallStartTime &&
+  prev.cust.lastUpdatedOn === next.cust.lastUpdatedOn
+);

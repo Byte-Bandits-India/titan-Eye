@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CheckCircle2, Clock, FlaskConical, Users2 } from 'lucide-react';
 
 import type { TabCounts } from '../../../types';
@@ -11,7 +12,7 @@ type MetricCardGridProps = {
   tabCounts: TabCounts;
 };
 
-export function MetricCardGrid({ isLoading, isTabletMode, tabCounts }: MetricCardGridProps) {
+export const MetricCardGrid = memo(function MetricCardGrid({ isLoading, isTabletMode, tabCounts }: MetricCardGridProps) {
   const gridClassName = isTabletMode
     ? 'grid w-full grid-cols-2 gap-3 sm:grid-cols-4 md:gap-4'
     : 'grid w-full grid-cols-2 gap-4';
@@ -60,4 +61,13 @@ export function MetricCardGrid({ isLoading, isTabletMode, tabCounts }: MetricCar
       ))}
     </div>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.isLoading === nextProps.isLoading &&
+  prevProps.isTabletMode === nextProps.isTabletMode &&
+  prevProps.tabCounts.all === nextProps.tabCounts.all &&
+  prevProps.tabCounts.pending === nextProps.tabCounts.pending &&
+  prevProps.tabCounts.inProgress === nextProps.tabCounts.inProgress &&
+  prevProps.tabCounts.completed === nextProps.tabCounts.completed
+);
+

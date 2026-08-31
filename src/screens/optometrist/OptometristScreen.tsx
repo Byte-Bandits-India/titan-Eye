@@ -8,7 +8,6 @@ import type {
   Customer,
   ManagedVideo,
   OptometristUserRow,
-  SSEEventDetail,
   StatusTab,
 } from '../../types';
 
@@ -78,12 +77,16 @@ const getQueueStatusLabel = (status: Customer['status']): string => {
   return status;
 };
 
-export function OptometristScreen() {
+export const OptometristScreen = React.memo(function OptometristScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
-  const customersLoading = useAppSelector((state) => state.customers.loading);
   const users = useAppSelector((state) => state.users.users);
-  const usersLoading = useAppSelector((state) => state.users.loading);
+  const isInitialCustomersLoading = useAppSelector(
+    (state) => state.customers.loading && state.customers.customers.length === 0
+  );
+  const isInitialUsersLoading = useAppSelector(
+    (state) => state.users.loading && state.users.users.length === 0
+  );
   const dispatch = useAppDispatch();
 
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0484');
@@ -111,33 +114,17 @@ export function OptometristScreen() {
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
     dispatch(fetchUsersAction());
-
-    const handleSseEvent = (e: Event) => {
-      const customEv = e as CustomEvent<SSEEventDetail>;
-      const type = customEv.detail?.type;
-
-      if (
-        type === 'CUSTOMER_CREATED' ||
-        type === 'CUSTOMER_UPDATED' ||
-        type === 'USER_CREATED' ||
-        type === 'USER_UPDATED' ||
-        type === 'USER_DELETED' ||
-        type === 'USER_STATUS_CHANGE'
-      ) {
-        dispatch(fetchCustomersAction());
-        dispatch(fetchUsersAction());
-      }
-    };
-
-    window.addEventListener('titan:sse_event', handleSseEvent);
-
-    return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [dispatch]);
+
+  const customersRef = React.useRef(customers);
+  React.useEffect(() => {
+    customersRef.current = customers;
+  }, [customers]);
 
   const handleCloseCall = React.useCallback(
     async (customerId: string) => {
       try {
-        const customer = customers.find((c) => c.id === customerId);
+        const customer = customersRef.current.find((c) => c.id === customerId);
 
         if (customer && customer.status === 'Initiated') {
           const timestamp = new Date().toLocaleString('en-US', {
@@ -163,13 +150,13 @@ export function OptometristScreen() {
         console.error('Failed to close call:', e);
       }
     },
-    [customers, dispatch]
+    [dispatch]
   );
 
   React.useEffect(() => {
     const checkTimeout = () => {
       const now = Date.now();
-      customers.forEach((cust) => {
+      customersRef.current.forEach((cust) => {
         if (cust.status === 'Initiated' && (cust.callStartTime || cust.lastUpdatedOn)) {
           const startTimeStr = cust.callStartTime || cust.lastUpdatedOn;
           let startMs = parseInt(startTimeStr!, 10);
@@ -189,7 +176,7 @@ export function OptometristScreen() {
     const interval = setInterval(checkTimeout, 5000);
 
     return () => clearInterval(interval);
-  }, [customers, handleCloseCall]);
+  }, [handleCloseCall]);
 
   const selectedCustomer = React.useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -216,6 +203,10 @@ export function OptometristScreen() {
       }) ?? null
     );
   }, [customers, user]);
+  const activeCallTakenByMeRef = React.useRef(activeCallTakenByMe);
+  React.useEffect(() => {
+    activeCallTakenByMeRef.current = activeCallTakenByMe;
+  }, [activeCallTakenByMe]);
 
   const dateFilteredCustomers = React.useMemo(
     () =>
@@ -295,7 +286,6 @@ export function OptometristScreen() {
 
   React.useEffect(() => {
     if (isSeniorOptometrist && activeTab === 'videos') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       void fetchVideos();
     }
   }, [isSeniorOptometrist, activeTab, fetchVideos]);
@@ -384,6 +374,10 @@ export function OptometristScreen() {
 
     return map;
   }, [dateFilteredCustomers]);
+  const pendingPriorityMapRef = React.useRef(pendingPriorityMap);
+  React.useEffect(() => {
+    pendingPriorityMapRef.current = pendingPriorityMap;
+  }, [pendingPriorityMap]);
 
   const filteredRequests = React.useMemo(() => {
     const byStatus = dateFilteredCustomers.filter((c) => {
@@ -572,9 +566,6 @@ export function OptometristScreen() {
     totalPages,
   } = usePagination(filteredRequests, pageSize);
 
-  const isInitialCustomersLoading = customersLoading && customers.length === 0;
-  const isInitialUsersLoading = usersLoading && users.length === 0;
-
   const handleToggleColumn = React.useCallback((columnId: string) => {
     setColumnVisibility((prev) => ({
       ...prev,
@@ -737,7 +728,7 @@ export function OptometristScreen() {
       },
       {
         cell: ({ row }) => {
-          const info = pendingPriorityMap.get(row.original.id);
+          const info = pendingPriorityMapRef.current.get(row.original.id);
 
           if (!info) {
             return <span className="text-sm text-muted-foreground">—</span>;
@@ -809,7 +800,7 @@ export function OptometristScreen() {
       {
         cell: ({ row }) => (
           <OptometristActionsCell
-            activeCallTakenByMe={activeCallTakenByMe}
+            activeCallTakenByMe={activeCallTakenByMeRef.current}
             onSelectCustomer={setSelectedCustomerId}
             onSetEditing={setIsEditing}
             req={row.original}
@@ -839,7 +830,7 @@ export function OptometristScreen() {
     }
 
     return allColumns.filter((col) => col.id !== 'priority' && col.id !== 'status');
-  }, [user, activeCallTakenByMe, pendingPriorityMap, statusTab]);
+  }, [user, statusTab]);
 
   const requestsTable = useTable({
     columns: requestColumns,
@@ -855,25 +846,64 @@ export function OptometristScreen() {
     },
   });
 
+  const handleSelectCustomerFromNotification = React.useCallback(
+    (customerId: string) => {
+      const cust = customers.find((c) => c.id === customerId);
+
+      if (isSeniorOptometrist && cust && hasCustomerFeedback(cust) && cust.status !== 'Initiated') {
+        setActiveTab('feedback');
+        setFeedbackSearchTerm(cust.name || cust.id);
+        setIsEditing(false);
+
+        return;
+      }
+
+      setActiveTab('queue');
+      setSelectedCustomerId(customerId);
+      setIsEditing(true);
+    },
+    [customers, isSeniorOptometrist]
+  );
+
+  const handlePageSizeChange = React.useCallback(
+    (newSize: number) => {
+      setPageSize(newSize);
+      resetPage();
+    },
+    [resetPage]
+  );
+
+  const handleStatusTabChange = React.useCallback(
+    (tab: StatusTab) => {
+      setStatusTab(tab);
+      resetPage();
+    },
+    [resetPage]
+  );
+
+  const handlePatientDetailsBack = React.useCallback(() => {
+    setIsEditing(false);
+  }, []);
+
+  const handleFeedbackPageSizeChange = React.useCallback(
+    (size: number) => {
+      setFeedbackPageSize(size);
+      feedbackResetPage();
+    },
+    [feedbackResetPage]
+  );
+
+  const handleResetFeedbackColumns = React.useCallback(() => {
+    setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS);
+  }, []);
+
+  const handleToggleFeedbackColumn = React.useCallback((id: string) => {
+    setVisibleFeedbackCols((prev) => (prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]));
+  }, []);
+
   if (!user) {
     return null;
   }
-
-  const handleSelectCustomerFromNotification = (customerId: string) => {
-    const cust = customers.find((c) => c.id === customerId);
-
-    if (isSeniorOptometrist && cust && hasCustomerFeedback(cust) && cust.status !== 'Initiated') {
-      setActiveTab('feedback');
-      setFeedbackSearchTerm(cust.name || cust.id);
-      setIsEditing(false);
-
-      return;
-    }
-
-    setActiveTab('queue');
-    setSelectedCustomerId(customerId);
-    setIsEditing(true);
-  };
 
   const pageTitle =
     !isSeniorOptometrist || activeTab === 'queue'
@@ -899,7 +929,7 @@ export function OptometristScreen() {
       {isEditing ? (
         <OptometristPatientDetails
           activeCallTakenByMe={activeCallTakenByMe}
-          onBack={() => setIsEditing(false)}
+          onBack={handlePatientDetailsBack}
           readOnly={statusTab === 'all'}
           selectedCustomer={selectedCustomer}
         />
@@ -927,7 +957,11 @@ export function OptometristScreen() {
 
           {(!isSeniorOptometrist || activeTab !== 'videos') && (
             <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-              <OptometristCard isLoading={isInitialCustomersLoading} tabCounts={tabCounts} variant="metrics" />
+              <OptometristCard
+                isLoading={isInitialCustomersLoading}
+                tabCounts={tabCounts}
+                variant="metrics"
+              />
               <AvailableDirectoryCard
                 isLoading={isInitialUsersLoading}
                 optometristData={optometristUsersWithStatus}
@@ -945,17 +979,11 @@ export function OptometristScreen() {
               isLoading={isInitialCustomersLoading}
               onDateRangeChange={setDateRange}
               onNextPage={nextPage}
-              onPageSizeChange={(newSize) => {
-                setPageSize(newSize);
-                resetPage();
-              }}
+              onPageSizeChange={handlePageSizeChange}
               onPrevPage={prevPage}
               onResetColumns={handleResetColumns}
               onSearchChange={setSearchTerm}
-              onStatusTabChange={(tab) => {
-                setStatusTab(tab);
-                resetPage();
-              }}
+              onStatusTabChange={handleStatusTabChange}
               onToggleColumn={handleToggleColumn}
               pageSize={pageSize}
               requestsTable={requestsTable}
@@ -975,18 +1003,11 @@ export function OptometristScreen() {
               isLoading={isInitialCustomersLoading}
               onDateRangeChange={setDateRange}
               onNextPage={feedbackNextPage}
-              onPageSizeChange={(size) => {
-                setFeedbackPageSize(size);
-                feedbackResetPage();
-              }}
+              onPageSizeChange={handleFeedbackPageSizeChange}
               onPrevPage={feedbackPrevPage}
-              onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
+              onResetColumns={handleResetFeedbackColumns}
               onSearchChange={setFeedbackSearchTerm}
-              onToggleColumn={(id) =>
-                setVisibleFeedbackCols((prev) =>
-                  prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]
-                )
-              }
+              onToggleColumn={handleToggleFeedbackColumn}
               pageSize={feedbackPageSize}
               paginatedCustomers={paginatedFeedbackCustomers}
               searchTerm={feedbackSearchTerm}
@@ -1007,4 +1028,4 @@ export function OptometristScreen() {
       )}
     </AppLayout>
   );
-}
+});

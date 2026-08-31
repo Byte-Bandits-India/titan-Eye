@@ -14,7 +14,7 @@ type OptometristUsersInfiniteBodyProps = {
 const PAGE_SIZE = 5;
 const SCROLL_THRESHOLD_PX = 60;
 
-export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteBodyProps) {
+export const OptometristUsersInfiniteBody = React.memo(function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteBodyProps) {
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
 
   const sortedData = React.useMemo(
@@ -112,8 +112,36 @@ export function OptometristUsersInfiniteBody({ data }: OptometristUsersInfiniteB
             )}
           </tbody>
         </table>
-        {hasMore && <div className="py-3 text-center text-[10px] text-muted-foreground">Loading more…</div>}
       </div>
     </div>
   );
+},
+(prevProps, nextProps) => {
+  if (prevProps.data === nextProps.data) {
+    return true;
+  }
+
+  if (prevProps.data.length !== nextProps.data.length) {
+    return false;
+  }
+
+  return prevProps.data.every((row, i) => {
+    const nextRow = nextProps.data[i];
+
+    if (!nextRow) {
+      return false;
+    }
+
+    return (
+      row.email === nextRow.email &&
+      row.name === nextRow.name &&
+      row.avail.statusLabel === nextRow.avail.statusLabel &&
+      row.activeCall?.id === nextRow.activeCall?.id &&
+      row.activeCall?.callActive === nextRow.activeCall?.callActive &&
+      row.activeCall?.callStartTime === nextRow.activeCall?.callStartTime &&
+      row.activeCall?.optometristCallStartTime === nextRow.activeCall?.optometristCallStartTime &&
+      row.activeCall?.callDuration === nextRow.activeCall?.callDuration
+    );
+  });
 }
+);

@@ -39,7 +39,27 @@ const customerSlice = createSlice({
     },
     fetchSuccess(state, action: PayloadAction<Customer[]>) {
       state.loading = false;
-      state.customers = action.payload;
+
+      const incoming = action.payload;
+      const existing = state.customers;
+
+      // Skip update when data is unchanged to preserve reference identity
+      if (
+        incoming.length === existing.length &&
+        incoming.every(
+          (c, i) =>
+            existing[i] &&
+            c.id === existing[i].id &&
+            c.status === existing[i].status &&
+            c.lastUpdatedOn === existing[i].lastUpdatedOn &&
+            c.callActive === existing[i].callActive &&
+            c.conversionStatus === existing[i].conversionStatus
+        )
+      ) {
+        return;
+      }
+
+      state.customers = incoming;
     },
   },
 });

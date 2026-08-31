@@ -36,9 +36,9 @@ import { VideoUploadDialog } from './components/VideoUploadDialog';
 export function SuperAdminScreen() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const users = useAppSelector((state) => state.users.users);
-  const usersLoading = useAppSelector((state) => state.users.loading);
+  const isInitialUsersLoading = useAppSelector((state) => state.users.loading && state.users.users.length === 0);
   const customers = useAppSelector((state) => state.customers.customers);
-  const customersLoading = useAppSelector((state) => state.customers.loading);
+  const isInitialCustomersLoading = useAppSelector((state) => state.customers.loading && state.customers.customers.length === 0);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
@@ -71,13 +71,21 @@ export function SuperAdminScreen() {
     setSearchTerm('');
   }
 
-  const handleToggleUserCol = (id: string) => {
+  const handleToggleUserCol = React.useCallback((id: string) => {
     setVisibleUserCols((prev) => (prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]));
-  };
+  }, []);
 
-  const handleToggleFeedbackCol = (id: string) => {
+  const handleToggleFeedbackCol = React.useCallback((id: string) => {
     setVisibleFeedbackCols((prev) => (prev.includes(id) ? prev.filter((col) => col !== id) : [...prev, id]));
-  };
+  }, []);
+
+  const handleResetUserCols = React.useCallback(() => {
+    setVisibleUserCols(DEFAULT_USER_COLUMNS);
+  }, []);
+
+  const handleResetFeedbackCols = React.useCallback(() => {
+    setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS);
+  }, []);
 
   // ── Users data & pagination ──────────────────────────────────────────
   const dateFilteredUsers = React.useMemo(() => filterUsersByDate(users, dateRange), [users, dateRange]);
@@ -275,122 +283,150 @@ export function SuperAdminScreen() {
   );
   const totalStores = React.useMemo(() => users.filter((u) => u.role === 'store').length, [users]);
 
-  const isInitialUsersLoading = usersLoading && users.length === 0;
-  const isInitialCustomersLoading = customersLoading && customers.length === 0;
-
-  // ── User management form handlers ─────────────────────────────────────
-  const closeForm = () => {
+  const closeForm = React.useCallback(() => {
     setIsFormOpen(false);
     setEditingEmail(null);
-  };
+  }, []);
 
-  const handleAddNewClick = () => {
+  const handleAddNewClick = React.useCallback(() => {
     setEditingEmail(null);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleEditClick = (u: ManagedUser) => {
+  const handleEditClick = React.useCallback((u: ManagedUser) => {
     setEditingEmail(u.email);
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleSubmitUser = async (formData: UserFormData, isEdit: boolean) => {
-    const isOptomLike = formData.role === 'optometrist' || formData.role === 'senior_optometrist';
+  const handleUploadClick = React.useCallback(() => {
+    setIsUploadDialogOpen(true);
+  }, []);
 
-    if (isEdit && editingEmail) {
-      await dispatch(
-        updateUserAction(editingEmail, {
-          city: formData.role === 'store' ? formData.city || undefined : undefined,
-          languages: isOptomLike ? formData.languages : undefined,
-          location: formData.role === 'store' ? formData.location || undefined : undefined,
-          mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
-          name: isOptomLike ? formData.name || undefined : undefined,
-          password: formData.password || undefined,
-          role: formData.role,
-          storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
-        })
-      );
-      toast({
-        description: `${formData.email} has been saved.`,
-        title: 'User Updated',
-        type: 'success',
-      });
-    } else {
-      await dispatch(
-        createUserAction({
-          city: formData.role === 'store' ? formData.city || undefined : undefined,
-          email: formData.email,
-          languages: isOptomLike ? formData.languages : undefined,
-          location: formData.role === 'store' ? formData.location || undefined : undefined,
-          mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
-          name: isOptomLike ? formData.name || undefined : undefined,
-          password: formData.password,
-          role: formData.role,
-          storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
-        })
-      );
-      toast({
-        description: `${formData.email} has been added.`,
-        title: 'User Created',
-        type: 'success',
-      });
-    }
+  const handleUserPageSizeChange = React.useCallback(
+    (size: number) => {
+      setUserPageSize(size);
+      userResetPage();
+    },
+    [userResetPage]
+  );
 
-    closeForm();
-  };
+  const handleFeedbackPageSizeChange = React.useCallback(
+    (size: number) => {
+      setFeedbackPageSize(size);
+      feedbackResetPage();
+    },
+    [feedbackResetPage]
+  );
 
-  const handleToggleStatus = async (email: string, currentStatus: 'active' | 'inactive') => {
-    const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+  const handleSubmitUser = React.useCallback(
+    async (formData: UserFormData, isEdit: boolean) => {
+      const isOptomLike = formData.role === 'optometrist' || formData.role === 'senior_optometrist';
 
-    try {
-      await dispatch(toggleUserStatusAction(email, nextStatus));
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      toast({
-        description: err.message,
-        title: 'Failed to Update Status',
-        type: 'error',
-      });
-    }
-  };
-
-  const handleDeleteUser = async (u: ManagedUser) => {
-    if (!window.confirm(`Delete ${u.name || u.email}? This cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await dispatch(deleteUserAction(u.email));
-      toast({
-        description: `${u.name || u.email} has been removed.`,
-        title: 'User Deleted',
-        type: 'success',
-      });
-
-      if (editingEmail === u.email) {
-        closeForm();
+      if (isEdit && editingEmail) {
+        await dispatch(
+          updateUserAction(editingEmail, {
+            city: formData.role === 'store' ? formData.city || undefined : undefined,
+            languages: isOptomLike ? formData.languages : undefined,
+            location: formData.role === 'store' ? formData.location || undefined : undefined,
+            mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
+            name: isOptomLike ? formData.name || undefined : undefined,
+            password: formData.password || undefined,
+            role: formData.role,
+            storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
+          })
+        );
+        toast({
+          description: `${formData.email} has been saved.`,
+          title: 'User Updated',
+          type: 'success',
+        });
+      } else {
+        await dispatch(
+          createUserAction({
+            city: formData.role === 'store' ? formData.city || undefined : undefined,
+            email: formData.email,
+            languages: isOptomLike ? formData.languages : undefined,
+            location: formData.role === 'store' ? formData.location || undefined : undefined,
+            mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
+            name: isOptomLike ? formData.name || undefined : undefined,
+            password: formData.password,
+            role: formData.role,
+            storeName: formData.role === 'store' ? formData.storeName || undefined : undefined,
+          })
+        );
+        toast({
+          description: `${formData.email} has been added.`,
+          title: 'User Created',
+          type: 'success',
+        });
       }
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      toast({
-        description: err.message,
-        title: 'Failed to Delete User',
-        type: 'error',
-      });
-    }
-  };
 
-  const handleSelectCustomerFromNotification = (customerId: string) => {
-    const cust = customers.find((c) => c.id === customerId);
+      closeForm();
+    },
+    [closeForm, dispatch, editingEmail, toast]
+  );
 
-    if (cust && hasCustomerFeedback(cust)) {
-      setActiveTab('feedback');
-      setSearchTerm(cust.name || cust.id);
-    } else {
-      setActiveTab('customers');
-      setSearchTerm(customerId);
-    }
-  };
+  const handleToggleStatus = React.useCallback(
+    async (email: string, currentStatus: 'active' | 'inactive') => {
+      const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+      try {
+        await dispatch(toggleUserStatusAction(email, nextStatus));
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        toast({
+          description: err.message,
+          title: 'Failed to Update Status',
+          type: 'error',
+        });
+      }
+    },
+    [dispatch, toast]
+  );
+
+  const handleDeleteUser = React.useCallback(
+    async (u: ManagedUser) => {
+      if (!window.confirm(`Delete ${u.name || u.email}? This cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        await dispatch(deleteUserAction(u.email));
+        toast({
+          description: `${u.name || u.email} has been removed.`,
+          title: 'User Deleted',
+          type: 'success',
+        });
+
+        if (editingEmail === u.email) {
+          closeForm();
+        }
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        toast({
+          description: err.message,
+          title: 'Failed to Delete User',
+          type: 'error',
+        });
+      }
+    },
+    [closeForm, dispatch, editingEmail, toast]
+  );
+
+  const handleSelectCustomerFromNotification = React.useCallback(
+    (customerId: string) => {
+      const cust = customers.find((c) => c.id === customerId);
+
+      if (cust && hasCustomerFeedback(cust)) {
+        setActiveTab('feedback');
+        setSearchTerm(cust.name || cust.id);
+      } else {
+        setActiveTab('customers');
+        setSearchTerm(customerId);
+      }
+    },
+    [customers]
+  );
 
   return (
     <AppLayout
@@ -481,12 +517,9 @@ export function SuperAdminScreen() {
             onDelete={handleDeleteUser}
             onEdit={handleEditClick}
             onNextPage={userNextPage}
-            onPageSizeChange={(size) => {
-              setUserPageSize(size);
-              userResetPage();
-            }}
+            onPageSizeChange={handleUserPageSizeChange}
             onPrevPage={userPrevPage}
-            onResetColumns={() => setVisibleUserCols(DEFAULT_USER_COLUMNS)}
+            onResetColumns={handleResetUserCols}
             onSearchChange={setSearchTerm}
             onToggleColumn={handleToggleUserCol}
             onToggleStatus={handleToggleStatus}
@@ -507,12 +540,9 @@ export function SuperAdminScreen() {
             isLoading={isInitialCustomersLoading}
             onDateRangeChange={setDateRange}
             onNextPage={feedbackNextPage}
-            onPageSizeChange={(size) => {
-              setFeedbackPageSize(size);
-              feedbackResetPage();
-            }}
+            onPageSizeChange={handleFeedbackPageSizeChange}
             onPrevPage={feedbackPrevPage}
-            onResetColumns={() => setVisibleFeedbackCols(DEFAULT_FEEDBACK_COLUMNS)}
+            onResetColumns={handleResetFeedbackCols}
             onSearchChange={setSearchTerm}
             onToggleColumn={handleToggleFeedbackCol}
             pageSize={feedbackPageSize}
@@ -527,7 +557,7 @@ export function SuperAdminScreen() {
           <VideoDirectoryBody
             onDelete={handleDeleteVideo}
             onSetTvModeVideo={handleSetTvModeVideo}
-            onUploadClick={() => setIsUploadDialogOpen(true)}
+            onUploadClick={handleUploadClick}
             tvModeVideoId={tvModeVideoId}
             videos={videos}
           />

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Customer } from '../../../types';
 
 import { Button } from '../../../components/ui/button';
@@ -10,7 +11,7 @@ export type DeleteCustomerDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function DeleteCustomerDialog({
+export const DeleteCustomerDialog = memo(function DeleteCustomerDialog({
   customer,
   isSubmitting,
   onConfirm,
@@ -38,4 +39,15 @@ export function DeleteCustomerDialog({
       </DialogContent>
     </Dialog>
   );
+},
+(prevProps, nextProps) => {
+  if (!prevProps.customer && !nextProps.customer) {
+    return prevProps.isSubmitting === nextProps.isSubmitting;
+  }
+
+  return (
+    prevProps.customer?.id === nextProps.customer?.id &&
+    prevProps.isSubmitting === nextProps.isSubmitting
+  );
 }
+);

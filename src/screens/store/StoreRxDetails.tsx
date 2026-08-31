@@ -35,7 +35,53 @@ import {
 } from '../../options/Option';
 import { useAppDispatch } from '../../store';
 
-export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps) {
+interface RxPickerCellProps {
+  field: keyof RxValues;
+  hasErr: boolean;
+  onChange: (row: 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe', field: keyof RxValues, val: string) => void;
+  optionsList: string[];
+  row: 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
+  value: string;
+}
+
+const RxPickerCell = React.memo(function RxPickerCell({
+  field,
+  hasErr,
+  onChange,
+  optionsList,
+  row,
+  value,
+}: RxPickerCellProps) {
+  const handleChange = React.useCallback(
+    (val: string) => {
+      onChange(row, field, val);
+    },
+    [row, field, onChange]
+  );
+
+  const defaultValue =
+    (row === 'autoRefRe' || row === 'autoRefLe') &&
+    (field === 'sph' || field === 'cyl' || field === 'axis' || field === 'pd')
+      ? '____'
+      : field === 'prism' || field === 'base'
+        ? '0'
+        : '0.00';
+
+  return (
+    <RxScrollPicker
+      defaultValue={defaultValue}
+      hasError={hasErr}
+      onChange={handleChange}
+      options={optionsList}
+      value={value}
+    />
+  );
+});
+
+export const StoreRxDetails = React.memo(function StoreRxDetails({
+  onBack,
+  selectedCustomer,
+}: StoreRxDetailsProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
@@ -91,28 +137,29 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
     }
   }
 
-  const setRxField = (
-    row: 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe',
-    field: keyof RxValues,
-    val: string
-  ) => {
-    const cleanVal = field === 'base' ? val : val.replace(/[a-zA-Z]/g, '');
-    setRxForm((prev) => ({
-      ...prev,
-      [row]: { ...prev[row], [field]: cleanVal },
-    }));
+  const setRxField = React.useCallback(
+    (row: 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe', field: keyof RxValues, val: string) => {
+      const cleanVal = field === 'base' ? val : val.replace(/[a-zA-Z]/g, '');
+      setRxForm((prev) => ({
+        ...prev,
+        [row]: { ...prev[row], [field]: cleanVal },
+      }));
 
-    const key = `${row}.${field}`;
+      const key = `${row}.${field}`;
 
-    if (rxErrors[key]) {
       setRxErrors((prev) => {
+        if (!prev[key]) {
+          return prev;
+        }
+
         const next = { ...prev };
         delete next[key];
 
         return next;
       });
-    }
-  };
+    },
+    []
+  );
 
   const getMissingRequiredAutoRefFields = (): { keys: string[]; labels: string[] } => {
     const requiredFields: { field: 'axis' | 'cyl' | 'pd' | 'sph'; label: string }[] = [
@@ -398,18 +445,12 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
                             )}
                             key={field}
                           >
-                            <RxScrollPicker
-                              defaultValue={
-                                (row === 'autoRefRe' || row === 'autoRefLe') &&
-                                (field === 'sph' || field === 'cyl' || field === 'axis' || field === 'pd')
-                                  ? '____'
-                                  : field === 'prism' || field === 'base'
-                                    ? '0'
-                                    : '0.00'
-                              }
-                              hasError={hasErr}
-                              onChange={(val) => setRxField(row, field, val)}
-                              options={optionsList}
+                            <RxPickerCell
+                              field={field}
+                              hasErr={hasErr}
+                              onChange={setRxField}
+                              optionsList={optionsList}
+                              row={row}
                               value={rxForm[row][field] || ''}
                             />
                           </TableCell>
@@ -528,4 +569,11 @@ export function StoreRxDetails({ onBack, selectedCustomer }: StoreRxDetailsProps
       </CardFrame>
     </main>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.selectedCustomer?.id === nextProps.selectedCustomer?.id &&
+  prevProps.selectedCustomer?.status === nextProps.selectedCustomer?.status &&
+  prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
+  prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
+  prevProps.selectedCustomer?.name === nextProps.selectedCustomer?.name
+);

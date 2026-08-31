@@ -17,8 +17,7 @@ import * as React from 'react';
 
 import type { CallSessionPayload, LogNotificationType, NotificationPopoverProps } from '../../types';
 
-import { fetchCustomersAction, initiateCallAction, rejectCallAction } from '../../Actions/customerActions';
-import { fetchUsersAction } from '../../Actions/userActions';
+import { initiateCallAction, rejectCallAction } from '../../Actions/customerActions';
 import { useBrowserNotifications } from '../../hooks/useBrowserNotifications';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { hasCustomerFeedback } from '../../utils/customerFeedback';
@@ -44,7 +43,7 @@ const LOG_ICONS: Record<LogNotificationType, React.ComponentType<{ className?: s
   store_notified_admin: AlertTriangle,
 };
 
-export function NotificationPopover({
+export const NotificationPopover = React.memo(function NotificationPopover({
   autoOpen = true,
   onSelectCustomer,
   showTrigger = true,
@@ -203,26 +202,16 @@ export function NotificationPopover({
   const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
+    if (!open) {
+      return;
+    }
+
     const timer = setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  React.useEffect(() => {
-    dispatch(fetchCustomersAction());
-    dispatch(fetchUsersAction());
-
-    const handleSseEvent = () => {
-      dispatch(fetchCustomersAction());
-      dispatch(fetchUsersAction());
-    };
-
-    window.addEventListener('titan:sse_event', handleSseEvent);
-
-    return () => window.removeEventListener('titan:sse_event', handleSseEvent);
-  }, [dispatch]);
+  }, [open]);
 
   const isTakenByOptometristUser = React.useCallback(
     (callTakenBy?: null | string) => {
@@ -593,34 +582,33 @@ export function NotificationPopover({
 
   const unreadCount = notifications.length + logNotifications.length;
 
-  const muteButton =
-    (user?.role === 'optometrist' || user?.role === 'senior_optometrist') &&
+  const muteButton = (user?.role === 'optometrist' || user?.role === 'senior_optometrist') &&
     unreadCount > 0 && (
-    <Button
-      className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-      onClick={() => {
-        setIsMuted((prev) => {
-          const next = !prev;
+      <Button
+        className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        onClick={() => {
+          setIsMuted((prev) => {
+            const next = !prev;
 
-          if (next) {
-            stopAudio();
-            stopRegistrationRingtone();
-          }
+            if (next) {
+              stopAudio();
+              stopRegistrationRingtone();
+            }
 
-          return next;
-        });
-      }}
-      size="icon"
-      title={isMuted ? 'Unmute chime' : 'Mute chime'}
-      variant="ghost"
-    >
-      {isMuted ? (
-        <VolumeX className="h-4 w-4 text-rose-500" />
-      ) : (
-        <Volume2 className="h-4 w-4 text-emerald-600" />
-      )}
-    </Button>
-  );
+            return next;
+          });
+        }}
+        size="icon"
+        title={isMuted ? 'Unmute chime' : 'Mute chime'}
+        variant="ghost"
+      >
+        {isMuted ? (
+          <VolumeX className="h-4 w-4 text-rose-500" />
+        ) : (
+          <Volume2 className="h-4 w-4 text-emerald-600" />
+        )}
+      </Button>
+    );
 
   type UnifiedNotificationItem =
     | {
@@ -1105,7 +1093,7 @@ export function NotificationPopover({
       {callSession && <TeamsCallModal onClose={handleCallModalClose} session={callSession} />}
     </>
   );
-}
+});
 
 function parseTimestamp(val: null | number | string | undefined): number {
   if (!val) {

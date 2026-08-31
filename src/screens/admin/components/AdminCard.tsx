@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { MessageSquare, Stethoscope, Store, Users2 } from 'lucide-react';
 
 import type {
@@ -91,7 +92,7 @@ type UserManagementVariant = {
   visibleColumns: string[];
 };
 
-export function AdminCard(props: AdminCardProps) {
+export const AdminCard = memo(function AdminCard(props: AdminCardProps) {
   if (props.variant === 'metrics') {
     return <MetricCardGrid isLoading={props.isLoading} tabCounts={props.tabCounts} />;
   }
@@ -261,4 +262,4 @@ export function AdminCard(props: AdminCardProps) {
   }
 
   return null;
-}
+});

@@ -51,8 +51,6 @@ export function useSSE(): void {
         if (type === 'CUSTOMER_CREATED') {
           const cust = eventData as Customer;
           dispatch(customerCreated(cust));
-          dispatch(fetchCustomersAction());
-          dispatch(fetchUsersAction());
 
           const currentUser = userRef.current;
 
@@ -64,13 +62,8 @@ export function useSSE(): void {
               type: 'patient_registered',
             });
           }
-
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'CUSTOMER_UPDATED') {
           dispatch(customerUpdated(eventData as Customer));
-          dispatch(fetchCustomersAction());
-          dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: eventData, type } }));
         } else if (type === 'CUSTOMER_DELETED') {
           const { id } = eventData as { id: string };
           dispatch(customerDeleted(id));
@@ -127,7 +120,6 @@ export function useSSE(): void {
         ) {
           dispatch(fetchCustomersAction());
           dispatch(fetchUsersAction());
-          window.dispatchEvent(new CustomEvent('titan:sse_event', { detail: { data: parsed.data, type } }));
         } else if (type === 'TVMODE_VIDEO_CHANGED') {
           window.dispatchEvent(new CustomEvent('titan:tvmode_video_changed', { detail: eventData }));
         } else if (type === 'CALL_SESSION_READY' || type === 'CALL_SESSION_ENDED') {

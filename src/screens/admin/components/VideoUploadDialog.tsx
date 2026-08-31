@@ -23,154 +23,143 @@ export type VideoUploadDialogProps = {
   open: boolean;
 };
 
-export function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, open }: VideoUploadDialogProps) {
-  const [title, setTitle] = React.useState('');
+export const VideoUploadDialog = React.memo(
+  function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, open }: VideoUploadDialogProps) {
+    const [title, setTitle] = React.useState('');
 
-  const [
-    { files, isDragging, errors },
-    {
-      removeFile,
-      clearFiles,
-      handleDragEnter,
-      handleDragLeave,
-      handleDragOver,
-      handleDrop,
-      openFileDialog,
-      getInputProps,
-    },
-  ] = useFileUpload({
-    accept: 'video/*',
-    maxSize: MAX_VIDEO_SIZE,
-    multiple: false,
-  });
+    const [
+      { files, isDragging, errors },
+      {
+        removeFile,
+        clearFiles,
+        handleDragEnter,
+        handleDragLeave,
+        handleDragOver,
+        handleDrop,
+        openFileDialog,
+        getInputProps,
+      },
+    ] = useFileUpload({
+      accept: 'video/*',
+      maxSize: MAX_VIDEO_SIZE,
+      multiple: false,
+    });
 
-  const selectedFileEntry = files[0];
-  const selectedFile = selectedFileEntry?.file instanceof File ? selectedFileEntry.file : null;
+    const selectedFileEntry = files[0];
+    const selectedFile = selectedFileEntry?.file instanceof File ? selectedFileEntry.file : null;
 
-  const resetState = () => {
-    setTitle('');
-    clearFiles();
-  };
+    const resetState = () => {
+      setTitle('');
+      clearFiles();
+    };
 
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
+    const handleOpenChange = (nextOpen: boolean) => {
+      if (!nextOpen) {
+        resetState();
+      }
+
+      onOpenChange(nextOpen);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!selectedFile || !title.trim()) {
+        return;
+      }
+
+      await onUploadFile(selectedFile, title.trim());
       resetState();
-    }
+    };
 
-    onOpenChange(nextOpen);
-  };
+    return (
+      <Dialog onOpenChange={handleOpenChange} open={open}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload TV Mode Video</DialogTitle>
+          </DialogHeader>
 
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      return;
-    }
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Video Title</label>
+              <Input
+                disabled={isUploading}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Titan Eye+ Promotional Video 2024"
+                value={title}
+              />
+            </div>
 
-    await onUploadFile(selectedFile, title.trim() || selectedFile.name);
-    resetState();
-  };
-
-  return (
-    <Dialog onOpenChange={handleOpenChange} open={open}>
-      <DialogContent className="w-full max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold text-foreground">Add Video</DialogTitle>
-        </DialogHeader>
-
-        <div className="w-full min-w-0 space-y-4 py-1">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Video Title</label>
-            <Input
-              className="w-full"
-              disabled={isUploading}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Video title (optional, defaults to file name)"
-              value={title}
-            />
-          </div>
-
-          <div
-            className={cn(
-              'relative w-full overflow-hidden rounded-xl border-2 border-dashed p-6 text-center transition-colors',
-              isDragging
-                ? 'border-purple-500 bg-purple-50/50 dark:border-purple-400 dark:bg-purple-950/20'
-                : 'border-border bg-slate-50/50 hover:border-slate-400 dark:bg-zinc-900/30'
-            )}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            <input {...getInputProps()} className="sr-only" disabled={isUploading} />
-
-            {selectedFile ? (
-              <div className="flex w-full min-w-0 items-center justify-between gap-3 text-left">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
-                    <FilmIcon size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground" title={selectedFile.name}>
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatBytes(selectedFile.size)}</p>
-                  </div>
-                </div>
-                <Button
-                  className="h-8 w-8 shrink-0 rounded-lg p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  disabled={isUploading}
-                  onClick={() => selectedFileEntry && removeFile(selectedFileEntry.id)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <XIcon size={16} />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400">
-                  <UploadIcon size={20} />
-                </div>
-                <p className="text-sm font-medium text-foreground">Drag and drop a video here</p>
-                <p className="text-xs text-muted-foreground">MP4, WebM, MOV supported (up to 1GB)</p>
-                <Button
-                  className="mt-2 h-8 px-4 text-xs font-medium"
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Video File (MP4, WebM, etc.)</label>
+              {!selectedFile ? (
+                <div
+                  className={cn(
+                    'flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors',
+                    isDragging
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-muted/30 hover:border-muted-foreground/50 hover:bg-muted/50'
+                  )}
                   onClick={openFileDialog}
-                  size="sm"
-                  type="button"
-                  variant="secondary"
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
                 >
-                  Browse Files
-                </Button>
-              </div>
-            )}
-          </div>
+                  <input {...getInputProps()} />
+                  <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <UploadIcon size={18} />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">Click to upload or drag and drop</p>
+                  <p className="mt-1 text-sm text-muted-foreground">MP4, WebM, OGG up to 1GB</p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between rounded-xl border border-border bg-card p-3 shadow-xs">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300">
+                      <FilmIcon size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{selectedFile.name}</p>
+                      <p className="text-sm text-muted-foreground">{formatBytes(selectedFile.size)}</p>
+                    </div>
+                  </div>
 
-          {errors.length > 0 && <p className="text-xs font-medium text-red-500">{errors[0]}</p>}
-        </div>
+                  <Button
+                    disabled={isUploading}
+                    onClick={() => selectedFileEntry && removeFile(selectedFileEntry.id)}
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <XIcon size={16} />
+                  </Button>
+                </div>
+              )}
 
-        <DialogFooter className="mt-4 border-t border-border pt-3">
-          <Button
-            className="h-9 px-4 text-sm font-medium"
-            disabled={isUploading}
-            onClick={() => handleOpenChange(false)}
-            type="button"
-            variant="secondary"
-          >
-            Cancel
-          </Button>
-          <Button
-            className="h-9 gap-2 px-5 text-sm font-medium shadow-sm"
-            disabled={!selectedFile || isUploading}
-            onClick={handleSubmit}
-            type="button"
-            variant="primary"
-          >
-            {isUploading && <Spinner className="size-4" />}
-            {isUploading ? 'Uploading…' : 'Upload Video'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
+              {errors.length > 0 && <p className="text-sm text-destructive">{errors[0]}</p>}
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button disabled={isUploading} onClick={() => handleOpenChange(false)} type="button" variant="secondary">
+                Cancel
+              </Button>
+              <Button
+                className="gap-2"
+                disabled={!selectedFile || !title.trim() || isUploading}
+                type="submit"
+                variant="primary"
+              >
+                {isUploading && <Spinner className="size-4" />}
+                {isUploading ? 'Uploading...' : 'Upload Video'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    );
+  },
+  (prev, next) =>
+    prev.open === next.open &&
+    prev.isUploading === next.isUploading
+);

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Table } from '@tanstack/react-table';
 
 import type { ColumnOption, Customer, StatusTab, TabCounts } from '../../../types';
@@ -34,7 +35,7 @@ type RecentCustomersBodyProps = {
   visibleColumns?: string[];
 };
 
-export function RecentCustomersBody({
+export const RecentCustomersBody = memo(function RecentCustomersBody({
   columns,
   currentPage = 1,
   customersTable,
@@ -54,6 +55,7 @@ export function RecentCustomersBody({
   tabCounts,
   totalItems = 0,
   totalPages = 1,
+  visibleColumns,
 }: RecentCustomersBodyProps) {
   return (
     <>
@@ -105,8 +107,27 @@ export function RecentCustomersBody({
           onToggleColumn={onToggleColumn}
           totalItems={totalItems}
           totalPages={totalPages}
+          visibleColumns={visibleColumns}
         />
       )}
     </>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.statusTab === nextProps.statusTab &&
+  prevProps.isLoading === nextProps.isLoading &&
+  prevProps.currentPage === nextProps.currentPage &&
+  prevProps.pageSize === nextProps.pageSize &&
+  prevProps.totalItems === nextProps.totalItems &&
+  prevProps.totalPages === nextProps.totalPages &&
+  prevProps.pendingLabel === nextProps.pendingLabel &&
+  prevProps.hideStatusTabs === nextProps.hideStatusTabs &&
+  prevProps.onlyPendingAndAll === nextProps.onlyPendingAndAll &&
+  prevProps.paginatedCustomers === nextProps.paginatedCustomers &&
+  prevProps.customersTable === nextProps.customersTable &&
+  prevProps.visibleColumns === nextProps.visibleColumns &&
+  prevProps.tabCounts.all === nextProps.tabCounts.all &&
+  prevProps.tabCounts.pending === nextProps.tabCounts.pending &&
+  prevProps.tabCounts.inProgress === nextProps.tabCounts.inProgress &&
+  prevProps.tabCounts.completed === nextProps.tabCounts.completed
+);

@@ -6,7 +6,7 @@ import type { PaginationBarProps } from '../../types';
 import { Button } from '../ui/button';
 import { ColumnVisibilityDropdown } from './ColumnVisibilityDropdown';
 
-export function PaginationBar({
+export const PaginationBar = React.memo(function PaginationBar({
   columns,
   currentPage,
   itemsPerPage,
@@ -110,7 +110,7 @@ export function PaginationBar({
       </div>
     </div>
   );
-}
+});
 
 function CustomPerPageInput({
   initialValue,

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ChevronDown, RotateCcw, SlidersHorizontal } from 'lucide-react';
 
 import type { ColumnOption } from '../../types';
@@ -21,7 +22,7 @@ export interface ColumnVisibilityDropdownProps {
   visibleColumns: string[];
 }
 
-export function ColumnVisibilityDropdown({
+export const ColumnVisibilityDropdown = memo(function ColumnVisibilityDropdown({
   className,
   columns,
   onResetColumns,
@@ -110,4 +111,4 @@ export function ColumnVisibilityDropdown({
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+});

@@ -20,7 +20,8 @@ type AvailableStoresBodyProps = {
   data: OptometristUserRow[];
 };
 
-export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
+export const AvailableStoresBody = React.memo(
+  function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
   const [pageSize, setPageSize] = React.useState<number>(5);
 
   const sortedData = React.useMemo(
@@ -133,4 +134,6 @@ export function AvailableStoresBody({ data }: AvailableStoresBodyProps) {
       />
     </div>
   );
-}
+  },
+  (prevProps, nextProps) => prevProps.data === nextProps.data
+);

@@ -34,8 +34,13 @@ export function NotificationLogProvider({ children }: { children: React.ReactNod
     setLogNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
+  const value = React.useMemo(
+    () => ({ addLogNotification, dismissLogNotification, logNotifications }),
+    [addLogNotification, dismissLogNotification, logNotifications]
+  );
+
   return (
-    <NotificationLogContext.Provider value={{ addLogNotification, dismissLogNotification, logNotifications }}>
+    <NotificationLogContext.Provider value={value}>
       {children}
     </NotificationLogContext.Provider>
   );

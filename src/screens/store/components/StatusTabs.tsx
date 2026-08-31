@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { StatusTab, TabCounts } from '../../../types';
 
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
@@ -11,7 +12,7 @@ type StatusTabsProps = {
   value: StatusTab;
 };
 
-export function StatusTabs({
+export const StatusTabs = memo(function StatusTabs({
   hideCompleted,
   onlyPendingAndAll,
   onValueChange,
@@ -51,4 +52,13 @@ export function StatusTabs({
       </TabsList>
     </Tabs>
   );
-}
+}, (prev, next) => (
+  prev.value === next.value &&
+  prev.hideCompleted === next.hideCompleted &&
+  prev.onlyPendingAndAll === next.onlyPendingAndAll &&
+  prev.pendingLabel === next.pendingLabel &&
+  prev.tabCounts?.pending === next.tabCounts?.pending &&
+  prev.tabCounts?.inProgress === next.tabCounts?.inProgress &&
+  prev.tabCounts?.completed === next.tabCounts?.completed &&
+  prev.tabCounts?.all === next.tabCounts?.all
+));

@@ -16,6 +16,7 @@ import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
 import feedbackRouter from './routes/feedback.js';
 import ssoAuthRouter from './routes/ssoAuth.js';
+import reactScanLogRouter from './routes/reactScanLog.js';
 import systemRouter from './routes/system.js';
 import usersRouter from './routes/users.js';
 import videosRouter from './routes/videos.js';
@@ -304,6 +305,7 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
 app.use('/api', payloadEncryptionMiddleware);
 
 app.use('/api/login', authLimiter);
+app.use('/api/react-scan', reactScanLogRouter);
 app.use('/api', authRouter);
 app.use('/api/auth/microsoft', authLimiter, ssoAuthRouter);
 app.post('/api/customers', customerCreateLimiter);

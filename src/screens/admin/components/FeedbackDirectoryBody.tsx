@@ -26,117 +26,137 @@ const EMPTY_MESSAGE = (
   </div>
 );
 
-export function FeedbackDirectoryBody({
-  currentPage,
-  onNextPage,
-  onPageSizeChange,
-  onPrevPage,
-  pageSize,
-  paginatedCustomers,
-  totalItems,
-  totalPages,
-  visibleColumns,
-}: FeedbackDirectoryBodyProps) {
-  const columns = React.useMemo<DataTableColumn<Customer>[]>(
-    () => [
-      {
-        cellClassName: 'font-mono text-sm font-medium text-slate-600 dark:text-slate-400',
-        headerClassName: 'w-28 text-sm font-semibold   text-muted-foreground',
-        id: 'id',
-        label: 'Patient ID',
-        render: (cust) => cust.id,
-      },
-      {
-        headerClassName: 'w-44 text-sm font-semibold   text-muted-foreground',
-        id: 'name',
-        label: 'Name',
-        render: (cust) => (
-          <>
-            <div className="text-sm font-medium text-foreground sm:text-sm">{cust.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {cust.age} yrs • {cust.gender}
-            </div>
-          </>
-        ),
-      },
-      {
-        headerClassName: 'w-36 text-sm font-semibold   text-muted-foreground',
-        id: 'storeName',
-        label: 'Store Code',
-        render: (cust) => (
-          <Badge
-            className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            variant="outline"
-          >
-            {cust.storeName}
-          </Badge>
-        ),
-      },
-      {
-        cellClassName: 'font-mono text-sm text-slate-600 dark:text-slate-400',
-        headerClassName: 'w-90 text-sm font-semibold   text-muted-foreground',
-        id: 'storeContactEmail',
-        label: 'Store Email',
-        render: (cust) => cust.storeContactEmail || '—',
-      },
-      {
-        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
-        id: 'feedbackEase',
-        label: 'Test Ease',
-        render: (cust) => cust.feedbackEase || '—',
-      },
-      {
-        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
-        id: 'feedbackExperience',
-        label: 'Experience',
-        render: (cust) => cust.feedbackExperience || '—',
-      },
-      {
-        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
-        id: 'feedbackRecommend',
-        label: 'Would Recommend',
-        render: (cust) => cust.feedbackRecommend || '—',
-      },
-      {
-        cellClassName: 'text-right text-sm text-muted-foreground',
-        headerClassName: 'w-32 text-right text-sm font-semibold   text-muted-foreground',
-        id: 'lastUpdated',
-        label: 'Date',
-        render: (cust) =>
-          cust.lastUpdatedOn
-            ? new Date(cust.lastUpdatedOn).toLocaleDateString(undefined, {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })
-            : '—',
-      },
-    ],
-    []
-  );
+export const FeedbackDirectoryBody = React.memo(
+  function FeedbackDirectoryBody({
+    currentPage,
+    onNextPage,
+    onPageSizeChange,
+    onPrevPage,
+    pageSize,
+    paginatedCustomers,
+    totalItems,
+    totalPages,
+    visibleColumns,
+  }: FeedbackDirectoryBodyProps) {
+    const columns = React.useMemo<DataTableColumn<Customer>[]>(
+      () => [
+        {
+          cellClassName: 'font-mono text-sm font-medium text-slate-600 dark:text-slate-400',
+          headerClassName: 'w-28 text-sm font-semibold   text-muted-foreground',
+          id: 'id',
+          label: 'Patient ID',
+          render: (cust) => cust.id,
+        },
+        {
+          headerClassName: 'w-44 text-sm font-semibold   text-muted-foreground',
+          id: 'name',
+          label: 'Name',
+          render: (cust) => (
+            <>
+              <div className="text-sm font-medium text-foreground sm:text-sm">{cust.name}</div>
+              <div className="text-sm text-muted-foreground">
+                {cust.age} yrs • {cust.gender}
+              </div>
+            </>
+          ),
+        },
+        {
+          headerClassName: 'w-36 text-sm font-semibold   text-muted-foreground',
+          id: 'storeName',
+          label: 'Store Code',
+          render: (cust) => (
+            <Badge
+              className="bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              variant="outline"
+            >
+              {cust.storeName}
+            </Badge>
+          ),
+        },
+        {
+          cellClassName: 'font-mono text-sm text-slate-600 dark:text-slate-400',
+          headerClassName: 'w-90 text-sm font-semibold   text-muted-foreground',
+          id: 'storeContactEmail',
+          label: 'Store Email',
+          render: (cust) => cust.storeContactEmail || '—',
+        },
+        {
+          headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+          id: 'feedbackEase',
+          label: 'Test Ease',
+          render: (cust) => cust.feedbackEase || '—',
+        },
+        {
+          headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+          id: 'feedbackExperience',
+          label: 'Experience',
+          render: (cust) => cust.feedbackExperience || '—',
+        },
+        {
+          headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+          id: 'feedbackRecommend',
+          label: 'Would Recommend',
+          render: (cust) => cust.feedbackRecommend || '—',
+        },
+        {
+          cellClassName: 'whitespace-nowrap text-sm text-slate-600 dark:text-slate-400',
+          headerClassName: 'w-64 text-sm font-semibold   text-muted-foreground',
+          id: 'patientFeedback',
+          label: 'Patient Remarks',
+          render: (cust) => (
+            <span className="truncate" title={cust.patientFeedback || undefined}>
+              {cust.patientFeedback || '—'}
+            </span>
+          ),
+        },
+        {
+          cellClassName: 'text-right text-sm text-muted-foreground',
+          headerClassName: 'w-32 text-right text-sm font-semibold   text-muted-foreground',
+          id: 'lastUpdated',
+          label: 'Date',
+          render: (cust) =>
+            cust.lastUpdatedOn
+              ? new Date(cust.lastUpdatedOn).toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : '—',
+        },
+      ],
+      []
+    );
 
-  return (
-    <>
-      <DataTable
-        columns={columns}
-        emptyMessage={EMPTY_MESSAGE}
-        getRowKey={(cust) => cust.id}
-        headerClassName="sticky top-0 z-10"
-        headerRowClassName="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/50 dark:hover:bg-slate-900/50"
-        rowClassName={() => 'group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40'}
-        rows={paginatedCustomers}
-        visibleColumns={visibleColumns}
-      />
+    return (
+      <>
+        <DataTable
+          columns={columns}
+          emptyMessage={EMPTY_MESSAGE}
+          getRowKey={(cust) => cust.id}
+          headerClassName="sticky top-0 z-10"
+          headerRowClassName="bg-slate-50/50 hover:bg-slate-50/50 dark:bg-slate-900/50 dark:hover:bg-slate-900/50"
+          rowClassName={() => 'group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-900/40'}
+          rows={paginatedCustomers}
+          visibleColumns={visibleColumns}
+        />
 
-      <PaginationBar
-        currentPage={currentPage}
-        itemsPerPage={pageSize}
-        onItemsPerPageChange={onPageSizeChange}
-        onNext={onNextPage}
-        onPrev={onPrevPage}
-        totalItems={totalItems}
-        totalPages={totalPages}
-      />
-    </>
-  );
-}
+        <PaginationBar
+          currentPage={currentPage}
+          itemsPerPage={pageSize}
+          onItemsPerPageChange={onPageSizeChange}
+          onNext={onNextPage}
+          onPrev={onPrevPage}
+          totalItems={totalItems}
+          totalPages={totalPages}
+        />
+      </>
+    );
+  },
+  (prev, next) =>
+    prev.currentPage === next.currentPage &&
+    prev.pageSize === next.pageSize &&
+    prev.totalItems === next.totalItems &&
+    prev.totalPages === next.totalPages &&
+    prev.paginatedCustomers === next.paginatedCustomers &&
+    prev.visibleColumns === next.visibleColumns
+);

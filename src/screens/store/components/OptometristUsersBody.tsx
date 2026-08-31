@@ -20,7 +20,7 @@ type OptometristUsersBodyProps = {
   data: OptometristUserRow[];
 };
 
-export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
+export const OptometristUsersBody = React.memo(function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
   const [pageSize, setPageSize] = React.useState<number>(5);
 
   const sortedData = React.useMemo(
@@ -141,4 +141,4 @@ export function OptometristUsersBody({ data }: OptometristUsersBodyProps) {
       />
     </div>
   );
-}
+});

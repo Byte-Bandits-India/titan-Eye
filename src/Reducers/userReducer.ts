@@ -22,7 +22,26 @@ const userSlice = createSlice({
     },
     fetchUsersSuccess(state, action: PayloadAction<ManagedUser[]>) {
       state.loading = false;
-      state.users = action.payload;
+
+      const incoming = action.payload;
+      const existing = state.users;
+
+      // Skip update when data is unchanged to preserve reference identity
+      if (
+        incoming.length === existing.length &&
+        incoming.every(
+          (u, i) =>
+            existing[i] &&
+            u.email === existing[i].email &&
+            u.status === existing[i].status &&
+            u.isLoggedIn === existing[i].isLoggedIn &&
+            u.role === existing[i].role
+        )
+      ) {
+        return;
+      }
+
+      state.users = incoming;
     },
     userCreated(state, action: PayloadAction<ManagedUser>) {
       state.users = [...state.users, action.payload];

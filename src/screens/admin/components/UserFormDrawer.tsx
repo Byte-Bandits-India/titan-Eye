@@ -11,7 +11,7 @@ import { TagInput } from '../../../components/ui/tag-input';
 import { useToast } from '../../../components/ui/toast';
 import { cn } from '../../../lib/utils';
 import { EMAIL_REGEX, LANGUAGES, MOBILE_REGEX, NAME_REGEX, PASSWORD_REGEX } from '../../../options/Option';
-import { useAppSelector } from '../../../store';
+import { store } from '../../../store';
 import { EMPTY_FORM, ROLE_OPTIONS } from './adminUtils';
 
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{4}$/;
@@ -25,44 +25,42 @@ interface UserFormDrawerProps {
   onSubmitUser: (data: UserFormData, isEdit: boolean) => Promise<void>;
 }
 
-export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerProps) {
-  const { toast } = useToast();
-  const users = useAppSelector((state) => state.users.users);
+function buildFormState(email: null | string): UserFormData {
+  const users = store.getState().users.users;
+  const existingUser = email ? users.find((u) => u.email === email) : null;
 
-  const buildFormState = React.useCallback(
-    (email: null | string): UserFormData => {
-      const existingUser = email ? users.find((u) => u.email === email) : null;
+  return existingUser
+    ? {
+        city: existingUser.city || '',
+        email: existingUser.email,
+        languages: existingUser.languages || [],
+        location: existingUser.location || '',
+        mobile: existingUser.mobile || '',
+        name: existingUser.name || '',
+        password: '',
+        role: existingUser.role,
+        storeName: existingUser.storeName || '',
+      }
+    : EMPTY_FORM;
+}
 
-      return existingUser
-        ? {
-            city: existingUser.city || '',
-            email: existingUser.email,
-            languages: existingUser.languages || [],
-            location: existingUser.location || '',
-            mobile: existingUser.mobile || '',
-            name: existingUser.name || '',
-            password: '',
-            role: existingUser.role,
-            storeName: existingUser.storeName || '',
-          }
-        : EMPTY_FORM;
-    },
-    [users]
-  );
+export const UserFormDrawer = React.memo(
+  function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerProps) {
+    const { toast } = useToast();
 
-  const [form, setForm] = React.useState<UserFormData>(() => buildFormState(editingEmail));
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
+    const [form, setForm] = React.useState<UserFormData>(() => buildFormState(editingEmail));
+    const [errors, setErrors] = React.useState<Record<string, string>>({});
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [submitting, setSubmitting] = React.useState(false);
 
-  const [prevEditingEmail, setPrevEditingEmail] = React.useState<null | string>(editingEmail);
+    const [prevEditingEmail, setPrevEditingEmail] = React.useState<null | string>(editingEmail);
 
-  if (editingEmail !== prevEditingEmail) {
-    setPrevEditingEmail(editingEmail);
-    setForm(buildFormState(editingEmail));
-    setErrors({});
-    setShowPassword(false);
-  }
+    if (editingEmail !== prevEditingEmail) {
+      setPrevEditingEmail(editingEmail);
+      setForm(buildFormState(editingEmail));
+      setErrors({});
+      setShowPassword(false);
+    }
 
   const clearError = (field: string) => {
     setErrors((prev) => {
@@ -388,4 +386,6 @@ export function UserFormDrawer({ editingEmail, onSubmitUser }: UserFormDrawerPro
       </SheetFooter>
     </form>
   );
-}
+  },
+  (prev, next) => prev.editingEmail === next.editingEmail
+);

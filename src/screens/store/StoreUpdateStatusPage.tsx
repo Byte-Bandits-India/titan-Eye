@@ -95,7 +95,7 @@ function formatSalesOrderNumber(digits: string, storePrefix: string): string {
   return `${storePrefix}${digits}`;
 }
 
-export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: StoreUpdateStatusPageProps) {
+export const StoreUpdateStatusPage = React.memo(function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: StoreUpdateStatusPageProps) {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
@@ -425,4 +425,12 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
       </div>
     </main>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.readOnly === nextProps.readOnly &&
+  prevProps.selectedCustomer?.id === nextProps.selectedCustomer?.id &&
+  prevProps.selectedCustomer?.conversionStatus === nextProps.selectedCustomer?.conversionStatus &&
+  prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
+  prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
+  prevProps.selectedCustomer?.status === nextProps.selectedCustomer?.status
+);

@@ -235,7 +235,7 @@ function SpotlightOverlay({ targetRef }: { targetRef: React.RefObject<HTMLElemen
   );
 }
 
-export function OptometristPatientDetails({
+export const OptometristPatientDetails = React.memo(function OptometristPatientDetails({
   activeCallTakenByMe,
   onBack,
   readOnly = false,
@@ -751,4 +751,13 @@ export function OptometristPatientDetails({
       </Dialog>
     </main>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.selectedCustomer?.id === nextProps.selectedCustomer?.id &&
+  prevProps.selectedCustomer?.status === nextProps.selectedCustomer?.status &&
+  prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
+  prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
+  prevProps.selectedCustomer?.optometristFeedback === nextProps.selectedCustomer?.optometristFeedback &&
+  prevProps.readOnly === nextProps.readOnly &&
+  prevProps.activeCallTakenByMe?.id === nextProps.activeCallTakenByMe?.id
+);

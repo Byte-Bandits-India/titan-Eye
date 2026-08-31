@@ -59,7 +59,7 @@ import {
   rxHeaders,
   SPH_REGEX,
 } from '../../options/Option';
-import { useAppDispatch, useAppSelector } from '../../store';
+import { store, useAppDispatch, useAppSelector } from '../../store';
 
 type RxRow = 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
 type CustomerForm = {
@@ -214,7 +214,14 @@ type RxSubTableProps = {
   setRxField: (row: RxRow, field: keyof RxValues, val: string) => void;
 };
 
-function RxSubTable({ label, mandatoryHeaders = [], rows, rxErrors, rxForm, setRxField }: RxSubTableProps) {
+const RxSubTable = React.memo(function RxSubTable({
+  label,
+  mandatoryHeaders = [],
+  rows,
+  rxErrors,
+  rxForm,
+  setRxField,
+}: RxSubTableProps) {
   return (
     <div className="overflow-x-auto rounded-md border border-slate-300 dark:border-zinc-700">
       <p className="border-b border-slate-300 bg-slate-50/70 px-3 py-1.5 text-left text-sm font-bold text-slate-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300">
@@ -306,7 +313,14 @@ function RxSubTable({ label, mandatoryHeaders = [], rows, rxErrors, rxForm, setR
       </Table>
     </div>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.label === nextProps.label &&
+  prevProps.rows === nextProps.rows &&
+  prevProps.rxErrors === nextProps.rxErrors &&
+  prevProps.rxForm[prevProps.rows[0]] === nextProps.rxForm[nextProps.rows[0]] &&
+  prevProps.rxForm[prevProps.rows[1]] === nextProps.rxForm[nextProps.rows[1]]
+);
 
 function ObjectiveRxContentComponent({
   customerId,
@@ -425,7 +439,7 @@ function ObjectiveRxContentComponent({
 
 const ObjectiveRxContent = React.memo(ObjectiveRxContentComponent);
 
-export function StoreCustomerTestPage({
+export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
   onBack,
   selectedCustomer,
   setSelectedCustomerId,
@@ -433,7 +447,6 @@ export function StoreCustomerTestPage({
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
-  const customers = useAppSelector((state) => state.customers.customers);
 
   const buildFormState = React.useCallback(
     (customer: Customer | null): CustomerForm => ({
@@ -711,6 +724,7 @@ export function StoreCustomerTestPage({
       return selectedCustomer.id;
     }
 
+    const customers = store.getState().customers.customers;
     const numericIds = customers.map((c) => parseInt(c.id.replace('#', ''), 10)).filter((n) => !isNaN(n));
     const nextNum = Math.max(...numericIds, 0) + 1;
     const newId = `#${String(nextNum).padStart(4, '0')}`;
@@ -1131,4 +1145,12 @@ export function StoreCustomerTestPage({
       </CardFrame>
     </main>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.selectedCustomer?.id === nextProps.selectedCustomer?.id &&
+  prevProps.selectedCustomer?.status === nextProps.selectedCustomer?.status &&
+  prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
+  prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
+  prevProps.selectedCustomer?.name === nextProps.selectedCustomer?.name &&
+  prevProps.selectedCustomer?.mobile === nextProps.selectedCustomer?.mobile
+);

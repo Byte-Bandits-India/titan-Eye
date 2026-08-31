@@ -1,10 +1,12 @@
+import { memo } from 'react';
+
 import type { AppLayoutProps } from '../../types';
 
 import { NotificationPopover } from '../shared/NotificationPopover';
 import { Footer } from './Footer';
 import { Header } from './Header';
 
-export function AppLayout({
+export const AppLayout = memo(function AppLayout({
   activeTab,
   children,
   consoleLabel,
@@ -30,4 +32,4 @@ export function AppLayout({
       <NotificationPopover onSelectCustomer={onSelectCustomer} showTrigger={false} variant="toast" />
     </div>
   );
-}
+});

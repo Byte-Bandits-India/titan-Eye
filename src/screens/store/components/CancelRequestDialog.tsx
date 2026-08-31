@@ -27,7 +27,7 @@ export type CancelRequestDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function CancelRequestDialog({
+export const CancelRequestDialog = React.memo(function CancelRequestDialog({
   customer,
   isSubmitting,
   onConfirm,
@@ -93,4 +93,15 @@ export function CancelRequestDialog({
       </DialogContent>
     </Dialog>
   );
+},
+(prevProps, nextProps) => {
+  if (!prevProps.customer && !nextProps.customer) {
+    return prevProps.isSubmitting === nextProps.isSubmitting;
+  }
+
+  return (
+    prevProps.customer?.id === nextProps.customer?.id &&
+    prevProps.isSubmitting === nextProps.isSubmitting
+  );
 }
+);

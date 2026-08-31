@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Calendar } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -10,7 +11,7 @@ export type DateFilterProps = {
   value: DateFilterRange;
 };
 
-export function DateFilter({ className, onChange, value }: DateFilterProps) {
+export const DateFilter = memo(function DateFilter({ className, onChange, value }: DateFilterProps) {
   return (
     <div className={cn('min-w-[130px] shrink-0', className)}>
       <Select onValueChange={(val) => onChange(val as DateFilterRange)} value={value}>
@@ -34,4 +35,6 @@ export function DateFilter({ className, onChange, value }: DateFilterProps) {
       </Select>
     </div>
   );
-}
+},
+(prev, next) => prev.value === next.value && prev.className === next.className
+);

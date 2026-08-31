@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { Customer, User } from '../../../types';
 
 import { Button } from '../../../components/ui/button';
@@ -10,7 +11,7 @@ type OptometristActionsCellProps = {
   user?: null | User;
 };
 
-export function OptometristActionsCell({ onSelectCustomer, onSetEditing, req }: OptometristActionsCellProps) {
+export const OptometristActionsCell = memo(function OptometristActionsCell({ onSelectCustomer, onSetEditing, req }: OptometristActionsCellProps) {
   const handleAction = () => {
     onSelectCustomer(req.id);
     onSetEditing(true);
@@ -28,4 +29,4 @@ export function OptometristActionsCell({ onSelectCustomer, onSetEditing, req }: 
       </Button>
     </div>
   );
-}
+});

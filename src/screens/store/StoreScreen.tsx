@@ -2,7 +2,7 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Plus, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
-import type { ColumnOption, Customer, OptometristUserRow, SSEEventDetail, StatusTab } from '../../types';
+import type { ColumnOption, Customer, OptometristUserRow, StatusTab } from '../../types';
 
 import {
   completeCallAction,
@@ -43,13 +43,14 @@ import { StoreUpdateStatusPage } from './StoreUpdateStatusPage';
 export function StoreScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const customers = useAppSelector((state) => state.customers.customers);
-  const customersLoading = useAppSelector((state) => state.customers.loading);
   const users = useAppSelector((state) => state.users.users);
-  const usersLoading = useAppSelector((state) => state.users.loading);
+  const isInitialCustomersLoading = useAppSelector(
+    (state) => state.customers.loading && state.customers.customers.length === 0
+  );
+  const isInitialUsersLoading = useAppSelector(
+    (state) => state.users.loading && state.users.users.length === 0
+  );
   const dispatch = useAppDispatch();
-
-  const isInitialCustomersLoading = customersLoading && customers.length === 0;
-  const isInitialUsersLoading = usersLoading && users.length === 0;
 
   const isTabletShortcut = React.useMemo(
     () => new URLSearchParams(window.location.search).get('src') === 'tablet-shortcut',
@@ -71,6 +72,10 @@ export function StoreScreen() {
   const [isViewingSalesConversion, setIsViewingSalesConversion] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
+  const completingCallIdRef = React.useRef(completingCallId);
+  React.useEffect(() => {
+    completingCallIdRef.current = completingCallId;
+  }, [completingCallId]);
   const [completeCallModalData, setCompleteCallModalData] = React.useState<null | {
     customerName: string;
     feedbackUrl: string;
@@ -91,33 +96,17 @@ export function StoreScreen() {
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
     dispatch(fetchUsersAction());
-
-    const handleSseEvent = (e: Event) => {
-      const customEv = e as CustomEvent<SSEEventDetail>;
-      const type = customEv.detail?.type;
-
-      if (
-        type === 'CUSTOMER_CREATED' ||
-        type === 'CUSTOMER_UPDATED' ||
-        type === 'USER_CREATED' ||
-        type === 'USER_UPDATED' ||
-        type === 'USER_DELETED' ||
-        type === 'USER_STATUS_CHANGE'
-      ) {
-        dispatch(fetchCustomersAction());
-        dispatch(fetchUsersAction());
-      }
-    };
-
-    window.addEventListener('titan:sse_event', handleSseEvent);
-
-    return () => window.removeEventListener('titan:sse_event', handleSseEvent);
   }, [dispatch]);
+
+  const customersRef = React.useRef(customers);
+  React.useEffect(() => {
+    customersRef.current = customers;
+  }, [customers]);
 
   const handleCloseCall = React.useCallback(
     async (customerId: string) => {
       try {
-        const customer = customers.find((c) => c.id === customerId);
+        const customer = customersRef.current.find((c) => c.id === customerId);
 
         if (customer && (customer.status === 'Initiated' || customer.status === 'Queued')) {
           const timestamp = new Date().toLocaleString('en-US', {
@@ -143,13 +132,13 @@ export function StoreScreen() {
         console.error('Failed to close call:', e);
       }
     },
-    [customers, dispatch]
+    [dispatch]
   );
 
   React.useEffect(() => {
     const checkTimeout = () => {
       const now = Date.now();
-      customers.forEach((cust) => {
+      customersRef.current.forEach((cust) => {
         if (
           (cust.status === 'Initiated' || cust.status === 'Queued') &&
           (cust.callStartTime || cust.lastUpdatedOn)
@@ -172,7 +161,7 @@ export function StoreScreen() {
     const interval = setInterval(checkTimeout, 5000);
 
     return () => clearInterval(interval);
-  }, [customers, handleCloseCall]);
+  }, [handleCloseCall]);
 
   const selectedCustomer = React.useMemo(
     () => customers.find((c) => c.id === selectedCustomerId) ?? null,
@@ -190,6 +179,10 @@ export function StoreScreen() {
       ),
     [customers]
   );
+  const hasActiveRequestRef = React.useRef(hasActiveRequest);
+  React.useEffect(() => {
+    hasActiveRequestRef.current = hasActiveRequest;
+  }, [hasActiveRequest]);
 
   const tabCounts = React.useMemo(
     () => ({
@@ -413,69 +406,83 @@ export function StoreScreen() {
   const [cancelRequestTarget, setCancelRequestTarget] = React.useState<Customer | null>(null);
   const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
 
-  const handleOpenCancelDialog = (customerId: string) => {
-    setCancelRequestTarget(customers.find((c) => c.id === customerId) ?? null);
-  };
+  const handleOpenCancelDialog = React.useCallback((customerId: string) => {
+    setCancelRequestTarget(customersRef.current.find((c) => c.id === customerId) ?? null);
+  }, []);
 
-  const handleConfirmCancelRequest = async (reason: string) => {
-    if (!cancelRequestTarget) {
-      return;
-    }
+  const handleOpenUpdateStatus = React.useCallback((id: string) => {
+    setIsEditing(false);
+    setIsEditingRx(false);
+    setIsCreatingTest(false);
+    setSelectedCustomerId(id);
+    setIsUpdatingStatus(true);
+  }, []);
 
-    const targetId = cancelRequestTarget.id;
-    const targetName = cancelRequestTarget.name;
+  const handleConfirmCancelRequest = React.useCallback(
+    async (reason: string) => {
+      if (!cancelRequestTarget) {
+        return;
+      }
 
-    setIsCancellingRequest(true);
+      const targetId = cancelRequestTarget.id;
+      const targetName = cancelRequestTarget.name;
 
-    try {
-      await dispatch(dropCustomerAction(targetId, reason));
-      toast({
-        description: `The request for ${targetName} has been cancelled. Please update sales conversion status.`,
-        title: 'Request Cancelled',
-        type: 'info',
-      });
-      setCancelRequestTarget(null);
-      handleOpenUpdateStatus(targetId);
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      toast({
-        description: err.message || 'Failed to cancel the request.',
-        title: 'System Error',
-        type: 'error',
-      });
-    } finally {
-      setIsCancellingRequest(false);
-    }
-  };
+      setIsCancellingRequest(true);
 
-  const handleCompleteCall = async (customerId: string, customerName: string) => {
-    setCompletingCallId(customerId);
+      try {
+        await dispatch(dropCustomerAction(targetId, reason));
+        toast({
+          description: `The request for ${targetName} has been cancelled. Please update sales conversion status.`,
+          title: 'Request Cancelled',
+          type: 'info',
+        });
+        setCancelRequestTarget(null);
+        handleOpenUpdateStatus(targetId);
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        toast({
+          description: err.message || 'Failed to cancel the request.',
+          title: 'System Error',
+          type: 'error',
+        });
+      } finally {
+        setIsCancellingRequest(false);
+      }
+    },
+    [cancelRequestTarget, dispatch, handleOpenUpdateStatus, toast]
+  );
 
-    try {
-      const result = await dispatch(completeCallAction(customerId));
-      const origin = window.location.origin.replace(/^https:\/\/(localhost|127\.0\.0\.1)/i, 'http://$1');
-      setCompleteCallModalData({
-        customerName,
-        feedbackUrl: `${origin}/feedback/${result.token}`,
-      });
-      toast({
-        description: `Consultation marked as completed for ${customerName}.`,
-        title: 'Consultation Completed',
-        type: 'success',
-      });
-    } catch (e) {
-      const err = e instanceof Error ? e : new Error(String(e));
-      toast({
-        description: err.message || 'Failed to mark the call as completed.',
-        title: 'System Error',
-        type: 'error',
-      });
-    } finally {
-      setCompletingCallId(null);
-    }
-  };
+  const handleCompleteCall = React.useCallback(
+    async (customerId: string, customerName: string) => {
+      setCompletingCallId(customerId);
 
-  const handleAddNewClick = () => {
+      try {
+        const result = await dispatch(completeCallAction(customerId));
+        const origin = window.location.origin.replace(/^https:\/\/(localhost|127\.0\.0\.1)/i, 'http://$1');
+        setCompleteCallModalData({
+          customerName,
+          feedbackUrl: `${origin}/feedback/${result.token}`,
+        });
+        toast({
+          description: `Consultation marked as completed for ${customerName}.`,
+          title: 'Consultation Completed',
+          type: 'success',
+        });
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        toast({
+          description: err.message || 'Failed to mark the call as completed.',
+          title: 'System Error',
+          type: 'error',
+        });
+      } finally {
+        setCompletingCallId(null);
+      }
+    },
+    [dispatch, toast]
+  );
+
+  const handleAddNewClick = React.useCallback(() => {
     setIsEditing(false);
     setIsEditingRx(false);
     setIsViewingSalesConversion(false);
@@ -484,49 +491,41 @@ export function StoreScreen() {
     setStatusTab('Pending');
     resetPage();
     setIsCreatingTest(true);
-  };
+  }, [resetPage]);
 
-  const handleSelectCustomer = (id: string) => {
+  const handleSelectCustomer = React.useCallback((id: string) => {
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
     setIsViewingSalesConversion(false);
     setIsUpdatingStatus(false);
     setSelectedCustomerId(id);
-  };
+  }, []);
 
-  const handleOpenUpdateStatus = (id: string) => {
-    setIsEditing(false);
-    setIsEditingRx(false);
-    setIsCreatingTest(false);
-    setSelectedCustomerId(id);
-    setIsUpdatingStatus(true);
-  };
-
-  const handleViewSalesConversionCustomer = (id: string) => {
+  const handleViewSalesConversionCustomer = React.useCallback((id: string) => {
     setSelectedCustomerId(id);
     setIsViewingConversionDetail(true);
-  };
+  }, []);
 
-  const handleOpenRxFromNotification = (id: string) => {
+  const handleOpenRxFromNotification = React.useCallback((id: string) => {
     setIsEditing(false);
     setIsUpdatingStatus(false);
     setIsCreatingTest(false);
     setIsViewingSalesConversion(false);
     setSelectedCustomerId(id);
     setIsEditingRx(true);
-  };
+  }, []);
 
-  const handleOpenCreateTest = (id: string) => {
+  const handleOpenCreateTest = React.useCallback((id: string) => {
     setIsEditing(false);
     setIsEditingRx(false);
     setIsUpdatingStatus(false);
     setIsViewingSalesConversion(false);
     setSelectedCustomerId(id);
     setIsCreatingTest(true);
-  };
+  }, []);
 
-  const handleOpenSalesConversion = () => {
+  const handleOpenSalesConversion = React.useCallback(() => {
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
@@ -535,7 +534,23 @@ export function StoreScreen() {
     setConversionStatusFilter('all');
     resetPage();
     setIsViewingSalesConversion(true);
-  };
+  }, [resetPage]);
+
+  const handleCancelRequestOpenChange = React.useCallback((open: boolean) => {
+    if (!open) {
+      setCancelRequestTarget(null);
+    }
+  }, []);
+
+  const handleCloseCompleteCallModal = React.useCallback(() => {
+    setCompleteCallModalData(null);
+  }, []);
+
+  const handleEditDialogOpenChange = React.useCallback((open: boolean) => {
+    if (!open) {
+      setIsEditing(false);
+    }
+  }, []);
 
   const salesConversionColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
     () => [
@@ -659,7 +674,7 @@ export function StoreScreen() {
         size: 140,
       },
     ],
-    [statusTab]
+    [statusTab, handleOpenUpdateStatus, handleViewSalesConversionCustomer]
   );
 
   const customerColumns = React.useMemo<ColumnDef<DataGridFeatures, Customer>[]>(
@@ -813,9 +828,9 @@ export function StoreScreen() {
       {
         cell: ({ row }) => (
           <CustomerActionsCell
-            completingCallId={completingCallId}
+            completingCallId={completingCallIdRef.current}
             cust={row.original}
-            disableRequest={hasActiveRequest}
+            disableRequest={hasActiveRequestRef.current}
             onCancelCall={handleOpenCancelDialog}
             onCompleteCall={handleCompleteCall}
             onCreateTest={handleOpenCreateTest}
@@ -839,7 +854,7 @@ export function StoreScreen() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [completingCallId, user, statusTab, hasActiveRequest, isViewingSalesConversion]
+    [user, statusTab, isViewingSalesConversion]
   );
 
   const customersTable = useTable({
@@ -861,13 +876,46 @@ export function StoreScreen() {
     },
   });
 
+  const handleConversionStatusFilterChange = React.useCallback(
+    (val: ConversionStatusFilterValue) => {
+      setConversionStatusFilter(val);
+      resetPage();
+    },
+    [resetPage]
+  );
+
+  const handleStorePageSizeChange = React.useCallback(
+    (newSize: number) => {
+      setPageSize(newSize);
+      resetPage();
+    },
+    [resetPage]
+  );
+
+  const handleStoreStatusTabChange = React.useCallback(
+    (tab: StatusTab) => {
+      setStatusTab(tab);
+      resetPage();
+    },
+    [resetPage]
+  );
+
+  const handleExportSalesConversionCsv = React.useCallback(() => {
+    exportSalesConversionCsv(salesConversionFilteredCustomers);
+  }, [salesConversionFilteredCustomers]);
+
+  const handleTestPageBack = React.useCallback(() => setIsCreatingTest(false), []);
+  const handleRxDetailsBack = React.useCallback(() => setIsEditingRx(false), []);
+  const handleUpdateStatusBack = React.useCallback(() => setIsUpdatingStatus(false), []);
+  const handleConversionDetailBack = React.useCallback(() => setIsViewingConversionDetail(false), []);
+  const handleSalesConversionBack = React.useCallback(() => setIsViewingSalesConversion(false), []);
+
   if (!user) {
     return null;
   }
 
   const renderRecentCustomersCard = (hideStatusTabs?: boolean, onlyPendingAndAll?: boolean) => (
     <StoreCard
-      title={onlyPendingAndAll ? 'Customer Conversions' : 'Customers'}
       columns={onlyPendingAndAll ? undefined : STORE_CUSTOMER_COLUMNS}
       conversionStatusFilter={conversionStatusFilter}
       currentPage={currentPage}
@@ -876,34 +924,24 @@ export function StoreScreen() {
       dateRange={customerDateRange}
       hideStatusTabs={hideStatusTabs}
       isLoading={isInitialCustomersLoading}
-      onConversionStatusFilterChange={(val) => {
-        setConversionStatusFilter(val);
-        resetPage();
-      }}
-      onExportCsv={
-        onlyPendingAndAll ? () => exportSalesConversionCsv(salesConversionFilteredCustomers) : undefined
-      }
-      onlyPendingAndAll={onlyPendingAndAll}
+      onConversionStatusFilterChange={handleConversionStatusFilterChange}
       onDateRangeChange={setCustomerDateRange}
+      onExportCsv={onlyPendingAndAll ? handleExportSalesConversionCsv : undefined}
       onNextPage={nextPage}
-      onPageSizeChange={(newSize) => {
-        setPageSize(newSize);
-        resetPage();
-      }}
+      onPageSizeChange={handleStorePageSizeChange}
       onPrevPage={prevPage}
       onResetColumns={handleResetColumns}
       onSearchChange={setCustomerSearchTerm}
-      onStatusTabChange={(tab) => {
-        setStatusTab(tab);
-        resetPage();
-      }}
+      onStatusTabChange={handleStoreStatusTabChange}
       onToggleColumn={handleToggleColumn}
+      onlyPendingAndAll={onlyPendingAndAll}
       pageSize={pageSize}
       pendingLabel={onlyPendingAndAll ? 'Pending' : undefined}
       searchValue={customerSearchTerm}
       showConversionStatusFilter={onlyPendingAndAll && statusTab === 'all'}
       statusTab={statusTab}
       tabCounts={onlyPendingAndAll ? salesConversionTabCounts : tabCounts}
+      title={onlyPendingAndAll ? 'Customer Conversions' : 'Customers'}
       totalItems={totalItems}
       totalPages={totalPages}
       variant="recent-customers"
@@ -915,20 +953,17 @@ export function StoreScreen() {
     <AppLayout onSelectCustomer={handleOpenRxFromNotification}>
       {isCreatingTest ? (
         <StoreCustomerTestPage
-          onBack={() => setIsCreatingTest(false)}
+          onBack={handleTestPageBack}
           selectedCustomer={selectedCustomer}
           setSelectedCustomerId={setSelectedCustomerId}
         />
       ) : isEditingRx ? (
-        <StoreRxDetails onBack={() => setIsEditingRx(false)} selectedCustomer={selectedCustomer} />
+        <StoreRxDetails onBack={handleRxDetailsBack} selectedCustomer={selectedCustomer} />
       ) : isUpdatingStatus ? (
-        <StoreUpdateStatusPage
-          onBack={() => setIsUpdatingStatus(false)}
-          selectedCustomer={selectedCustomer}
-        />
+        <StoreUpdateStatusPage onBack={handleUpdateStatusBack} selectedCustomer={selectedCustomer} />
       ) : isViewingConversionDetail ? (
         <StoreUpdateStatusPage
-          onBack={() => setIsViewingConversionDetail(false)}
+          onBack={handleConversionDetailBack}
           readOnly
           selectedCustomer={selectedCustomer}
         />
@@ -939,7 +974,7 @@ export function StoreScreen() {
               <h1 className="truncate text-2xl font-bold text-foreground">Sales Conversion</h1>
             </div>
 
-            <BackButton onClick={() => setIsViewingSalesConversion(false)} />
+            <BackButton onClick={handleSalesConversionBack} />
           </div>
 
           {renderRecentCustomersCard(false, true)}
@@ -1033,7 +1068,7 @@ export function StoreScreen() {
         <CompleteCallModal
           customerName={completeCallModalData.customerName}
           feedbackUrl={completeCallModalData.feedbackUrl}
-          onClose={() => setCompleteCallModalData(null)}
+          onClose={handleCloseCompleteCallModal}
         />
       )}
 
@@ -1041,17 +1076,10 @@ export function StoreScreen() {
         customer={cancelRequestTarget}
         isSubmitting={isCancellingRequest}
         onConfirm={handleConfirmCancelRequest}
-        onOpenChange={(open) => !open && setCancelRequestTarget(null)}
+        onOpenChange={handleCancelRequestOpenChange}
       />
 
-      <Dialog
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsEditing(false);
-          }
-        }}
-        open={isEditing}
-      >
+      <Dialog onOpenChange={handleEditDialogOpenChange} open={isEditing}>
         <DialogContent
           className="max-w-[calc(100%-2rem)] gap-0 overflow-hidden rounded-xl p-0 sm:max-w-3xl"
           overlayClassName="bg-black/60"

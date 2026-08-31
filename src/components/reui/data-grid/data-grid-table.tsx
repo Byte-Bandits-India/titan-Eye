@@ -384,7 +384,7 @@ function DataGridTableViewport({
     }
 
     syncFillWidth();
-  });
+  }, [isColumnsResizable, syncFillWidth]);
 
   return (
     <div
@@ -1367,7 +1367,7 @@ function DataGridTableResizeIndicator({
     indicator.style.left = `${indicatorLeft}px`;
     indicator.style.transform = `translateX(${deltaOffset}px)`;
     indicatorHead.style.height = `${Math.max(headerHeight, 6)}px`;
-  });
+  }, [isActive, resizingColumnId, columnResizing.deltaOffset, columnResizing.startOffset, table]);
 
   if (!isActive) {
     return null;

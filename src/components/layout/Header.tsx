@@ -15,7 +15,7 @@ import {
   Search,
   Wifi,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { HeaderProps } from '../../types';
@@ -40,7 +40,28 @@ import {
 import { Input } from '../ui/input';
 import { useToast } from '../ui/toast';
 
-export function Header({
+const NetworkStatusIndicator = memo(function NetworkStatusIndicator() {
+  const { speed, statusColor, statusLabel, wifiIconColor } = useNetworkStatus();
+
+  return (
+    <>
+      <Wifi
+        className={`hidden sm:inline ${wifiIconColor} shrink-0 animate-pulse transition-colors duration-300`}
+        size={14}
+      />
+      <span className="hidden text-sm font-medium text-gray-700 transition-all duration-300 sm:inline">
+        {speed}
+      </span>
+      <span
+        className={`hidden sm:inline ${statusColor} rounded-sm px-1.5 py-0.5 text-[9px] font-medium transition-colors duration-300 sm:text-[10px]`}
+      >
+        {statusLabel}
+      </span>
+    </>
+  );
+});
+
+export const Header = memo(function Header({
   activeTab,
   consoleLabel,
   onSearchChange,
@@ -52,7 +73,6 @@ export function Header({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { speed, statusColor, statusLabel, wifiIconColor } = useNetworkStatus();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const { isSupported: isNotificationsSupported, permission: notificationPermission } =
     useBrowserNotifications();
@@ -161,18 +181,19 @@ export function Header({
     firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'Users' : 'Dashboard';
   const firstTabLabelLong =
     firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'User Directory' : 'Dashboard';
-  const firstTabLabelShort = firstTab === 'queue' ? 'Queue' : user.role === 'super_admin' ? 'Users' : 'Customers';
+  const firstTabLabelShort =
+    firstTab === 'queue' ? 'Queue' : user.role === 'super_admin' ? 'Users' : 'Customers';
 
   const renderProfileDropdown = (avatarSize = 'w-8 h-8') => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="group flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-transparent p-1 transition-all hover:border-slate-200 hover:bg-slate-50 focus:outline-none sm:px-2.5 sm:py-1.5"
+          className="group flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-transparent p-1 transition-colors hover:border-slate-200 hover:bg-slate-50 focus:outline-none sm:px-2.5 sm:py-1.5"
           title="Profile"
         >
           <div className="relative">
             <Avatar
-              className={`${avatarSize} shadow-sm ring-2 ring-white transition-all group-hover:ring-blue-200`}
+              className={`${avatarSize} shadow-sm ring-2 ring-white transition-colors group-hover:ring-blue-200`}
             >
               {photoUrl && <AvatarImage alt={user.name} src={photoUrl} />}
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-medium text-white">
@@ -260,10 +281,7 @@ export function Header({
               onClick={() => setActiveTab(firstTab)}
             >
               {firstTab === 'queue' ? (
-                <Radio
-                  className={activeTab === 'queue' ? 'text-[#1a2b6e]' : 'text-slate-400'}
-                  size={16}
-                />
+                <Radio className={activeTab === 'queue' ? 'text-[#1a2b6e]' : 'text-slate-400'} size={16} />
               ) : (
                 <ClipboardList
                   className={activeTab === 'customers' ? 'text-[#1a2b6e]' : 'text-slate-400'}
@@ -314,18 +332,7 @@ export function Header({
         )}
 
         <div className="order-2 ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3 xl:order-3 xl:ml-0">
-          <Wifi
-            className={`hidden sm:inline ${wifiIconColor} shrink-0 animate-pulse transition-colors duration-300`}
-            size={14}
-          />
-          <span className="hidden text-sm font-medium text-gray-700 transition-all duration-300 sm:inline">
-            {speed}
-          </span>
-          <span
-            className={`hidden sm:inline ${statusColor} rounded-sm px-1.5 py-0.5 text-[9px] font-medium transition-colors duration-300 sm:text-[10px]`}
-          >
-            {statusLabel}
-          </span>
+          <NetworkStatusIndicator />
 
           {user.role === 'store' && (
             <button
@@ -380,7 +387,7 @@ export function Header({
           </button>
 
           <button
-            className="hidden cursor-pointer rounded-lg p-1.5 text-gray-400 transition-all hover:bg-slate-50 hover:text-gray-600 sm:inline-flex sm:p-2"
+            className="hidden cursor-pointer rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-slate-50 hover:text-gray-600 sm:inline-flex sm:p-2"
             onClick={toggleFullscreen}
             title="Toggle Fullscreen"
           >
@@ -393,7 +400,7 @@ export function Header({
         {activeTab && setActiveTab && (
           <div className="order-3 flex w-full max-w-full items-center gap-1.5 overflow-x-auto border-t border-slate-100 pt-2 [ms-overflow-style:none] [scrollbar-width:none] sm:gap-2 xl:hidden [&::-webkit-scrollbar]:hidden">
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'customers' || activeTab === 'queue'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -417,7 +424,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'feedback'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -434,7 +441,7 @@ export function Header({
               </span>
             </button>
             <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-all sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
                 activeTab === 'videos'
                   ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -452,4 +459,4 @@ export function Header({
       </div>
     </header>
   );
-}
+});

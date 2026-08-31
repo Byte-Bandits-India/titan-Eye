@@ -11,16 +11,15 @@ import { SheetBody, SheetFooter } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
 import { AGE_REGEX, CUSTOMER_NAME_REGEX, emptyRxValues, LANGUAGES, MOBILE_REGEX } from '../../options/Option';
-import { useAppDispatch, useAppSelector } from '../../store';
+import { store, useAppDispatch, useAppSelector } from '../../store';
 
-export function StorePatientDetails({
+export const StorePatientDetails = React.memo(function StorePatientDetails({
   isAddingNew,
   onBack,
   selectedCustomer,
   setSelectedCustomerId,
 }: StorePatientDetailsProps) {
   const user = useAppSelector((state) => state.auth.user);
-  const customers = useAppSelector((state) => state.customers.customers);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
@@ -70,30 +69,33 @@ export function StorePatientDetails({
     setForm(buildFormState(selectedCustomer, isAddingNew));
   }
 
-  const setField = (key: string) => (val: boolean | string) => {
-    setForm((f) => {
-      const next = { ...f, [key]: val };
+  const setField = React.useCallback(
+    (key: string) => (val: boolean | string) => {
+      setForm((f) => {
+        const next = { ...f, [key]: val };
 
-      if (key === 'preferredLanguage' && val === f.preferredLanguage2 && val !== 'None') {
-        next.preferredLanguage2 = 'None';
-      }
-
-      return next;
-    });
-
-    if (errors[key]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[key];
-
-        if (key === 'preferredLanguage' && next.preferredLanguage2) {
-          delete next.preferredLanguage2;
+        if (key === 'preferredLanguage' && val === f.preferredLanguage2 && val !== 'None') {
+          next.preferredLanguage2 = 'None';
         }
 
         return next;
       });
-    }
-  };
+
+      if (errors[key]) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[key];
+
+          if (key === 'preferredLanguage' && next.preferredLanguage2) {
+            delete next.preferredLanguage2;
+          }
+
+          return next;
+        });
+      }
+    },
+    [errors]
+  );
 
   const getValidationErrors = () => {
     const newErrors: Record<string, string> = {};
@@ -164,6 +166,7 @@ export function StorePatientDetails({
     });
 
     if (isAddingNew) {
+      const customers = store.getState().customers.customers;
       const numericIds = customers.map((c) => parseInt(c.id.replace('#', ''), 10)).filter((n) => !isNaN(n));
       const nextNum = Math.max(...numericIds, 0) + 1;
       const newId = `#${String(nextNum).padStart(4, '0')}`;
@@ -369,4 +372,13 @@ export function StorePatientDetails({
       </SheetFooter>
     </form>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.isAddingNew === nextProps.isAddingNew &&
+  prevProps.selectedCustomer?.id === nextProps.selectedCustomer?.id &&
+  prevProps.selectedCustomer?.status === nextProps.selectedCustomer?.status &&
+  prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
+  prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
+  prevProps.selectedCustomer?.name === nextProps.selectedCustomer?.name &&
+  prevProps.selectedCustomer?.mobile === nextProps.selectedCustomer?.mobile
+);

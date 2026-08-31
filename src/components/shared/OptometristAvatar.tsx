@@ -11,7 +11,7 @@ interface OptometristAvatarProps {
   name: string;
 }
 
-export function OptometristAvatar({ className, email, name }: OptometristAvatarProps) {
+export const OptometristAvatar = React.memo(function OptometristAvatar({ className, email, name }: OptometristAvatarProps) {
   const [photoUrl, setPhotoUrl] = React.useState<null | string>(null);
 
   React.useEffect(() => {
@@ -66,4 +66,4 @@ export function OptometristAvatar({ className, email, name }: OptometristAvatarP
       </AvatarFallback>
     </Avatar>
   );
-}
+});

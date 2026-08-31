@@ -20,68 +20,76 @@ export interface AvailableDirectoryCardProps {
   storeData: OptometristUserRow[];
 }
 
-export function AvailableDirectoryCard({
-  className,
-  defaultView = 'optometrists',
-  isLoading,
-  optometristData,
-  storeData,
-}: AvailableDirectoryCardProps) {
-  const [view, setView] = React.useState<AvailableView>(defaultView);
-  const activeData = view === 'optometrists' ? optometristData : storeData;
-  const activeCount = activeData.filter((d) => d.avail.statusLabel !== 'Offline').length;
+export const AvailableDirectoryCard = React.memo(
+  function AvailableDirectoryCard({
+    className,
+    defaultView = 'optometrists',
+    isLoading,
+    optometristData,
+    storeData,
+  }: AvailableDirectoryCardProps) {
+    const [view, setView] = React.useState<AvailableView>(defaultView);
+    const activeData = view === 'optometrists' ? optometristData : storeData;
+    const activeCount = activeData.filter((d) => d.avail.statusLabel !== 'Offline').length;
 
-  return (
-    <CardFrame className={cn('flex h-[300px] flex-col', className)}>
-      <div className="dark:bg-muted/40 flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br text-white',
-              view === 'optometrists' ? 'from-teal-500 to-teal-800' : 'from-blue-500 to-blue-800'
-            )}
-          >
-            {view === 'optometrists' ? <Stethoscope size={13} /> : <Store size={13} />}
-          </div>
-          <span className="text-sm font-semibold text-foreground">Available</span>
-          <div className="flex gap-1 rounded-lg bg-muted p-1">
-            <button
+    return (
+      <CardFrame className={cn('flex h-[300px] flex-col', className)}>
+        <div className="dark:bg-muted/40 flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-[#F7F7F7] px-4 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div
               className={cn(
-                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
-                view === 'optometrists'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                'flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-gradient-to-br text-white',
+                view === 'optometrists' ? 'from-teal-500 to-teal-800' : 'from-blue-500 to-blue-800'
               )}
-              onClick={() => setView('optometrists')}
-              type="button"
             >
-              Optometrists
-            </button>
-            <button
-              className={cn(
-                'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
-                view === 'stores'
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-              onClick={() => setView('stores')}
-              type="button"
-            >
-              Stores
-            </button>
+              {view === 'optometrists' ? <Stethoscope size={13} /> : <Store size={13} />}
+            </div>
+            <span className="text-sm font-semibold text-foreground">Available</span>
+            <div className="flex gap-1 rounded-lg bg-muted p-1">
+              <button
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
+                  view === 'optometrists'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                onClick={() => setView('optometrists')}
+                type="button"
+              >
+                Optometrists
+              </button>
+              <button
+                className={cn(
+                  'rounded-md px-2.5 py-1 text-sm font-medium transition-colors',
+                  view === 'stores'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+                onClick={() => setView('stores')}
+                type="button"
+              >
+                Stores
+              </button>
+            </div>
           </div>
+
+          <ActiveCountBadge count={activeCount} />
         </div>
 
-        <ActiveCountBadge count={activeCount} />
-      </div>
-
-      {isLoading ? (
-        <DirectoryListSkeleton />
-      ) : view === 'optometrists' ? (
-        <OptometristUsersInfiniteBody data={optometristData} />
-      ) : (
-        <AvailableStoresBody data={storeData} />
-      )}
-    </CardFrame>
-  );
-}
+        {isLoading ? (
+          <DirectoryListSkeleton />
+        ) : view === 'optometrists' ? (
+          <OptometristUsersInfiniteBody data={optometristData} />
+        ) : (
+          <AvailableStoresBody data={storeData} />
+        )}
+      </CardFrame>
+    );
+  },
+  (prev, next) =>
+    prev.className === next.className &&
+    prev.defaultView === next.defaultView &&
+    prev.isLoading === next.isLoading &&
+    prev.optometristData === next.optometristData &&
+    prev.storeData === next.storeData
+);

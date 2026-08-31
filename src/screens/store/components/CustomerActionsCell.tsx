@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { CheckCircle2, ClipboardPlus, FileText, MoreHorizontal, UserPen } from 'lucide-react';
 
 import type { Customer, StatusTab, User } from '../../../types';
@@ -7,7 +8,7 @@ import { Button } from '../../../components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { isObjectiveRxComplete } from '../../../options/Option';
 
-export function CustomerStatusBadge({ status }: { status: Customer['status'] }) {
+export const CustomerStatusBadge = memo(function CustomerStatusBadge({ status }: { status: Customer['status'] }) {
   if (status === 'Created') {
     return (
       <Badge
@@ -93,9 +94,13 @@ export function CustomerStatusBadge({ status }: { status: Customer['status'] }) 
       {status}
     </Badge>
   );
-}
+});
 
-export function ConversionStatusBadge({ conversionStatus }: { conversionStatus?: null | string }) {
+export const ConversionStatusBadge = memo(function ConversionStatusBadge({
+  conversionStatus,
+}: {
+  conversionStatus?: null | string;
+}) {
   if (conversionStatus === 'Converted') {
     return (
       <Badge
@@ -126,7 +131,7 @@ export function ConversionStatusBadge({ conversionStatus }: { conversionStatus?:
       Not Converted
     </Badge>
   );
-}
+});
 
 type CustomerActionsCellProps = {
   completingCallId: null | string;
@@ -143,7 +148,7 @@ type CustomerActionsCellProps = {
   user: null | User;
 };
 
-export function CustomerActionsCell({
+export const CustomerActionsCell = memo(function CustomerActionsCell({
   completingCallId,
   cust,
   disableRequest,
@@ -157,6 +162,39 @@ export function CustomerActionsCell({
   statusTab,
 }: CustomerActionsCellProps) {
   const primaryBtn = (() => {
+    if (statusTab === 'InProgress') {
+      const isRxComplete = isObjectiveRxComplete(cust.rxData);
+
+      return (
+        <div className="flex items-center gap-2">
+          <Button
+            className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium shadow-xs"
+            onClick={() => onCreateTest(cust.id)}
+            size="sm"
+            title="View customer test page"
+            variant="secondary"
+          >
+            <ClipboardPlus size={14} />
+            View
+          </Button>
+
+          {isRxComplete && (
+            <Button
+              className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={completingCallId === cust.id}
+              onClick={() => onCompleteCall(cust.id, cust.name)}
+              size="sm"
+              title="Complete consultation and show customer feedback QR"
+              variant="primary"
+            >
+              <CheckCircle2 size={14} />
+              {completingCallId === cust.id ? 'Completing…' : 'Completed'}
+            </Button>
+          )}
+        </div>
+      );
+    }
+
     if (cust.status === 'Testing' || cust.status === 'Accepted') {
       return (
         <div className="flex items-center gap-1">
@@ -198,38 +236,17 @@ export function CustomerActionsCell({
     }
 
     if (cust.status === 'Test Completed') {
-      const isRxComplete = isObjectiveRxComplete(cust.rxData);
-
-      if (isRxComplete) {
-        return (
-          <Button
-            className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={completingCallId === cust.id}
-            onClick={() => onCompleteCall(cust.id, cust.name)}
-            size="sm"
-            title="Complete consultation and show customer feedback QR"
-            variant="primary"
-          >
-            <CheckCircle2 size={14} />
-            {completingCallId === cust.id ? 'Completing…' : 'Completed'}
-          </Button>
-        );
-      }
-
       return (
         <Button
-          className="h-8 cursor-pointer gap-1.5 border border-emerald-300 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-          onClick={() => {
-            onSelectCustomer(cust.id);
-            onSetEditingRx(true);
-            onSetEditing(false);
-          }}
+          className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={completingCallId === cust.id}
+          onClick={() => onCompleteCall(cust.id, cust.name)}
           size="sm"
-          title="Fill mandatory Rx values before completing"
-          variant="ghost"
+          title="Complete consultation and show customer feedback QR"
+          variant="primary"
         >
-          <FileText size={14} />
-          Edit Rx
+          <CheckCircle2 size={14} />
+          {completingCallId === cust.id ? 'Completing…' : 'Completed'}
         </Button>
       );
     }
@@ -280,13 +297,14 @@ export function CustomerActionsCell({
 
   const isCreateTestState = cust.status === 'Created' || (!cust.status && !cust.callStartTime);
   const isPendingRequest = cust.status === 'Queued' || cust.status === 'Initiated';
+  const isTestingTab = statusTab === 'InProgress';
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
-      {!isCreateTestState && !isPendingRequest && (
+      {!isCreateTestState && !isPendingRequest && !isTestingTab && (
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -332,8 +350,8 @@ export function CustomerActionsCell({
               <span>Edit Rx</span>
             </button>
 
-            {/* Completed — only available for Test Completed when all RX_MANDATORY_FIELDS are filled */}
-            {cust.status === 'Test Completed' && isObjectiveRxComplete(cust.rxData) && (
+            {/* Completed — available for Test Completed */}
+            {cust.status === 'Test Completed' && (
               <>
                 <div className="my-1 h-px bg-border" />
                 <button
@@ -368,4 +386,4 @@ export function CustomerActionsCell({
       )}
     </div>
   );
-}
+});

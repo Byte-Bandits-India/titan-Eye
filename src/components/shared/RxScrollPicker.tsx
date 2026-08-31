@@ -11,7 +11,7 @@ export interface RxScrollPickerProps {
   value: string;
 }
 
-export function RxScrollPicker({
+export const RxScrollPicker = React.memo(function RxScrollPicker({
   defaultValue = '0.00',
   hasError,
   onChange,
@@ -19,6 +19,12 @@ export function RxScrollPicker({
   value,
 }: RxScrollPickerProps) {
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const onChangeRef = React.useRef(onChange);
+  React.useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
+  const handleValueChange = React.useCallback((val: string) => {
+    onChangeRef.current(val);
+  }, []);
 
   const focusAndCenterZero = () => {
     const contentEl = contentRef.current;
@@ -62,7 +68,7 @@ export function RxScrollPicker({
   };
 
   return (
-    <Select onOpenChange={handleOpenChange} onValueChange={onChange} value={value}>
+    <Select onOpenChange={handleOpenChange} onValueChange={handleValueChange} value={value}>
       <SelectTrigger
         className={cn(
           'h-9 w-full justify-center gap-1 border-0 bg-transparent px-1 font-mono text-sm font-medium text-foreground shadow-none hover:bg-slate-100/60 focus-visible:ring-1 focus-visible:ring-blue-500 dark:hover:bg-zinc-800/60',
@@ -88,4 +94,10 @@ export function RxScrollPicker({
       </SelectContent>
     </Select>
   );
-}
+},
+(prevProps, nextProps) =>
+  prevProps.value === nextProps.value &&
+  prevProps.hasError === nextProps.hasError &&
+  prevProps.defaultValue === nextProps.defaultValue &&
+  prevProps.options === nextProps.options
+);
