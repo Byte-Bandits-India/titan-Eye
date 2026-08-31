@@ -45,7 +45,8 @@ const feedbackImageUpload = multer({
 });
 
 async function findNextAvailableOptometrist(
-  excludeEmails: string[]
+  excludeEmails: string[],
+  includeSenior = false
 ): Promise<null | { email: string; name: string }> {
   const presenceCutoff = new Date(Date.now() - PRESENCE_IDLE_MS).toISOString();
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
@@ -63,67 +64,78 @@ async function findNextAvailableOptometrist(
     callCountByName.set((row.callTakenBy || '').toLowerCase(), row.callCount);
   }
 
-  // Phase 1: Search regular optometrists
+  const sortByCallCountThenName = (list: { email: string; name: string }[]) =>
+    [...list].sort((a, b) => {
+      const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
+      const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
+
+      if (aCount !== bCount) {
+        return aCount - bCount;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+
+  const pickAvailable = (candidates: { email: string; name: string }[]) => {
+    for (const candidate of candidates) {
+      if (excludeLower.includes(candidate.email.toLowerCase())) {
+        continue;
+      }
+
+      if (busyLower.has(candidate.email.toLowerCase()) || busyLower.has(candidate.name.toLowerCase())) {
+        continue;
+      }
+
+      return candidate;
+    }
+
+    return null;
+  };
+
   const regularOptometrists = await all<{ email: string; name: string }>(
     `SELECT email, name FROM users WHERE role = 'optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
     [presenceCutoff]
   );
-
-  const sortedRegular = [...regularOptometrists].sort((a, b) => {
-    const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
-    const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
-
-    if (aCount !== bCount) {
-      return aCount - bCount;
-    }
-
-    return a.name.localeCompare(b.name);
-  });
-
-  for (const optometrist of sortedRegular) {
-    if (excludeLower.includes(optometrist.email.toLowerCase())) {
-      continue;
-    }
-
-    if (busyLower.has(optometrist.email.toLowerCase()) || busyLower.has(optometrist.name.toLowerCase())) {
-      continue;
-    }
-
-    return optometrist;
-  }
-
-  // Phase 2: Escalation to Senior Optometrists (when all regular optometrists are busy or unavailable)
   const seniorOptometrists = await all<{ email: string; name: string }>(
     `SELECT email, name FROM users WHERE role = 'senior_optometrist' AND status = 'active' AND activeTokenSig IS NOT NULL AND lastPing >= ? ORDER BY name ASC`,
     [presenceCutoff]
   );
 
-  const sortedSenior = [...seniorOptometrists].sort((a, b) => {
-    const aCount = callCountByName.get(a.name.toLowerCase()) ?? 0;
-    const bCount = callCountByName.get(b.name.toLowerCase()) ?? 0;
+  if (includeSenior) {
+    // Priority customer: ring regular and senior optometrists as one combined pool.
+    const merged = pickAvailable(sortByCallCountThenName([...regularOptometrists, ...seniorOptometrists]));
 
-    if (aCount !== bCount) {
-      return aCount - bCount;
+    if (merged) {
+      return merged;
     }
 
-    return a.name.localeCompare(b.name);
-  });
-
-  for (const seniorOptom of sortedSenior) {
-    if (excludeLower.includes(seniorOptom.email.toLowerCase())) {
-      continue;
-    }
-
-    if (busyLower.has(seniorOptom.email.toLowerCase()) || busyLower.has(seniorOptom.name.toLowerCase())) {
-      continue;
-    }
-
-    logger.info('Escalating call to Senior Optometrist because regular optometrists are unavailable or busy', {
-      seniorEmail: seniorOptom.email,
-      seniorName: seniorOptom.name,
+    logger.info('findNextAvailableOptometrist found nobody (priority customer, combined pool)', {
+      busyNames: Array.from(busyLower),
+      excludeEmails: excludeLower,
+      regularCandidateEmails: regularOptometrists.map((o) => o.email),
+      seniorCandidateEmails: seniorOptometrists.map((o) => o.email),
     });
 
-    return seniorOptom;
+    return null;
+  }
+
+  // Phase 1: Search regular optometrists
+  const regular = pickAvailable(sortByCallCountThenName(regularOptometrists));
+
+  if (regular) {
+    return regular;
+  }
+
+  // Phase 2: Escalation to Senior Optometrists (when all regular optometrists are busy or unavailable)
+  const senior = pickAvailable(sortByCallCountThenName(seniorOptometrists));
+
+  if (senior) {
+    logger.info('Escalating call to Senior Optometrist because regular optometrists are unavailable or busy', {
+      seniorEmail: senior.email,
+      seniorName: senior.name,
+    });
+
+    return senior;
   }
 
   logger.info('findNextAvailableOptometrist found nobody (neither regular nor senior optometrists available)', {
@@ -156,7 +168,7 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
     declinedList.push(customer.offeredToOptometristEmail);
   }
 
-  const nextOptometrist = await findNextAvailableOptometrist(declinedList);
+  const nextOptometrist = await findNextAvailableOptometrist(declinedList, customer.isPriority === 1);
 
   if (nextOptometrist) {
     await run(
@@ -735,7 +747,7 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       );
       storeContactEmail = callerAccount?.microsoftUpn || callerAccount?.email || req.user!.email;
 
-      const targetOptometrist = await findNextAvailableOptometrist([]);
+      const targetOptometrist = await findNextAvailableOptometrist([], customer.isPriority === 1);
 
       if (!targetOptometrist) {
         broadcastEvent('NO_OPTOMETRIST_AVAILABLE', {
@@ -943,7 +955,7 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
       declinedList.push(customer.offeredToOptometristEmail);
     }
 
-    const nextOptometrist = await findNextAvailableOptometrist(declinedList);
+    const nextOptometrist = await findNextAvailableOptometrist(declinedList, customer.isPriority === 1);
 
     if (nextOptometrist) {
       await run(
@@ -1038,7 +1050,7 @@ router.post(
       await run(
         `
       UPDATE customers SET
-        status = 'Closed',
+        status = 'Cancelled',
         callActive = 0,
         callTakenBy = NULL,
         offeredToOptometristEmail = NULL,
@@ -1451,7 +1463,7 @@ setInterval(async () => {
           await run(
             `
             UPDATE customers SET
-              status = 'Closed',
+              status = 'Cancelled',
               callActive = 0,
               callTakenBy = NULL,
               lastUpdatedOn = ?
@@ -1470,6 +1482,74 @@ setInterval(async () => {
     }
   } catch (err) {
     logger.error('Server auto-close timeout error', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
+  }
+}, 5000);
+
+setInterval(async () => {
+  try {
+    const nowMs = Date.now();
+    const staleCandidates = await all<CustomerRow>(
+      "SELECT id, status, createdOn, callStartTime, lastUpdatedOn FROM customers WHERE status = 'Created' OR ((status = 'Accepted' OR status = 'Testing') AND callActive = 1)"
+    );
+
+    for (const customer of staleCandidates) {
+      const referenceTimeStr =
+        customer.status === 'Created'
+          ? customer.createdOn || customer.lastUpdatedOn
+          : customer.lastUpdatedOn || customer.callStartTime;
+
+      if (!referenceTimeStr) {
+        continue;
+      }
+
+      let referenceMs = parseInt(referenceTimeStr, 10);
+
+      if (isNaN(referenceMs) || String(referenceMs).length < 10) {
+        referenceMs = new Date(referenceTimeStr).getTime();
+      }
+
+      if (isNaN(referenceMs) || nowMs - referenceMs < 3540000) {
+        continue;
+      }
+
+      const timestamp = new Date().toLocaleString('en-US', {
+        day: 'numeric',
+        hour: 'numeric',
+        hour12: true,
+        minute: '2-digit',
+        month: 'short',
+        second: '2-digit',
+        year: 'numeric',
+      });
+      await run(
+        `
+        UPDATE customers SET
+          status = 'Cancelled',
+          callActive = 0,
+          callTakenBy = NULL,
+          offeredToOptometristEmail = NULL,
+          declinedByOptometristEmails = NULL,
+          lastUpdatedOn = ?
+        WHERE id = ?
+      `,
+        [timestamp, customer.id]
+      );
+
+      logger.info('Server auto-close stale customer', {
+        customerId: customer.id,
+        previousStatus: customer.status,
+      });
+
+      const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [customer.id]);
+
+      if (updatedRow) {
+        broadcastEvent('CUSTOMER_UPDATED', toApiCustomer(updatedRow));
+      }
+    }
+  } catch (err) {
+    logger.error('Server auto-close stale customer error', {
       errorMessage: err instanceof Error ? err.message : String(err),
     });
   }

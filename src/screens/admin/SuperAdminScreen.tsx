@@ -21,6 +21,7 @@ import { usePagination } from '../../hooks/usePagination';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { apiClient } from '../../Util/apiClient';
 import { type DateFilterRange, filterCustomersByDate, filterUsersByDate } from '../../utils/dateFilter';
+import { hasCustomerFeedback } from '../../utils/customerFeedback';
 import {
   computeOptometristAvailability,
   computeStoreAvailability,
@@ -135,9 +136,7 @@ export function SuperAdminScreen() {
     const term = searchTerm.trim().toLowerCase();
 
     return dateFilteredCustomers.filter((c) => {
-      const hasPatientFeedback = Boolean(c.patientFeedback && c.patientFeedback.trim());
-
-      if (!hasPatientFeedback) {
+      if (!hasCustomerFeedback(c)) {
         return false;
       }
 
@@ -384,7 +383,7 @@ export function SuperAdminScreen() {
   const handleSelectCustomerFromNotification = (customerId: string) => {
     const cust = customers.find((c) => c.id === customerId);
 
-    if (cust?.patientFeedback) {
+    if (cust && hasCustomerFeedback(cust)) {
       setActiveTab('feedback');
       setSearchTerm(cust.name || cust.id);
     } else {

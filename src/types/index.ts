@@ -2,6 +2,9 @@ import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
 export type AdminTab = 'customers' | 'feedback' | 'queue' | 'videos';
+export type FeedbackEase = 'Difficult' | 'Easy' | 'Okay' | 'Very Easy';
+export type FeedbackExperience = 'Average' | 'Excellent' | 'Good' | 'Poor';
+export type FeedbackRecommend = 'Maybe' | 'No' | 'Yes';
 export type FeedbackFilterTab = 'all' | 'optometrist' | 'patient' | 'store';
 
 export type AppLayoutProps = {
@@ -88,6 +91,9 @@ export type Customer = {
   conversionStatus?: null | string;
   createdOn?: null | string;
   customerType: string;
+  feedbackEase?: FeedbackEase | null;
+  feedbackExperience?: FeedbackExperience | null;
+  feedbackRecommend?: FeedbackRecommend | null;
   gender: string;
   id: string;
   isPriority?: boolean;

@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Node modules cache (allow tracking node_modules but ignore temporary caches)
+node_modules
 node_modules/.cache
 node_modules/.vite
 node_modules/**/.DS_Store

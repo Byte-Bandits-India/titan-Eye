@@ -7,7 +7,9 @@ import { logger } from '../utils/logger.js';
 
 const router = Router();
 
-const MAX_FEEDBACK_LENGTH = 2000;
+const FEEDBACK_EASE_OPTIONS = ['Very Easy', 'Easy', 'Okay', 'Difficult'] as const;
+const FEEDBACK_EXPERIENCE_OPTIONS = ['Excellent', 'Good', 'Average', 'Poor'] as const;
+const FEEDBACK_RECOMMEND_OPTIONS = ['Yes', 'Maybe', 'No'] as const;
 
 async function findValidToken(token: string): Promise<FeedbackTokenRow | null> {
   const row = await get<FeedbackTokenRow>('SELECT * FROM feedback_tokens WHERE token = ?', [token]);
@@ -63,11 +65,20 @@ router.post('/:token', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'This feedback link is invalid or has expired.' });
     }
 
-    const rawFeedback = req.body?.feedback;
-    const feedback = typeof rawFeedback === 'string' ? rawFeedback.trim().slice(0, MAX_FEEDBACK_LENGTH) : '';
+    const { feedbackEase, feedbackExperience, feedbackRecommend } = req.body ?? {};
 
-    await run('UPDATE customers SET patientFeedback = ? WHERE id = ?', [
-      feedback || null,
+    if (
+      !FEEDBACK_EASE_OPTIONS.includes(feedbackEase) ||
+      !FEEDBACK_EXPERIENCE_OPTIONS.includes(feedbackExperience) ||
+      !FEEDBACK_RECOMMEND_OPTIONS.includes(feedbackRecommend)
+    ) {
+      return res.status(400).json({ error: 'Please answer all 3 questions.' });
+    }
+
+    await run('UPDATE customers SET feedbackEase = ?, feedbackExperience = ?, feedbackRecommend = ? WHERE id = ?', [
+      feedbackEase,
+      feedbackExperience,
+      feedbackRecommend,
       tokenRow.customerId,
     ]);
     await run('UPDATE feedback_tokens SET usedAt = ? WHERE token = ?', [new Date().toISOString(), token]);

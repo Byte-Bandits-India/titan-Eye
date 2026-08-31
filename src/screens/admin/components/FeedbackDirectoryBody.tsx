@@ -80,14 +80,22 @@ export function FeedbackDirectoryBody({
         render: (cust) => cust.storeContactEmail || '—',
       },
       {
-        headerClassName: 'text-sm font-semibold   text-muted-foreground',
-        id: 'patientFeedback',
-        label: 'Patient Feedback',
-        render: (cust) => (
-          <div className="flex items-start gap-2 p-2.5 text-sm text-slate-800 dark:text-slate-200">
-            <span className="leading-relaxed">{cust.patientFeedback}</span>
-          </div>
-        ),
+        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+        id: 'feedbackEase',
+        label: 'Test Ease',
+        render: (cust) => cust.feedbackEase || '—',
+      },
+      {
+        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+        id: 'feedbackExperience',
+        label: 'Experience',
+        render: (cust) => cust.feedbackExperience || '—',
+      },
+      {
+        headerClassName: 'w-32 text-sm font-semibold   text-muted-foreground',
+        id: 'feedbackRecommend',
+        label: 'Would Recommend',
+        render: (cust) => cust.feedbackRecommend || '—',
       },
       {
         cellClassName: 'text-right text-sm text-muted-foreground',

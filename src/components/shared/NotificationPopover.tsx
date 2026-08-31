@@ -21,6 +21,7 @@ import { fetchCustomersAction, initiateCallAction, rejectCallAction } from '../.
 import { fetchUsersAction } from '../../Actions/userActions';
 import { useBrowserNotifications } from '../../hooks/useBrowserNotifications';
 import { useAppDispatch, useAppSelector } from '../../store';
+import { hasCustomerFeedback } from '../../utils/customerFeedback';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -308,7 +309,7 @@ export function NotificationPopover({
 
       if (user.role === 'senior_optometrist') {
         const feedbackItems = customers
-          .filter((c) => Boolean(c.patientFeedback && c.patientFeedback.trim()) && !dismissedIds.has(c.id))
+          .filter((c) => hasCustomerFeedback(c) && !dismissedIds.has(c.id))
           .map((c) => ({
             customer: c,
             id: c.id,

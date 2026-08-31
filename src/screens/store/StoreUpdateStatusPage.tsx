@@ -202,7 +202,9 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
       return;
     }
 
-    if (selectedCustomer.status !== 'Closed' && !isObjectiveRxComplete(selectedCustomer.rxData)) {
+    const isCancelledCustomer = selectedCustomer.status === 'Closed' || selectedCustomer.status === 'Cancelled';
+
+    if (!isCancelledCustomer && !isObjectiveRxComplete(selectedCustomer.rxData)) {
       toast({
         description:
           'Please fill in the required Auto Ref prescription fields (Sph, Cyl, Axis, PD for both eyes) in Store Rx before marking the consultation as Completed.',
@@ -226,7 +228,7 @@ export function StoreUpdateStatusPage({ onBack, readOnly, selectedCustomer }: St
       nonConversionReason: isConverted ? null : form.nonConversionReason,
       orderDate: isConverted ? form.orderDate.trim() : null,
       salesOrderNumber: isConverted ? formatSalesOrderNumber(form.salesOrderNumber.trim(), storePrefix) : null,
-      status: selectedCustomer.status === 'Closed' ? 'Closed' : 'Completed',
+      status: isCancelledCustomer ? selectedCustomer.status : 'Completed',
     };
 
     setIsSaving(true);

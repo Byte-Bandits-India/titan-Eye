@@ -17,8 +17,9 @@ export const FEEDBACK_TABLE_COLUMNS: ColumnOption[] = [
   { id: 'name', isMandatory: true, label: 'Name' },
   { id: 'storeName', label: 'Store Code' },
   { id: 'storeContactEmail', label: 'Store Email' },
-  { id: 'callTakenBy', label: 'Store Staff / User' },
-  { id: 'patientFeedback', isMandatory: true, label: 'Patient Feedback' },
+  { id: 'feedbackEase', isMandatory: true, label: 'Test Ease' },
+  { id: 'feedbackExperience', isMandatory: true, label: 'Experience' },
+  { id: 'feedbackRecommend', isMandatory: true, label: 'Would Recommend' },
   { id: 'lastUpdated', label: 'Date' },
 ];
 export const DEFAULT_FEEDBACK_COLUMNS = [
@@ -26,8 +27,9 @@ export const DEFAULT_FEEDBACK_COLUMNS = [
   'name',
   'storeName',
   'storeContactEmail',
-  'callTakenBy',
-  'patientFeedback',
+  'feedbackEase',
+  'feedbackExperience',
+  'feedbackRecommend',
   'lastUpdated',
 ];
 

@@ -28,6 +28,9 @@ export interface CustomerRow {
   createdOn: null | string;
   customerType: string;
   declinedByOptometristEmails: null | string;
+  feedbackEase: null | string;
+  feedbackExperience: null | string;
+  feedbackRecommend: null | string;
   gender: string;
   id: string;
   isPriority: number;
@@ -303,6 +306,18 @@ export async function initializeDatabase(): Promise<void> {
     await run(`ALTER TABLE customers ADD COLUMN nonConversionComment TEXT`);
   } catch {}
 
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN feedbackEase TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN feedbackExperience TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN feedbackRecommend TEXT`);
+  } catch {}
+
   await run(`
     CREATE TABLE IF NOT EXISTS feedback_tokens (
       token TEXT PRIMARY KEY,
@@ -457,7 +472,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, feedbackEase, feedbackExperience, feedbackRecommend, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment
     FROM customers
   `);
 

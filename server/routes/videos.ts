@@ -48,6 +48,14 @@ function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void
   next();
 }
 
+function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
+  if (!req.user || req.user.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super Admin access required' });
+  }
+
+  next();
+}
+
 type TvModeActiveResponseBody = { video: null | VideoRow };
 
 router.get('/tvmode-active', async (req: AuthenticatedRequest, res: Response<TvModeActiveResponseBody>) => {
@@ -146,6 +154,7 @@ interface UploadVideoBody {
 
 router.post(
   '/',
+  requireSuperAdmin,
   (req: AuthenticatedRequest, res: Response<VideoUploadResponseBody>, next) => {
     upload.single('video')(req, res, (err: unknown) => {
       if (err) {

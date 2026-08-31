@@ -18,8 +18,8 @@ export function CompleteCallModal({ customerName, feedbackUrl, onClose }: Comple
       <div className="w-full max-w-sm rounded-2xl bg-card p-6 text-center shadow-2xl duration-200 animate-in fade-in zoom-in">
         <h3 className="mb-1 text-base font-medium text-foreground">Consultation Completed</h3>
         <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-          Ask <strong className="text-foreground">{customerName}</strong> to scan this code to share feedback
-          on their visit &mdash; it&apos;s optional.
+          Ask <strong className="text-foreground">{customerName}</strong> to scan this code for a quick
+          feedback survey on their visit.
         </p>
 
         <div className="mb-3 flex items-center justify-center rounded-xl border border-border bg-white p-4 shadow-inner">

@@ -43,7 +43,7 @@ export function renderWaitingDuration(cust: Customer, now: number) {
     return <span className="text-muted-foreground">—</span>;
   }
 
-  const isFinished = cust.status === 'Closed' || cust.status === 'Completed';
+  const isFinished = cust.status === 'Closed' || cust.status === 'Cancelled' || cust.status === 'Completed';
   const endMs = cust.optometristCallStartTime
     ? parseTimestamp(cust.optometristCallStartTime) || now
     : isFinished
@@ -59,7 +59,12 @@ export function WaitingCell({ cust }: { cust: Customer }) {
   const [now, setNow] = React.useState<number>(() => Date.now());
 
   React.useEffect(() => {
-    if (cust.optometristCallStartTime || cust.status === 'Closed' || cust.status === 'Completed') {
+    if (
+      cust.optometristCallStartTime ||
+      cust.status === 'Closed' ||
+      cust.status === 'Cancelled' ||
+      cust.status === 'Completed'
+    ) {
       return;
     }
 

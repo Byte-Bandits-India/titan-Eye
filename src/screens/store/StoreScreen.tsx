@@ -135,7 +135,7 @@ export function StoreScreen() {
               callActive: false,
               callTakenBy: null,
               lastUpdatedOn: timestamp,
-              status: 'Closed',
+              status: 'Cancelled',
             })
           );
         }
@@ -269,9 +269,12 @@ export function StoreScreen() {
     return list;
   }, [customers, statusTab, customerDateRange, customerSearchTerm]);
 
+  const isSalesConversionEligible = (c: Customer) =>
+    c.status === 'Completed' || c.status === 'Cancelled' || c.status === 'Closed';
+
   const salesConversionTabCounts = React.useMemo(
     () => ({
-      all: customers.filter((c) => c.status === 'Completed').length,
+      all: customers.filter(isSalesConversionEligible).length,
       completed: 0,
       inProgress: 0,
       pending: customers.filter(
@@ -286,12 +289,16 @@ export function StoreScreen() {
 
   const salesConversionFilteredCustomers = React.useMemo(() => {
     const byStatus = customers.filter((c) => {
-      if (c.status !== 'Completed') {
+      if (!isSalesConversionEligible(c)) {
         return false;
       }
 
       if (statusTab === 'Pending') {
-        return c.conversionStatus !== 'Converted' && c.conversionStatus !== 'Not Converted';
+        return (
+          c.status === 'Completed' &&
+          c.conversionStatus !== 'Converted' &&
+          c.conversionStatus !== 'Not Converted'
+        );
       }
 
       if (conversionStatusFilter !== 'all' && c.conversionStatus !== conversionStatusFilter) {

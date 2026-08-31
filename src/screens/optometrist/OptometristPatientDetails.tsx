@@ -477,7 +477,8 @@ export function OptometristPatientDetails({
             </div>
           ) : (
             selectedCustomer?.status !== 'Completed' &&
-            selectedCustomer?.status !== 'Closed' && (
+            selectedCustomer?.status !== 'Closed' &&
+            selectedCustomer?.status !== 'Cancelled' && (
               <Button
                 className={`active:scale-98 relative flex h-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-6 text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                   isAcceptHighlighted ? 'z-[60] animate-pulse' : ''
@@ -643,65 +644,68 @@ export function OptometristPatientDetails({
         </div>
       )}
 
-      {!readOnly && selectedCustomer?.status !== 'Completed' && selectedCustomer?.status !== 'Closed' && (
-        <div className="flex flex-col items-center gap-2">
-          <Button
-            className="active:scale-98 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-            disabled={!selectedCustomer || hasOtherActiveCall}
-            onClick={() => {
-              if (!selectedCustomer) {
-                return;
+      {!readOnly &&
+        selectedCustomer?.status !== 'Completed' &&
+        selectedCustomer?.status !== 'Closed' &&
+        selectedCustomer?.status !== 'Cancelled' && (
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              className="active:scale-98 flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md text-sm font-normal text-white shadow-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              disabled={!selectedCustomer || hasOtherActiveCall}
+              onClick={() => {
+                if (!selectedCustomer) {
+                  return;
+                }
+
+                if (hasOtherActiveCall) {
+                  toast({
+                    description: 'Finish or drop your current consultation before starting another.',
+                    title: 'Consultation Already In Progress',
+                    type: 'error',
+                  });
+
+                  return;
+                }
+
+                if (selectedCustomer.status !== 'Accepted') {
+                  highlightAcceptButton();
+
+                  return;
+                }
+
+                if (isConsultationOpen && isConsultationMinimized) {
+                  setIsConsultationMinimized(false);
+                } else {
+                  setIsConsultationOpen(true);
+                  setIsConsultationMinimized(false);
+                }
+              }}
+              title={
+                hasOtherActiveCall
+                  ? 'You already have an active consultation in progress.'
+                  : selectedCustomer && selectedCustomer.status !== 'Accepted'
+                    ? 'Accept the patient in order to consult this patient'
+                    : undefined
               }
+              type="button"
+              variant="primary"
+            >
+              <Video size={16} />
+              {isConsultationOpen && isConsultationMinimized ? 'Resume Consultation' : 'Start Consultation'}
+            </Button>
 
-              if (hasOtherActiveCall) {
-                toast({
-                  description: 'Finish or drop your current consultation before starting another.',
-                  title: 'Consultation Already In Progress',
-                  type: 'error',
-                });
-
-                return;
-              }
-
-              if (selectedCustomer.status !== 'Accepted') {
-                highlightAcceptButton();
-
-                return;
-              }
-
-              if (isConsultationOpen && isConsultationMinimized) {
-                setIsConsultationMinimized(false);
-              } else {
-                setIsConsultationOpen(true);
-                setIsConsultationMinimized(false);
-              }
-            }}
-            title={
-              hasOtherActiveCall
-                ? 'You already have an active consultation in progress.'
-                : selectedCustomer && selectedCustomer.status !== 'Accepted'
-                  ? 'Accept the patient in order to consult this patient'
-                  : undefined
-            }
-            type="button"
-            variant="primary"
-          >
-            <Video size={16} />
-            {isConsultationOpen && isConsultationMinimized ? 'Resume Consultation' : 'Start Consultation'}
-          </Button>
-
-          {hasOtherActiveCall ? (
-            <p className="text-sm text-muted-foreground">
-              You already have an active consultation in progress.
-            </p>
-          ) : (
-            selectedCustomer &&
-            selectedCustomer.status !== 'Accepted' && (
-              <p className="text-sm text-muted-foreground">Accept the customer to start consulting.</p>
-            )
-          )}
-        </div>
-      )}
+            {hasOtherActiveCall ? (
+              <p className="text-sm text-muted-foreground">
+                You already have an active consultation in progress.
+              </p>
+            ) : (
+              selectedCustomer &&
+              selectedCustomer.status !== 'Accepted' && (
+                <p className="text-sm text-muted-foreground">Accept the customer to start consulting.</p>
+              )
+            )}
+          </div>
+        )}
 
       {openLightbox === 'autoRef' && autoRefImages.length > 0 && (
         <ImageLightbox images={autoRefImages} onClose={() => setOpenLightbox(null)} startIndex={0} />

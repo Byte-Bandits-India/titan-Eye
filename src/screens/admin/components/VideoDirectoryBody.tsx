@@ -15,7 +15,7 @@ import { getYoutubeEmbedUrl } from '../../../utils/youtube';
 export type VideoDirectoryBodyProps = {
   onDelete: (video: ManagedVideo) => void;
   onSetTvModeVideo: (video: ManagedVideo) => void;
-  onUploadClick: () => void;
+  onUploadClick?: () => void;
   tvModeVideoId: null | number;
   videos: ManagedVideo[];
 };
@@ -35,10 +35,12 @@ export function VideoDirectoryBody({
         icon={FilmIcon}
         iconGradient="from-purple-500 to-purple-800"
         right={
-          <Button className="h-9 gap-2 px-3 text-sm font-medium" onClick={onUploadClick} variant="primary">
-            <UploadIcon size={14} />
-            Add Video
-          </Button>
+          onUploadClick ? (
+            <Button className="h-9 gap-2 px-3 text-sm font-medium" onClick={onUploadClick} variant="primary">
+              <UploadIcon size={14} />
+              Add Video
+            </Button>
+          ) : undefined
         }
         title="Video Library"
       />

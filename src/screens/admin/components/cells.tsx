@@ -24,7 +24,7 @@ export function renderCallDuration(cust: Customer) {
 }
 
 export function renderTimeStarted(cust: Customer) {
-  if (cust.status === 'Closed') {
+  if (cust.status === 'Closed' || cust.status === 'Cancelled') {
     return <span className="font-mono font-medium text-foreground">59m:00s</span>;
   }
 

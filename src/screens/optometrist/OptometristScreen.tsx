@@ -25,6 +25,7 @@ import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { apiClient } from '../../Util/apiClient';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
+import { hasCustomerFeedback } from '../../utils/customerFeedback';
 import { exportAllCustomersReport } from '../../utils/excelExport';
 import { renderCallDuration, WaitingCell } from '../store/components/cells';
 import { parseTimestamp } from '../store/components/formatters';
@@ -32,7 +33,6 @@ import { AvailableDirectoryCard } from '../../components/shared/AvailableDirecto
 import { AdminCard } from '../admin/components/AdminCard';
 import { DEFAULT_FEEDBACK_COLUMNS } from '../admin/components/adminUtils';
 import { VideoDirectoryBody } from '../admin/components/VideoDirectoryBody';
-import { VideoUploadDialog } from '../admin/components/VideoUploadDialog';
 import { Button } from '../../components/ui/button';
 import { OptometristActionsCell } from './components/OptometristActionsCell';
 import { OptometristCard } from './components/OptometristCard';
@@ -107,8 +107,6 @@ export function OptometristScreen() {
 
   const [videos, setVideos] = React.useState<ManagedVideo[]>([]);
   const [tvModeVideoId, setTvModeVideoId] = React.useState<null | number>(null);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = React.useState(false);
 
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
@@ -157,7 +155,7 @@ export function OptometristScreen() {
               callActive: false,
               callTakenBy: null,
               lastUpdatedOn: timestamp,
-              status: 'Closed',
+              status: 'Cancelled',
             })
           );
         }
@@ -245,9 +243,7 @@ export function OptometristScreen() {
     const term = feedbackSearchTerm.trim().toLowerCase();
 
     return dateFilteredCustomersForFeedback.filter((c) => {
-      const hasPatientFeedback = Boolean(c.patientFeedback && c.patientFeedback.trim());
-
-      if (!hasPatientFeedback) {
+      if (!hasCustomerFeedback(c)) {
         return false;
       }
 
@@ -303,29 +299,6 @@ export function OptometristScreen() {
       void fetchVideos();
     }
   }, [isSeniorOptometrist, activeTab, fetchVideos]);
-
-  const handleUploadVideoFile = async (file: File, title: string) => {
-    setIsUploadingVideo(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('video', file);
-      formData.append('title', title);
-
-      const res = await apiClient.post<ManagedVideo>('/videos', formData);
-      setVideos((prev) => [res.data, ...prev]);
-      setIsUploadDialogOpen(false);
-      toast({ description: `${title} has been uploaded.`, title: 'Video Uploaded', type: 'success' });
-    } catch (err) {
-      toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to upload video',
-        type: 'error',
-      });
-    } finally {
-      setIsUploadingVideo(false);
-    }
-  };
 
   const handleDeleteVideo = async (video: ManagedVideo) => {
     if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) {
@@ -889,7 +862,7 @@ export function OptometristScreen() {
   const handleSelectCustomerFromNotification = (customerId: string) => {
     const cust = customers.find((c) => c.id === customerId);
 
-    if (isSeniorOptometrist && cust?.patientFeedback && cust.status !== 'Initiated') {
+    if (isSeniorOptometrist && cust && hasCustomerFeedback(cust) && cust.status !== 'Initiated') {
       setActiveTab('feedback');
       setFeedbackSearchTerm(cust.name || cust.id);
       setIsEditing(false);
@@ -1026,21 +999,11 @@ export function OptometristScreen() {
             <VideoDirectoryBody
               onDelete={handleDeleteVideo}
               onSetTvModeVideo={handleSetTvModeVideo}
-              onUploadClick={() => setIsUploadDialogOpen(true)}
               tvModeVideoId={tvModeVideoId}
               videos={videos}
             />
           )}
         </main>
-      )}
-
-      {isSeniorOptometrist && (
-        <VideoUploadDialog
-          isUploading={isUploadingVideo}
-          onOpenChange={setIsUploadDialogOpen}
-          onUploadFile={handleUploadVideoFile}
-          open={isUploadDialogOpen}
-        />
       )}
     </AppLayout>
   );
