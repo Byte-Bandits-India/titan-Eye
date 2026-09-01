@@ -86,12 +86,8 @@ export function useSSE(): void {
           } else if (isMatchingStore) {
             addLogNotification({
               customerId: payload.customerId,
-              description:
-                type === 'NO_OPTOMETRIST_AVAILABLE'
-                  ? 'Optometrists are currently busy. Please try again.'
-                  : `No Optometrists answered your request for ${payload.customerName}.`,
-              title:
-                type === 'NO_OPTOMETRIST_AVAILABLE' ? 'Optometrist Unavailable' : 'No Optometrist Answered',
+              description: `No Optometrists answered your request for ${payload.customerName}.`,
+              title: 'No Optometrist Answered',
               type: 'no_optometrist_available',
             });
           }

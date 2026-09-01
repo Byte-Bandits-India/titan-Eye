@@ -45,8 +45,8 @@ const feedbackImageUpload = multer({
 });
 
 async function findNextAvailableOptometrist(
-  excludeEmails: string[],
-  includeSenior = false
+  excludeEmails: string[] = [],
+  isPriority: boolean = false
 ): Promise<null | { email: string; name: string }> {
   const presenceCutoff = new Date(Date.now() - PRESENCE_IDLE_MS).toISOString();
   const excludeLower = excludeEmails.map((e) => e.toLowerCase());
@@ -101,15 +101,27 @@ async function findNextAvailableOptometrist(
     [presenceCutoff]
   );
 
-  if (includeSenior) {
-    // Priority customer: ring regular and senior optometrists as one combined pool.
-    const merged = pickAvailable(sortByCallCountThenName([...regularOptometrists, ...seniorOptometrists]));
+  // Step 1: Always check Regular Optometrists FIRST for both 1st and 2nd attempt
+  const regular = pickAvailable(sortByCallCountThenName(regularOptometrists));
 
-    if (merged) {
-      return merged;
+  if (regular) {
+    return regular;
+  }
+
+  // Step 2: Escalation to Senior Optometrist on 2nd attempt (isPriority === true)
+  if (isPriority) {
+    const senior = pickAvailable(sortByCallCountThenName(seniorOptometrists));
+
+    if (senior) {
+      logger.info('Escalating 2nd-attempt priority call to Senior Optometrist because regular optometrists are unavailable or exhausted', {
+        seniorEmail: senior.email,
+        seniorName: senior.name,
+      });
+
+      return senior;
     }
 
-    logger.info('findNextAvailableOptometrist found nobody (priority customer, combined pool)', {
+    logger.info('findNextAvailableOptometrist found nobody for priority customer (both regular and senior optometrists exhausted)', {
       busyNames: Array.from(busyLower),
       excludeEmails: excludeLower,
       regularCandidateEmails: regularOptometrists.map((o) => o.email),
@@ -119,30 +131,11 @@ async function findNextAvailableOptometrist(
     return null;
   }
 
-  // Phase 1: Search regular optometrists
-  const regular = pickAvailable(sortByCallCountThenName(regularOptometrists));
-
-  if (regular) {
-    return regular;
-  }
-
-  // Phase 2: Escalation to Senior Optometrists (when all regular optometrists are busy or unavailable)
-  const senior = pickAvailable(sortByCallCountThenName(seniorOptometrists));
-
-  if (senior) {
-    logger.info('Escalating call to Senior Optometrist because regular optometrists are unavailable or busy', {
-      seniorEmail: senior.email,
-      seniorName: senior.name,
-    });
-
-    return senior;
-  }
-
-  logger.info('findNextAvailableOptometrist found nobody (neither regular nor senior optometrists available)', {
+  // 1st attempt: Do NOT escalate to Senior Optometrists. Return null so call releases and is marked Priority (attempt 1 complete).
+  logger.info('findNextAvailableOptometrist found nobody (1st attempt, regular optometrists exhausted, not escalating to senior)', {
     busyNames: Array.from(busyLower),
     excludeEmails: excludeLower,
     regularCandidateEmails: regularOptometrists.map((o) => o.email),
-    seniorCandidateEmails: seniorOptometrists.map((o) => o.email),
   });
 
   return null;
@@ -190,6 +183,7 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
         callTakenBy = NULL,
         offeredToOptometristEmail = NULL,
         declinedByOptometristEmails = NULL,
+        isPriority = 1,
         lastUpdatedOn = ?
       WHERE id = ?
     `,
@@ -240,7 +234,7 @@ async function computeQueuePositions(): Promise<Map<string, number>> {
     Pick<CustomerRow, 'callStartTime' | 'createdOn' | 'id' | 'isPriority' | 'lastUpdatedOn'>
   >(
     `SELECT id, createdOn, callStartTime, lastUpdatedOn, isPriority FROM customers
-     WHERE status IN ('Initiated', 'Queued') OR (status = 'Created' AND callStartTime IS NOT NULL AND callStartTime != '')`
+     WHERE status IN ('Initiated', 'Queued', 'Created', 'Drop')`
   );
 
   const priorityRows = rows
@@ -750,13 +744,18 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       const targetOptometrist = await findNextAvailableOptometrist([], customer.isPriority === 1);
 
       if (!targetOptometrist) {
+        await run(
+          `UPDATE customers SET isPriority = 1, status = 'Created', callActive = 0, lastUpdatedOn = ? WHERE id = ?`,
+          [timestamp, id]
+        );
+
         broadcastEvent('NO_OPTOMETRIST_AVAILABLE', {
           customerId: id,
           customerName: customer.name,
           storeName: customer.storeName,
         });
 
-        return res.status(409).json({ error: 'No Optometrists are currently available.' });
+        return res.status(409).json({ error: `No Optometrists answered your request for ${customer.name}.` });
       }
 
       await run(
@@ -967,8 +966,7 @@ router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) =
           optometristCallStartTime = NULL,
           offeredToOptometristEmail = ?,
           declinedByOptometristEmails = ?,
-          lastUpdatedOn = ?,
-          isPriority = 1
+          lastUpdatedOn = ?
         WHERE id = ?
       `,
         [nextOptometrist.email, declinedList.join(','), timestamp, id]

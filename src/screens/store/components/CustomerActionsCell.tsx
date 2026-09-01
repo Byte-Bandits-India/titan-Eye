@@ -6,9 +6,12 @@ import type { Customer, StatusTab, User } from '../../../types';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
-import { isObjectiveRxComplete } from '../../../options/Option';
 
-export const CustomerStatusBadge = memo(function CustomerStatusBadge({ status }: { status: Customer['status'] }) {
+export const CustomerStatusBadge = memo(function CustomerStatusBadge({
+  status,
+}: {
+  status: Customer['status'];
+}) {
   if (status === 'Created') {
     return (
       <Badge
@@ -163,8 +166,6 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
 }: CustomerActionsCellProps) {
   const primaryBtn = (() => {
     if (statusTab === 'InProgress') {
-      const isRxComplete = isObjectiveRxComplete(cust.rxData);
-
       return (
         <div className="flex items-center gap-2">
           <Button
@@ -178,7 +179,7 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
             View
           </Button>
 
-          {isRxComplete && (
+          {cust.status === 'Test Completed' && (
             <Button
               className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
               disabled={completingCallId === cust.id}
@@ -199,12 +200,14 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
       return (
         <div className="flex items-center gap-1">
           <Button
-            className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-sm font-medium text-muted-foreground opacity-100"
-            disabled
-            title="Call in progress"
-            variant="ghost"
+            className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium shadow-xs"
+            onClick={() => onCreateTest(cust.id)}
+            size="sm"
+            title="View customer test page"
+            variant="secondary"
           >
-            Call Initiated
+            <ClipboardPlus size={14} />
+            View
           </Button>
         </div>
       );
@@ -237,29 +240,43 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
 
     if (cust.status === 'Test Completed') {
       return (
-        <Button
-          className="h-8 cursor-pointer gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={completingCallId === cust.id}
-          onClick={() => onCompleteCall(cust.id, cust.name)}
-          size="sm"
-          title="Complete consultation and show customer feedback QR"
-          variant="primary"
-        >
-          <CheckCircle2 size={14} />
-          {completingCallId === cust.id ? 'Completing…' : 'Completed'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium shadow-xs"
+            onClick={() => onCreateTest(cust.id)}
+            size="sm"
+            title="View customer test page"
+            variant="secondary"
+          >
+            <ClipboardPlus size={14} />
+            View
+          </Button>
+          <Button
+            className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={completingCallId === cust.id}
+            onClick={() => onCompleteCall(cust.id, cust.name)}
+            size="sm"
+            title="Complete consultation and show customer feedback QR"
+            variant="primary"
+          >
+            <CheckCircle2 size={14} />
+            {completingCallId === cust.id ? 'Completing…' : 'Completed'}
+          </Button>
+        </div>
       );
     }
 
     if (cust.status === 'Completed') {
       return (
         <Button
-          className="rounded-xs flex h-8 cursor-not-allowed items-center gap-1.5 border-0 bg-muted px-4 text-sm font-medium text-muted-foreground opacity-100"
-          disabled
-          title="This customer consultation is completed"
-          variant="ghost"
+          className="flex h-8 cursor-pointer items-center gap-1.5 px-3 text-sm font-medium shadow-xs"
+          onClick={() => onCreateTest(cust.id)}
+          size="sm"
+          title="View customer test details"
+          variant="secondary"
         >
-          Completed
+          <ClipboardPlus size={14} />
+          View
         </Button>
       );
     }
@@ -298,13 +315,14 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
   const isCreateTestState = cust.status === 'Created' || (!cust.status && !cust.callStartTime);
   const isPendingRequest = cust.status === 'Queued' || cust.status === 'Initiated';
   const isTestingTab = statusTab === 'InProgress';
+  const isCompleted = cust.status === 'Completed';
 
   return (
     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {primaryBtn}
 
       {/* ── ⋯ overflow menu ─────────────────────────────────────────────── */}
-      {!isCreateTestState && !isPendingRequest && !isTestingTab && (
+      {!isCreateTestState && !isPendingRequest && !isTestingTab && !isCompleted && (
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -355,7 +373,7 @@ export const CustomerActionsCell = memo(function CustomerActionsCell({
               <>
                 <div className="my-1 h-px bg-border" />
                 <button
-                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-indigo-400 dark:hover:bg-indigo-950/30"
                   disabled={completingCallId === cust.id}
                   onClick={() => onCompleteCall(cust.id, cust.name)}
                   type="button"

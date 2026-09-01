@@ -726,7 +726,7 @@ export const NotificationPopover = React.memo(function NotificationPopover({
                         onClick={() => handleRetryFromLog(item.customerId!, item.id)}
                         type="button"
                       >
-                        {retryingLogId === item.id ? 'Retrying…' : 'Retry'}
+                        {retryingLogId === item.id ? 'Retrying…' : 'Try Again'}
                       </button>
                     )}
                   </div>

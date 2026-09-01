@@ -57,6 +57,7 @@ export const PAGINATION = {
 } as const;
 
 export const STORAGE_KEYS = {
+  CREATE_CUSTOMER_DRAFT: 'titan_create_customer_draft',
   REMEMBERED_EMAIL: 'titan_remembered_email',
   USER: 'titan_user',
 } as const;

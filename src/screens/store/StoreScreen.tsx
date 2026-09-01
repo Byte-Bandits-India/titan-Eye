@@ -2,7 +2,7 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Plus, TrendingUp } from 'lucide-react';
 import * as React from 'react';
 
-import type { ColumnOption, Customer, OptometristUserRow, StatusTab } from '../../types';
+import type { ColumnOption, Customer, OptometristUserRow, StatusTab, TabCounts } from '../../types';
 
 import {
   completeCallAction,
@@ -21,7 +21,7 @@ import { useNotificationLog } from '../../components/ui/notificationLog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast';
 import { usePagination } from '../../hooks/usePagination';
-import { PAGINATION } from '../../options/Option';
+import { PAGINATION, STORAGE_KEYS } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { exportSalesConversionCsv } from '../../utils/excelExport';
@@ -63,12 +63,38 @@ export function StoreScreen() {
   const [conversionStatusFilter, setConversionStatusFilter] =
     React.useState<ConversionStatusFilterValue>('all');
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0492');
+  const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>(() => {
+    try {
+      const draft = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+
+      if (draft) {
+        const parsed = JSON.parse(draft);
+
+        if (parsed?.active) {
+          return null;
+        }
+      }
+    } catch {}
+
+    return '#0492';
+  });
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
   const [isViewingConversionDetail, setIsViewingConversionDetail] = React.useState(false);
-  const [isCreatingTest, setIsCreatingTest] = React.useState(false);
+  const [isCreatingTest, setIsCreatingTest] = React.useState(() => {
+    try {
+      const draft = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+
+      if (draft) {
+        const parsed = JSON.parse(draft);
+
+        return Boolean(parsed?.active);
+      }
+    } catch {}
+
+    return false;
+  });
   const [isViewingSalesConversion, setIsViewingSalesConversion] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
@@ -184,7 +210,7 @@ export function StoreScreen() {
     hasActiveRequestRef.current = hasActiveRequest;
   }, [hasActiveRequest]);
 
-  const tabCounts = React.useMemo(
+  const tabCounts = React.useMemo<TabCounts>(
     () => ({
       all: customers.filter(
         (c) => c.status !== 'Test Completed' && c.status !== 'Testing' && c.status !== 'Accepted'
@@ -252,6 +278,14 @@ export function StoreScreen() {
 
     if (statusTab === 'Pending') {
       return [...list].sort((a, b) => {
+        if (a.isPriority && !b.isPriority) {
+          return -1;
+        }
+
+        if (!a.isPriority && b.isPriority) {
+          return 1;
+        }
+
         const timeA = parseTimestamp(a.createdOn || a.callStartTime || a.lastUpdatedOn);
         const timeB = parseTimestamp(b.createdOn || b.callStartTime || b.lastUpdatedOn);
 
@@ -315,6 +349,47 @@ export function StoreScreen() {
         c.mobile.toLowerCase().includes(search)
     );
   }, [customers, statusTab, customerDateRange, customerSearchTerm, conversionStatusFilter]);
+
+  const storeQueueMap = React.useMemo(() => {
+    const pendingCustomers = customers.filter(
+      (c) =>
+        c.status === 'Created' ||
+        c.status === 'Queued' ||
+        c.status === 'Initiated' ||
+        c.status === 'Drop'
+    );
+
+    const priorityCustomers = [...pendingCustomers.filter((c) => c.isPriority)].sort((a, b) => {
+      const timeA = parseTimestamp(a.lastUpdatedOn || a.createdOn || a.callStartTime);
+      const timeB = parseTimestamp(b.lastUpdatedOn || b.createdOn || b.callStartTime);
+
+      return timeA - timeB;
+    });
+
+    const normalCustomers = [...pendingCustomers.filter((c) => !c.isPriority)].sort((a, b) => {
+      const timeA = parseTimestamp(a.createdOn || a.callStartTime || a.lastUpdatedOn);
+      const timeB = parseTimestamp(b.createdOn || b.callStartTime || b.lastUpdatedOn);
+
+      return timeA - timeB;
+    });
+
+    const map = new Map<string, { priorityRank?: number; queuePos: number }>();
+
+    priorityCustomers.forEach((c, idx) => {
+      map.set(c.id, {
+        priorityRank: idx + 1,
+        queuePos: idx + 1,
+      });
+    });
+
+    normalCustomers.forEach((c, idx) => {
+      map.set(c.id, {
+        queuePos: priorityCustomers.length + idx + 1,
+      });
+    });
+
+    return map;
+  }, [customers]);
 
   const optometristUsersWithStatus = React.useMemo<OptometristUserRow[]>(
     () => computeOptometristAvailability(users, customers),
@@ -490,10 +565,22 @@ export function StoreScreen() {
     setSelectedCustomerId(null);
     setStatusTab('Pending');
     resetPage();
+
+    try {
+      sessionStorage.setItem(
+        STORAGE_KEYS.CREATE_CUSTOMER_DRAFT,
+        JSON.stringify({ active: true, activeStep: 1 })
+      );
+    } catch {}
+
     setIsCreatingTest(true);
   }, [resetPage]);
 
   const handleSelectCustomer = React.useCallback((id: string) => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+    } catch {}
+
     setIsEditing(false);
     setIsEditingRx(false);
     setIsCreatingTest(false);
@@ -762,14 +849,11 @@ export function StoreScreen() {
       ...(statusTab !== 'Pending'
         ? [
             {
-              cell: ({ row }: { row: { original: Customer } }) =>
-                row.original.callTakenBy ? (
-                  <span className="text-sm font-medium text-foreground sm:text-sm">
-                    {row.original.callTakenBy}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
-                ),
+              cell: ({ row }: { row: { original: Customer } }) => (
+                <span className="text-sm font-medium text-muted-foreground">
+                  {row.original.callTakenBy || '—'}
+                </span>
+              ),
               enableSorting: false,
               header: () => (
                 <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">
@@ -786,7 +870,8 @@ export function StoreScreen() {
         ? [
             {
               cell: ({ row }: { row: { original: Customer } }) => {
-                const pos = row.original.queuePosition;
+                const info = storeQueueMap.get(row.original.id);
+                const pos = info?.queuePos ?? row.original.queuePosition;
 
                 return pos ? (
                   <span className="inline-flex rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-sm font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300">
@@ -854,7 +939,7 @@ export function StoreScreen() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, statusTab, isViewingSalesConversion]
+    [user, statusTab, isViewingSalesConversion, storeQueueMap]
   );
 
   const customersTable = useTable({
@@ -904,7 +989,13 @@ export function StoreScreen() {
     exportSalesConversionCsv(salesConversionFilteredCustomers);
   }, [salesConversionFilteredCustomers]);
 
-  const handleTestPageBack = React.useCallback(() => setIsCreatingTest(false), []);
+  const handleTestPageBack = React.useCallback(() => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+    } catch {}
+
+    setIsCreatingTest(false);
+  }, []);
   const handleRxDetailsBack = React.useCallback(() => setIsEditingRx(false), []);
   const handleUpdateStatusBack = React.useCallback(() => setIsUpdatingStatus(false), []);
   const handleConversionDetailBack = React.useCallback(() => setIsViewingConversionDetail(false), []);
