@@ -304,17 +304,19 @@ export const Header = memo(function Header({
               />
               <span className="whitespace-nowrap">Feedback</span>
             </button>
-            <button
-              className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                activeTab === 'videos'
-                  ? 'bg-slate-100 font-medium text-[#1a2b6e]'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-              onClick={() => setActiveTab('videos')}
-            >
-              <FilmIcon className={activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'} size={16} />
-              <span className="whitespace-nowrap">Videos</span>
-            </button>
+            {user.role === 'super_admin' && (
+              <button
+                className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                  activeTab === 'videos'
+                    ? 'bg-slate-100 font-medium text-[#1a2b6e]'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+                onClick={() => setActiveTab('videos')}
+              >
+                <FilmIcon className={activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'} size={16} />
+                <span className="whitespace-nowrap">Videos</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -440,20 +442,22 @@ export const Header = memo(function Header({
                 <span className="hidden sm:inline">Customer Feedback</span>
               </span>
             </button>
-            <button
-              className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
-                activeTab === 'videos'
-                  ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-              onClick={() => setActiveTab('videos')}
-            >
-              <FilmIcon
-                className={`shrink-0 ${activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
-                size={15}
-              />
-              <span className="truncate whitespace-nowrap font-medium">Videos</span>
-            </button>
+            {user.role === 'super_admin' && (
+              <button
+                className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${
+                  activeTab === 'videos'
+                    ? 'shadow-2xs border border-slate-200/80 bg-slate-100 font-medium text-[#1a2b6e]'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+                onClick={() => setActiveTab('videos')}
+              >
+                <FilmIcon
+                  className={`shrink-0 ${activeTab === 'videos' ? 'text-[#1a2b6e]' : 'text-slate-400'}`}
+                  size={15}
+                />
+                <span className="truncate whitespace-nowrap font-medium">Videos</span>
+              </button>
+            )}
           </div>
         )}
       </div>

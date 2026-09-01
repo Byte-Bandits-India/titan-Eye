@@ -2,14 +2,7 @@ import { type ColumnDef, useTable } from '@tanstack/react-table';
 import { Download } from 'lucide-react';
 import * as React from 'react';
 
-import type {
-  AdminTab,
-  ColumnOption,
-  Customer,
-  ManagedVideo,
-  OptometristUserRow,
-  StatusTab,
-} from '../../types';
+import type { AdminTab, ColumnOption, Customer, OptometristUserRow, StatusTab } from '../../types';
 
 import { fetchCustomersAction, updateCustomerAction } from '../../Actions/customerActions';
 import { fetchUsersAction } from '../../Actions/userActions';
@@ -17,12 +10,10 @@ import { AppLayout } from '../../components/layout/AppLayout';
 import { dataGridFeatures, type DataGridFeatures } from '../../components/reui/data-grid/data-grid';
 import { Avatar, AvatarFallback } from '../../components/ui/avatar';
 import { useNotificationLog } from '../../components/ui/notificationLog';
-import { useToast } from '../../components/ui/toast';
 import { usePagination } from '../../hooks/usePagination';
 import { cn } from '../../lib/utils';
 import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
-import { apiClient } from '../../Util/apiClient';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { hasCustomerFeedback } from '../../utils/customerFeedback';
 import { exportAllCustomersReport } from '../../utils/excelExport';
@@ -31,7 +22,6 @@ import { parseTimestamp } from '../store/components/formatters';
 import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
 import { AdminCard } from '../admin/components/AdminCard';
 import { DEFAULT_FEEDBACK_COLUMNS } from '../admin/components/adminUtils';
-import { VideoDirectoryBody } from '../admin/components/VideoDirectoryBody';
 import { Button } from '../../components/ui/button';
 import { OptometristActionsCell } from './components/OptometristActionsCell';
 import { OptometristCard } from './components/OptometristCard';
@@ -97,7 +87,6 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.OPTOMETRIST_PAGE_SIZE);
 
   const { addLogNotification } = useNotificationLog();
-  const { toast } = useToast();
 
   const isSeniorOptometrist = user?.role === 'senior_optometrist';
 
@@ -107,9 +96,6 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
   const [feedbackSearchTerm, setFeedbackSearchTerm] = React.useState('');
   const [feedbackPageSize, setFeedbackPageSize] = React.useState<number>(10);
   const [visibleFeedbackCols, setVisibleFeedbackCols] = React.useState<string[]>(DEFAULT_FEEDBACK_COLUMNS);
-
-  const [videos, setVideos] = React.useState<ManagedVideo[]>([]);
-  const [tvModeVideoId, setTvModeVideoId] = React.useState<null | number>(null);
 
   React.useEffect(() => {
     dispatch(fetchCustomersAction());
@@ -266,70 +252,6 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
   React.useEffect(() => {
     feedbackResetPage();
   }, [feedbackSearchTerm, dateRange, feedbackResetPage]);
-
-  const fetchVideos = React.useCallback(async () => {
-    try {
-      const [videosRes, tvModeRes] = await Promise.all([
-        apiClient.get<ManagedVideo[]>('/videos'),
-        apiClient.get<{ video: ManagedVideo | null }>('/videos/tvmode-active'),
-      ]);
-      setVideos(Array.isArray(videosRes.data) ? videosRes.data : []);
-      setTvModeVideoId(tvModeRes.data.video?.id ?? null);
-    } catch (err) {
-      toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to fetch videos',
-        type: 'error',
-      });
-    }
-  }, [toast]);
-
-  React.useEffect(() => {
-    if (isSeniorOptometrist && activeTab === 'videos') {
-      void fetchVideos();
-    }
-  }, [isSeniorOptometrist, activeTab, fetchVideos]);
-
-  const handleDeleteVideo = async (video: ManagedVideo) => {
-    if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await apiClient.delete(`/videos/${video.id}`);
-      setVideos((prev) => prev.filter((v) => v.id !== video.id));
-
-      if (tvModeVideoId === video.id) {
-        setTvModeVideoId(null);
-      }
-
-      toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
-    } catch (err) {
-      toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to delete video',
-        type: 'error',
-      });
-    }
-  };
-
-  const handleSetTvModeVideo = async (video: ManagedVideo) => {
-    try {
-      await apiClient.put('/videos/tvmode-active', { videoId: video.id });
-      setTvModeVideoId(video.id);
-      toast({
-        description: `${video.title} will now play in TV Mode.`,
-        title: 'TV Mode Video Updated',
-        type: 'success',
-      });
-    } catch (err) {
-      toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to set TV Mode video',
-        type: 'error',
-      });
-    }
-  };
 
   const tabCounts = React.useMemo(
     () => ({
@@ -906,18 +828,12 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
   }
 
   const pageTitle =
-    !isSeniorOptometrist || activeTab === 'queue'
-      ? 'Optometrist Console'
-      : activeTab === 'feedback'
-        ? 'Customer & Store Feedback'
-        : 'Video Library';
+    !isSeniorOptometrist || activeTab === 'queue' ? 'Optometrist Console' : 'Customer & Store Feedback';
 
   const pageSubtitle =
     !isSeniorOptometrist || activeTab === 'queue'
       ? user.name
-      : activeTab === 'feedback'
-        ? 'View store action notes, optometrist assessments, and direct patient feedback'
-        : 'Upload and manage videos available in the admin console';
+      : 'View store action notes, optometrist assessments, and direct patient feedback';
 
   return (
     <AppLayout
@@ -955,20 +871,14 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
             )}
           </div>
 
-          {(!isSeniorOptometrist || activeTab !== 'videos') && (
-            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
-              <OptometristCard
-                isLoading={isInitialCustomersLoading}
-                tabCounts={tabCounts}
-                variant="metrics"
-              />
-              <AvailableDirectoryCard
-                isLoading={isInitialUsersLoading}
-                optometristData={optometristUsersWithStatus}
-                storeData={storeUsersWithStatus}
-              />
-            </div>
-          )}
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
+            <OptometristCard isLoading={isInitialCustomersLoading} tabCounts={tabCounts} variant="metrics" />
+            <AvailableDirectoryCard
+              isLoading={isInitialUsersLoading}
+              optometristData={optometristUsersWithStatus}
+              storeData={storeUsersWithStatus}
+            />
+          </div>
 
           {!isSeniorOptometrist || activeTab === 'queue' ? (
             <OptometristCard
@@ -995,7 +905,7 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
               variant="incoming-requests"
               visibleColumns={visibleColumnIds}
             />
-          ) : activeTab === 'feedback' ? (
+          ) : (
             <AdminCard
               currentPage={feedbackCurrentPage}
               dateRange={dateRange}
@@ -1015,13 +925,6 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
               totalPages={feedbackTotalPages}
               variant="feedback"
               visibleColumns={visibleFeedbackCols}
-            />
-          ) : (
-            <VideoDirectoryBody
-              onDelete={handleDeleteVideo}
-              onSetTvModeVideo={handleSetTvModeVideo}
-              tvModeVideoId={tvModeVideoId}
-              videos={videos}
             />
           )}
         </main>

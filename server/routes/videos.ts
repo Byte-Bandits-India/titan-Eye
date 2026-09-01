@@ -40,14 +40,6 @@ const upload = multer({
 
 const router = Router();
 
-function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || (req.user.role !== 'senior_optometrist' && req.user.role !== 'super_admin')) {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-
-  next();
-}
-
 function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
   if (!req.user || req.user.role !== 'super_admin') {
     return res.status(403).json({ error: 'Super Admin access required' });
@@ -129,7 +121,7 @@ router.get('/:id/stream', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.use(requireAdmin);
+router.use(requireSuperAdmin);
 
 type VideoListResponseBody = ErrorResponse | VideoRow[];
 
