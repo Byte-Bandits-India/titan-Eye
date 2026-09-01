@@ -197,6 +197,7 @@ type ObjectiveRxContentProps = {
   customerId: string;
   hasAutoRef: boolean;
   hasPgpRx: boolean;
+  onEnsureCustomerId?: () => Promise<string>;
   optometristRxForm: OptometristRxFormState;
   rxErrors: Record<string, boolean>;
   rxForm: RxFormState;
@@ -326,6 +327,7 @@ function ObjectiveRxContentComponent({
   customerId,
   hasAutoRef,
   hasPgpRx,
+  onEnsureCustomerId,
   optometristRxForm,
   rxErrors,
   rxForm,
@@ -372,12 +374,22 @@ function ObjectiveRxContentComponent({
 
         <div className="space-y-1.5 sm:col-span-1">
           <label className="text-[14px] font-medium text-foreground">Auto Ref</label>
-          <CustomerFeedbackImageBox customerId={customerId} hasImage={hasAutoRef} slot={1} />
+          <CustomerFeedbackImageBox
+            customerId={customerId}
+            hasImage={hasAutoRef}
+            onEnsureCustomerId={onEnsureCustomerId}
+            slot={1}
+          />
         </div>
 
         <div className="space-y-1.5 sm:col-span-1">
           <label className="text-[14px] font-medium text-foreground">PGP / Old RX / Outside Rx</label>
-          <CustomerFeedbackImageBox customerId={customerId} hasImage={hasPgpRx} slot={2} />
+          <CustomerFeedbackImageBox
+            customerId={customerId}
+            hasImage={hasPgpRx}
+            onEnsureCustomerId={onEnsureCustomerId}
+            slot={2}
+          />
         </div>
       </div>
 
@@ -523,7 +535,16 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
 
   const setField = React.useCallback(
     (key: string) => (val: string) => {
-      setForm((f) => ({ ...f, [key]: val }));
+      setForm((f) => {
+        const next = { ...f, [key]: val };
+
+        if (key === 'preferredLanguage' && val === f.preferredLanguage2 && val !== 'None') {
+          next.preferredLanguage2 = 'None';
+        }
+
+        return next;
+      });
+
       setErrors((prev) => {
         if (!prev[key]) {
           return prev;
@@ -531,6 +552,10 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
 
         const next = { ...prev };
         delete next[key];
+
+        if (key === 'preferredLanguage' && next.preferredLanguage2) {
+          delete next.preferredLanguage2;
+        }
 
         return next;
       });
@@ -754,7 +779,35 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
     return created.id;
   };
 
-  const handleNext = async () => {
+  const isStep1Valid = React.useMemo(() => {
+    const errs = getCustomerValidationErrors();
+
+    return Object.keys(errs).length === 0;
+  }, [form]);
+
+  const handleStepChange = React.useCallback(
+    (newStep: number) => {
+      if (newStep === 2 && activeStep === 1) {
+        const customerErrors = getCustomerValidationErrors();
+        setErrors(customerErrors);
+
+        if (Object.keys(customerErrors).length > 0) {
+          toast({
+            description: 'Please fill in all required customer details before proceeding to the next step.',
+            title: 'Validation Error',
+            type: 'error',
+          });
+
+          return;
+        }
+      }
+
+      setActiveStep(newStep);
+    },
+    [activeStep, form, toast]
+  );
+
+  const handleNext = () => {
     const customerErrors = getCustomerValidationErrors();
     setErrors(customerErrors);
 
@@ -766,25 +819,6 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
       });
 
       return;
-    }
-
-    if (!selectedCustomer) {
-      setIsSaving(true);
-
-      try {
-        await persistCustomer();
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        toast({
-          description: err.message || 'Failed to connect to backend database.',
-          title: 'Error Saving Details',
-          type: 'error',
-        });
-
-        return;
-      } finally {
-        setIsSaving(false);
-      }
     }
 
     setActiveStep(2);
@@ -980,7 +1014,7 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
       <CardFrame className="p-3 sm:p-6 md:p-8">
         <Stepper
           indicators={{ completed: <CheckIcon className="size-4" /> }}
-          onValueChange={setActiveStep}
+          onValueChange={handleStepChange}
           value={activeStep}
         >
           <StepperNav className="mx-auto mb-8 flex data-[orientation=horizontal]:w-fit">
@@ -1000,7 +1034,7 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
               </StepperTrigger>
               <StepperSeparator className="mx-1.5 mb-0.5 mt-[15px] h-0.5 w-10 shrink-0 grow-0 basis-auto self-start bg-muted group-data-[state=completed]/step:bg-foreground sm:w-16" />
             </StepperItem>
-            <StepperItem className="not-last:flex-none items-start" step={2}>
+            <StepperItem className="not-last:flex-none items-start" disabled={!isStep1Valid} step={2}>
               <StepperTrigger className="flex-col gap-2">
                 <StepperIndicator className="size-8 border-2 border-transparent bg-muted text-sm font-semibold text-muted-foreground data-[state=active]:border-foreground data-[state=completed]:border-transparent data-[state=active]:bg-background data-[state=completed]:bg-foreground data-[state=active]:text-foreground data-[state=completed]:text-background">
                   2
@@ -1073,11 +1107,12 @@ export const StoreCustomerTestPage = React.memo(function StoreCustomerTestPage({
               </div>
             </StepperContent>
 
-            <StepperContent className="space-y-6 sm:space-y-8" forceMount value={2}>
+            <StepperContent className="space-y-6 sm:space-y-8" value={2}>
               <ObjectiveRxContent
                 customerId={selectedCustomer?.id ?? ''}
                 hasAutoRef={!!selectedCustomer?.storeFeedbackImage1}
                 hasPgpRx={!!selectedCustomer?.storeFeedbackImage2}
+                onEnsureCustomerId={persistCustomer}
                 optometristRxForm={optometristRxForm}
                 rxErrors={rxErrors}
                 rxForm={rxForm}

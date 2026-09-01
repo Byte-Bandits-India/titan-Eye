@@ -13,10 +13,16 @@ const MAX_FEEDBACK_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 type CustomerFeedbackImageBoxProps = {
   customerId: string;
   hasImage: boolean;
+  onEnsureCustomerId?: () => Promise<string>;
   slot: 1 | 2;
 };
 
-export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: CustomerFeedbackImageBoxProps) {
+export function CustomerFeedbackImageBox({
+  customerId,
+  hasImage,
+  onEnsureCustomerId,
+  slot,
+}: CustomerFeedbackImageBoxProps) {
   const { toast } = useToast();
   const [present, setPresent] = React.useState(hasImage);
   const [cacheBust, setCacheBust] = React.useState(0);
@@ -34,9 +40,19 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
       setIsUploading(true);
 
       try {
+        let activeId = customerId;
+
+        if (!activeId && onEnsureCustomerId) {
+          activeId = await onEnsureCustomerId();
+        }
+
+        if (!activeId) {
+          throw new Error('Customer must be saved before uploading an image.');
+        }
+
         const formData = new FormData();
         formData.append('image', file);
-        await apiClient.post(`/customers/${encodeURIComponent(customerId)}/feedback-image/${slot}`, formData);
+        await apiClient.post(`/customers/${encodeURIComponent(activeId)}/feedback-image/${slot}`, formData);
         setPresent(true);
         setCacheBust((v) => v + 1);
       } catch (e) {
@@ -50,7 +66,7 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
         setIsUploading(false);
       }
     },
-    [customerId, slot, toast]
+    [customerId, onEnsureCustomerId, slot, toast]
   );
 
   const [
@@ -112,7 +128,7 @@ export function CustomerFeedbackImageBox({ customerId, hasImage, slot }: Custome
   };
 
   const imageUrl = `${API_BASE_URL}/customers/${encodeURIComponent(customerId)}/feedback-image/${slot}?v=${cacheBust}`;
-  const disabled = isUploading || isRemoving || !customerId;
+  const disabled = isUploading || isRemoving || (!customerId && !onEnsureCustomerId);
 
   return (
     <div
