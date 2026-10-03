@@ -63,8 +63,12 @@ function validateOptionalEnum(
   fieldName: string,
   allowed: string[]
 ): FieldResult {
-  if (value === undefined || value === null || value.trim() === '') {
+  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) {
     return { sanitized: undefined, valid: true };
+  }
+
+  if (typeof value !== 'string') {
+    return { error: `${fieldName} must be a string`, valid: false };
   }
 
   if (!allowed.includes(value)) {
@@ -319,12 +323,16 @@ export function validateCustomerData(
   };
 }
 
-function validateAge(value: string | undefined): FieldResult {
-  if (value === undefined || value.trim() === '') {
+function validateAge(value: unknown): FieldResult {
+  if (value === undefined || value === null) {
     return { error: 'Age is required', valid: false };
   }
 
-  const str = value.trim();
+  const str = String(value).trim();
+  if (str === '') {
+    return { error: 'Age is required', valid: false };
+  }
+
   const num = parseInt(str, 10);
 
   if (isNaN(num) || num < 0 || num > 120) {
