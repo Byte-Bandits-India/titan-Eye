@@ -36,7 +36,12 @@ function extractExpiry(token: string): number {
 
     const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
 
-    return payload.exp || Date.now() + 24 * 60 * 60 * 1000;
+    if (!payload.exp) {
+      return Date.now() + 24 * 60 * 60 * 1000;
+    }
+
+    // Convert RFC 7519 seconds to milliseconds if needed
+    return payload.exp < 100_000_000_000 ? payload.exp * 1000 : payload.exp;
   } catch {
     return Date.now() + 24 * 60 * 60 * 1000;
   }
@@ -62,4 +67,4 @@ function purgeExpired(): void {
   }
 }
 
-setInterval(purgeExpired, 60 * 60 * 1000);
+setInterval(purgeExpired, 60 * 60 * 1000).unref();

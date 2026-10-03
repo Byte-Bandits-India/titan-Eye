@@ -8,7 +8,6 @@ import { useNotificationLog } from '../components/ui/notificationLog';
 import { API_BASE_URL } from '../options/Option';
 import { customerCreated, customerDeleted, customerUpdated } from '../Reducers/customerReducer';
 import { useAppDispatch, useAppSelector } from '../store';
-import { decryptClientPayload, isEncryptedEnvelope } from '../Util/cryptoClient';
 
 export function useSSE(): void {
   const dispatch = useAppDispatch();
@@ -36,15 +35,7 @@ export function useSSE(): void {
     eventSource.onmessage = async (event: MessageEvent) => {
       try {
         const parsed = JSON.parse(String(event.data)) as SSEEventDetail;
-        let eventData = parsed.data;
-
-        if (eventData && typeof eventData === 'object' && isEncryptedEnvelope(eventData)) {
-          try {
-            eventData = await decryptClientPayload(eventData);
-          } catch {
-            /* fallback to raw */
-          }
-        }
+        const eventData = parsed.data;
 
         const { type } = parsed;
 

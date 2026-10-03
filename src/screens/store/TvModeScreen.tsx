@@ -66,7 +66,7 @@ function TvModeVideoBackground({ onError, video }: { onError: () => void; video:
       muted
       onError={onError}
       playsInline
-      src={`${API_BASE_URL}/videos/${video.id}/stream`}
+      src={`${API_BASE_URL}/videos/${video.id}/stream${video.streamTicket ? `?ticket=${encodeURIComponent(video.streamTicket)}` : ''}`}
     />
   );
 }

@@ -10,7 +10,8 @@ import path from 'path';
 import { verifyToken } from './config/jwt.js';
 import { initializeDatabase } from './db/database.js';
 import { authenticateToken } from './middleware/auth.js';
-import { payloadEncryptionMiddleware } from './middleware/payloadEncryptionMiddleware.js';
+import { internalInfraSanitizer, sanitizeInternalInfraString } from './middleware/internalInfraSanitizer.js';
+import { pathTraversalGuard } from './middleware/pathTraversalGuard.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import authRouter from './routes/auth.js';
 import customersRouter from './routes/customers.js';
@@ -98,9 +99,11 @@ const defaultOrigins = [
   'https://titan.thebytebandits.com',
   'http://titan-dev.thebytebandits.com',
   'https://titan-dev.thebytebandits.com',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:3001',
+  'http://titan.xylozentech.com',
+  'https://titan.xylozentech.com',
+  ...(process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001']),
 ];
 
 const allowedOrigins = Array.from(new Set([...defaultOrigins, ...rawAllowedOrigins]));
@@ -114,27 +117,33 @@ function isAllowedOrigin(origin: string): boolean {
   if (/^https?:\/\/([a-zA-Z0-9-]+\.)*thebytebandits\.com$/.test(normalized)) {
     return true;
   }
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*xylozentech\.com$/.test(normalized)) {
+    return true;
+  }
   return false;
 }
 
 const app = express();
+app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 app.use(requestLogger);
+app.use(internalInfraSanitizer);
+app.use(pathTraversalGuard);
 
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
+        baseUri: ["'self'"],
         childSrc: ["'self'", 'blob:'],
         connectSrc: [
           "'self'",
-          'http://localhost:3001',
-          'http://localhost:5173',
           'https://trvcstaging.titan.in',
           'https://trvc.titan.in',
           'https://titan.thebytebandits.com',
           'https://titan-dev.thebytebandits.com',
+          'https://titan.xylozentech.com',
           'https://*.communication.azure.com',
           'wss://*.communication.azure.com',
           'https://*.skype.com',
@@ -167,7 +176,7 @@ app.use(
         imgSrc: ["'self'", 'data:', 'blob:'],
         mediaSrc: ["'self'", 'blob:'],
         objectSrc: ["'none'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         upgradeInsecureRequests: hasHttpsOrigin ? [] : null,
         workerSrc: ["'self'", 'blob:'],
@@ -182,8 +191,10 @@ app.use(
 );
 
 app.use((req: Request, res: Response, next: NextFunction) => {
+  res.removeHeader('X-Powered-By');
+  res.removeHeader('Server');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
   next();
 });
 
@@ -239,11 +250,56 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Finding 13 & 22: Disable insecure HTTP methods (TRACE, TRACK, DEBUG), WebDAV methods (PROPFIND, PROPPATCH, etc.),
+// enforce standard REST method whitelist, and block standalone OPTIONS probes
+const ALLOWED_HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']);
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const method = req.method.toUpperCase();
+
+  if (
+    !ALLOWED_HTTP_METHODS.has(method) ||
+    method === 'TRACE' ||
+    method === 'TRACK' ||
+    method === 'DEBUG'
+  ) {
+    logSecurityEvent('INSECURE_HTTP_METHOD_BLOCKED', {
+      ip: req.ip,
+      method,
+      path: req.originalUrl,
+      requestId: req.requestId,
+    });
+
+    res.setHeader('Allow', 'GET, POST, PUT, DELETE');
+    return res.status(405).json({
+      error: `HTTP method ${method} is disabled on this server.`,
+    });
+  }
+
+  // Standalone OPTIONS method check:
+  // A browser CORS preflight request ALWAYS includes the 'Access-Control-Request-Method' header.
+  // Direct OPTIONS probes from vulnerability scanners (e.g. OPTIONS /login) lack this header.
+  if (method === 'OPTIONS' && !req.headers['access-control-request-method']) {
+    logSecurityEvent('OPTIONS_METHOD_BLOCKED', {
+      ip: req.ip,
+      path: req.originalUrl,
+      requestId: req.requestId,
+    });
+
+    res.setHeader('Allow', 'GET, POST, PUT, DELETE');
+    return res.status(405).json({
+      error: 'HTTP OPTIONS method is disabled on this server.',
+    });
+  }
+
+  next();
+});
+
 app.use(
   cors({
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-e2ee-client', 'x-request-id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     origin: (origin, callback) => {
       if (!origin) {
         return callback(null, true);
@@ -302,8 +358,6 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-app.use('/api', payloadEncryptionMiddleware);
-
 app.use('/api/login', authLimiter);
 app.use('/api/react-scan', reactScanLogRouter);
 app.use('/api', authRouter);
@@ -316,6 +370,40 @@ app.use('/api/calls', apiLimiter, authenticateToken, callsRouter);
 app.use('/api', apiLimiter, authenticateToken, systemRouter);
 app.use('/api/users', apiLimiter, authenticateToken, usersRouter);
 app.use('/api/videos', apiLimiter, authenticateToken, videosRouter);
+
+app.get(/^\/sitemap.*\.xml$/, (req: Request, res: Response) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+  res.status(404).send('Not Found');
+});
+
+const SENSITIVE_EXT_REGEX = /\.(ts|tsx|jsx|map|env|git|json|sql|db|sqlite|ps1|sh|log|md|yml|yaml|config|php|asp|aspx|jsp|cgi)$/i;
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const reqPath = req.path.toLowerCase();
+
+  // Block direct attempts to access dotfiles or sensitive source files
+  if (
+    reqPath.includes('/.') ||
+    reqPath.startsWith('/.env') ||
+    reqPath.startsWith('/.git') ||
+    SENSITIVE_EXT_REGEX.test(reqPath)
+  ) {
+    // Whitelist legitimate PWA manifest
+    if (reqPath === '/manifest.json') {
+      return next();
+    }
+
+    logSecurityEvent('SOURCE_FILE_ACCESS_BLOCKED', {
+      ip: req.ip,
+      path: req.originalUrl,
+      requestId: req.requestId,
+    });
+
+    return res.status(404).send('Not Found');
+  }
+
+  next();
+});
 
 const distPath = path.resolve('dist');
 
@@ -330,8 +418,11 @@ if (fs.existsSync(distPath)) {
 
   app.use(
     express.static(distPath, {
+      dotfiles: 'deny',
       index: false,
       setHeaders: (res, filePath) => {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           res.setHeader('Pragma', 'no-cache');
@@ -378,10 +469,12 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
     url: req.url,
   });
 
-  const clientMessage =
-    process.env.NODE_ENV === 'production' && status === 500
+  const rawMessage =
+    status >= 500
       ? 'Internal Server Error'
       : err.message || 'Internal Server Error';
+
+  const clientMessage = sanitizeInternalInfraString(rawMessage);
 
   res.status(status).json({
     error: clientMessage,

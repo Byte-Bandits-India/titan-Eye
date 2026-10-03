@@ -3,18 +3,54 @@ import { Response, Router } from 'express';
 import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
 
 import type { CustomerInput } from '../types.js';
 
 import { PRESENCE_IDLE_MS } from '../config/jwt.js';
 import { all, CustomerLogRow, CustomerRow, get, run, SqlParam, UserRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { authorizeRoles } from '../middleware/rbac.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 import { validateCustomerData } from '../utils/validation.js';
 import { sendTeamsDirectMessage } from '../services/microsoft/graph.js';
+import {
+  ALLOWED_IMAGE_EXTENSIONS,
+  containsActiveScriptContent,
+  isPermittedImageExtension,
+  isPermittedImageMime,
+  validateImageMagicBytes,
+} from '../utils/fileValidation.js';
+import { validateCustomerId, validateFeedbackImageSlot } from '../utils/inputSanitizer.js';
 
 const router = Router();
+
+// Route parameter validators (Finding 14 remediation)
+router.param('id', (req, res, next, id) => {
+  if (!validateCustomerId(id)) {
+    logSecurityEvent('INVALID_CUSTOMER_ID_PARAMETER', {
+      callerEmail: (req as AuthenticatedRequest).user?.email,
+      customerId: id,
+      ip: req.ip,
+      requestId: (req as AuthenticatedRequest).requestId,
+    });
+
+    return res.status(400).json({
+      error: 'Invalid customer ID format. Only numeric IDs or standard customer identifiers (#0001) are permitted.',
+    });
+  }
+
+  next();
+});
+
+router.param('slot', (_req, res, next, slot) => {
+  if (!validateFeedbackImageSlot(slot)) {
+    return res.status(400).json({ error: 'Invalid image slot. Allowed values are 1 or 2.' });
+  }
+
+  next();
+});
 
 const IMAGE_UPLOADS_DIR = path.resolve(
   process.env.STORE_FEEDBACK_IMAGE_UPLOADS_DIR || 'uploads/store-feedback-images'
@@ -27,21 +63,60 @@ const MAX_FEEDBACK_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const feedbackImageStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, IMAGE_UPLOADS_DIR),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).slice(0, 10);
+    let ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+      ext = '.jpg';
+    }
     cb(null, `${crypto.randomUUID()}${ext}`);
   },
 });
 
 const feedbackImageUpload = multer({
   fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      cb(new Error('Only image files are allowed'));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext === '.svg' || file.mimetype.toLowerCase().includes('svg')) {
+      cb(new Error('SVG and vector image formats are strictly prohibited for security reasons.'));
       return;
     }
+
+    if (!isPermittedImageExtension(file.originalname) || !isPermittedImageMime(file.mimetype)) {
+      cb(new Error('Only standard raster image files (JPEG, PNG, WebP) are allowed.'));
+      return;
+    }
+
     cb(null, true);
   },
   limits: { fileSize: MAX_FEEDBACK_IMAGE_SIZE },
   storage: feedbackImageStorage,
+});
+
+const feedbackImageUploadLimiter = rateLimit({
+  handler: (req, res) => {
+    const userEmail = (req as AuthenticatedRequest).user?.email || 'anonymous';
+    logSecurityEvent('RATE_LIMIT_EXCEEDED', {
+      callerEmail: userEmail,
+      ip: req.ip,
+      path: req.originalUrl,
+      requestId: (req as AuthenticatedRequest).requestId,
+      windowMs: 15 * 60 * 1000,
+    });
+
+    return res.status(429).json({
+      error: 'Upload rate limit exceeded. You can only upload up to 20 feedback images every 15 minutes. Please try again later.',
+    });
+  },
+  keyGenerator: (req) => {
+    const userEmail = (req as AuthenticatedRequest).user?.email || 'anonymous';
+    const clientIp = ipKeyGenerator(req.ip || '');
+    return `upload_feedback_image_${userEmail}_${clientIp}`;
+  },
+  legacyHeaders: false,
+  max: 20,
+  message: {
+    error: 'Upload rate limit exceeded. You can only upload up to 20 feedback images every 15 minutes. Please try again later.',
+  },
+  standardHeaders: true,
+  windowMs: 15 * 60 * 1000,
 });
 
 async function findNextAvailableOptometrist(
@@ -261,6 +336,14 @@ async function verifyCustomerAccess(
   res: Response,
   customerId: string
 ): Promise<CustomerRow | null> {
+  if (!validateCustomerId(customerId)) {
+    res.status(400).json({
+      error: 'Invalid customer ID format. Only numeric IDs or standard customer identifiers (#0001) are permitted.',
+    });
+
+    return null;
+  }
+
   const customer = await get<CustomerRow>(
     `SELECT id, name, age, gender, mobile, customerType, storeName,
             preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2,
@@ -277,11 +360,48 @@ async function verifyCustomerAccess(
     return null;
   }
 
-  if (req.user && req.user.role === 'store') {
-    if (customer.storeName !== req.user.storeName) {
+  const role = req.user?.role;
+
+  if (role === 'store') {
+    if (customer.storeName !== req.user?.storeName) {
+      logSecurityEvent('UNAUTHORIZED_STORE_ACCESS', {
+        callerEmail: req.user?.email,
+        callerStore: req.user?.storeName,
+        customerStore: customer.storeName,
+        ip: req.ip,
+        requestId: req.requestId,
+        targetCustomerId: customerId,
+      });
+
       res
         .status(403)
         .json({ error: 'Access Denied: You cannot access records belonging to another store location.' });
+
+      return null;
+    }
+  }
+
+  if (role === 'optometrist' || role === 'senior_optometrist') {
+    const isQueueStatus = ['Initiated', 'Queued', 'Accepted', 'Testing'].includes(customer.status);
+    const isAssigned =
+      (customer.callTakenBy && customer.callTakenBy.toLowerCase() === req.user?.name?.toLowerCase()) ||
+      (customer.offeredToOptometristEmail &&
+        customer.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase());
+
+    if (!isQueueStatus && !isAssigned) {
+      logSecurityEvent('UNAUTHORIZED_OPTOMETRIST_CUSTOMER_ACCESS', {
+        callerEmail: req.user?.email,
+        callerName: req.user?.name,
+        customerStatus: customer.status,
+        customerStore: customer.storeName,
+        ip: req.ip,
+        requestId: req.requestId,
+        targetCustomerId: customerId,
+      });
+
+      res.status(403).json({
+        error: 'Access Denied: Optometrists can only access active queue records or their assigned consultations.',
+      });
 
       return null;
     }
@@ -295,9 +415,16 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     let query = 'SELECT * FROM customer_summary';
     const params: SqlParam[] = [];
 
-    if (req.user && req.user.role === 'store') {
+    const role = req.user?.role;
+
+    if (role === 'store') {
       query += ' WHERE storeName = ?';
-      params.push(req.user.storeName ?? null);
+      params.push(req.user?.storeName ?? null);
+    } else if (role === 'optometrist') {
+      query += ` WHERE status IN ('Initiated', 'Queued', 'Accepted', 'Testing')
+                 OR (callTakenBy IS NOT NULL AND LOWER(callTakenBy) = LOWER(?))
+                 OR (offeredToOptometristEmail IS NOT NULL AND LOWER(offeredToOptometristEmail) = LOWER(?))`;
+      params.push(req.user?.name ?? '', req.user?.email ?? '');
     }
 
     query += ' ORDER BY lastUpdatedOn DESC';
@@ -325,12 +452,15 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const c = req.body as CustomerInput;
 
     if (req.user && req.user.role === 'store') {
-      c.storeName = req.user.storeName ?? undefined;
+      if (!req.user.storeName) {
+        return res.status(403).json({ error: 'Access Denied: Store user is not assigned to a valid store.' });
+      }
+      c.storeName = req.user.storeName;
     }
 
     const validation = validateCustomerData(c);
@@ -437,8 +567,10 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const existingOptometristRx = existing.optometristRxData;
     const existingOptometristFeedback = existing.optometristFeedback || '';
 
-    if (req.user && req.user.role === 'store') {
-      if (existing.storeName !== req.user.storeName) {
+    const role = req.user?.role;
+
+    if (role === 'store') {
+      if (existing.storeName !== req.user?.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
 
@@ -447,7 +579,19 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.storeName = req.user.storeName ?? undefined;
     }
 
-    if (req.user?.role === 'optometrist') {
+    if (role === 'optometrist') {
+      const isAssigned =
+        (existing.callTakenBy && existing.callTakenBy.toLowerCase() === req.user?.name?.toLowerCase()) ||
+        (existing.offeredToOptometristEmail &&
+          existing.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase()) ||
+        ['Accepted', 'Testing'].includes(existing.status);
+
+      if (!isAssigned) {
+        return res.status(403).json({
+          error: 'Access Denied: You can only update clinical examination records for consultations assigned to you.',
+        });
+      }
+
       c.name = existing.name;
       c.age = existing.age;
       c.gender = existing.gender;
@@ -628,7 +772,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -637,10 +781,12 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    if (['Accepted', 'Initiated', 'Queued', 'Testing'].includes(customer.status)) {
-      return res
-        .status(409)
-        .json({ error: 'Cannot delete a customer with an active Optometrist request.' });
+    if (req.user?.role === 'store') {
+      if (['Accepted', 'Initiated', 'Queued', 'Testing', 'Completed', 'Test Completed'].includes(customer.status)) {
+        return res
+          .status(409)
+          .json({ error: 'Cannot delete a customer with an active Optometrist request or consultation history.' });
+      }
     }
 
     await run('DELETE FROM customer_logs WHERE customerId = ?', [id]);
@@ -664,7 +810,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/initiate-call', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -673,7 +819,28 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
+    // Strict workflow check: Only allow initiating calls for customers in 'Created' state
+    if (customer.status !== 'Created') {
+      logSecurityEvent('INVALID_WORKFLOW_STATE_TRANSITION', {
+        attemptedAction: 'initiate-call',
+        callerEmail: req.user?.email,
+        callerRole: req.user?.role,
+        currentStatus: customer.status,
+        customerId: id,
+        ip: req.ip,
+        requestId: req.requestId,
+      });
+
+      return res.status(409).json({
+        error: `Cannot initiate call: Customer is currently in '${customer.status}' state and is not eligible for call initiation.`,
+      });
+    }
+
     if (req.user!.role === 'store') {
+      if (customer.storeName !== req.user!.storeName) {
+        return res.status(403).json({ error: 'Access Denied: Customer belongs to another store location.' });
+      }
+
       const otherActiveCustomer = await get<{ id: string }>(
         `SELECT id FROM customers WHERE storeName = ? AND id != ? AND status IN ('Initiated', 'Accepted') LIMIT 1`,
         [customer.storeName, id]
@@ -684,39 +851,6 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
           error:
             'Your store already has a pending Optometrist request for another customer. Please wait for it to be resolved before requesting another.',
         });
-      }
-    }
-
-    if (
-      customer.status === 'Initiated' ||
-      customer.status === 'Accepted' ||
-      customer.status === 'Queued' ||
-      customer.status === 'Testing'
-    ) {
-      const currentHolder = await get<UserRow>('SELECT role FROM users WHERE name = ?', [
-        customer.callTakenBy,
-      ]);
-      const requesterRole = req.user!.role;
-
-      let isStoreHolder = !!currentHolder && currentHolder.role === 'store';
-
-      if (!currentHolder && customer.callTakenBy) {
-        const lowerName = customer.callTakenBy.toLowerCase();
-
-        if (lowerName.includes('store')) {
-          isStoreHolder = true;
-        }
-      }
-
-      const isOptometristRequester =
-        requesterRole === 'optometrist' || requesterRole === 'senior_optometrist';
-      const isUnclaimedOffer =
-        (customer.status === 'Initiated' || customer.status === 'Queued') && !customer.callTakenBy;
-
-      if (!((isStoreHolder || isUnclaimedOffer) && isOptometristRequester)) {
-        return res
-          .status(409)
-          .json({ error: `Call is already taken by ${customer.callTakenBy || 'another agent'}` });
       }
     }
 
@@ -740,57 +874,42 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
         [req.user!.email]
       );
       storeContactEmail = callerAccount?.microsoftUpn || callerAccount?.email || req.user!.email;
-
-      const targetOptometrist = await findNextAvailableOptometrist([], customer.isPriority === 1);
-
-      if (!targetOptometrist) {
-        await run(
-          `UPDATE customers SET isPriority = 1, status = 'Created', callActive = 0, lastUpdatedOn = ? WHERE id = ?`,
-          [timestamp, id]
-        );
-
-        broadcastEvent('NO_OPTOMETRIST_AVAILABLE', {
-          customerId: id,
-          customerName: customer.name,
-          storeName: customer.storeName,
-        });
-
-        return res.status(409).json({ error: `No Optometrists answered your request for ${customer.name}.` });
-      }
-
-      await run(
-        `
-        UPDATE customers SET
-          callActive = 1,
-          callStartTime = ?,
-          optometristCallStartTime = NULL,
-          callDuration = 0,
-          callTakenBy = ?,
-          storeContactEmail = ?,
-          status = 'Initiated',
-          offeredToOptometristEmail = ?,
-          declinedByOptometristEmails = NULL,
-          lastUpdatedOn = ?
-        WHERE id = ?
-      `,
-        [nowMs, callerName, storeContactEmail, targetOptometrist.email, timestamp, id]
-      );
-    } else {
-      await run(
-        `
-        UPDATE customers SET
-          callActive = 1,
-          optometristCallStartTime = ?,
-          callTakenBy = ?,
-          status = 'Accepted',
-          offeredToOptometristEmail = NULL,
-          declinedByOptometristEmails = NULL,
-          lastUpdatedOn = ?
-        WHERE id = ?
-      `,
-        [nowMs, callerName, timestamp, id]
-      );
     }
+
+    const targetOptometrist = await findNextAvailableOptometrist([], customer.isPriority === 1);
+
+    if (!targetOptometrist) {
+      await run(
+        `UPDATE customers SET isPriority = 1, status = 'Created', callActive = 0, lastUpdatedOn = ? WHERE id = ?`,
+        [timestamp, id]
+      );
+
+      broadcastEvent('NO_OPTOMETRIST_AVAILABLE', {
+        customerId: id,
+        customerName: customer.name,
+        storeName: customer.storeName,
+      });
+
+      return res.status(409).json({ error: `No Optometrists answered your request for ${customer.name}.` });
+    }
+
+    await run(
+      `
+      UPDATE customers SET
+        callActive = 1,
+        callStartTime = ?,
+        optometristCallStartTime = NULL,
+        callDuration = 0,
+        callTakenBy = ?,
+        storeContactEmail = ?,
+        status = 'Initiated',
+        offeredToOptometristEmail = ?,
+        declinedByOptometristEmails = NULL,
+        lastUpdatedOn = ?
+      WHERE id = ?
+    `,
+      [nowMs, callerName, storeContactEmail, targetOptometrist.email, timestamp, id]
+    );
 
     const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
 
@@ -811,7 +930,110 @@ router.post('/:id/initiate-call', async (req: AuthenticatedRequest, res: Respons
   }
 });
 
-router.post('/:id/notify-admin-teams', async (req: AuthenticatedRequest, res: Response) => {
+router.post(
+  '/:id/accept-call',
+  authorizeRoles('optometrist', 'senior_optometrist', 'super_admin'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const customer = await verifyCustomerAccess(req, res, id);
+
+      if (!customer) {
+        return;
+      }
+
+      // 1. Strict workflow status check: Must be 'Initiated' or 'Queued'
+      if (customer.status !== 'Initiated' && customer.status !== 'Queued') {
+        return res.status(409).json({
+          error: `Cannot accept call: Customer is currently in '${customer.status}' state and is not awaiting acceptance.`,
+        });
+      }
+
+      const callerEmail = req.user!.email.toLowerCase();
+      const callerName = req.user!.name;
+      const callerRole = req.user!.role;
+
+      // 2. Assignment validation: If 'Initiated', must be offered to this optometrist (or caller is super_admin)
+      if (customer.status === 'Initiated' && callerRole !== 'super_admin') {
+        const offeredEmail = (customer.offeredToOptometristEmail || '').toLowerCase();
+        if (offeredEmail && offeredEmail !== callerEmail) {
+          logSecurityEvent('UNAUTHORIZED_CALL_ACCEPT_ATTEMPT', {
+            callerEmail,
+            callerRole,
+            customerId: id,
+            customerStatus: customer.status,
+            ip: req.ip,
+            offeredToOptometristEmail: customer.offeredToOptometristEmail,
+            requestId: req.requestId,
+          });
+
+          return res.status(403).json({
+            error: 'Access Denied: This call is currently offered to another optometrist.',
+          });
+        }
+      }
+
+      const nowMs = String(Date.now());
+      const timestamp = new Date().toLocaleString('en-US', {
+        day: 'numeric',
+        hour: 'numeric',
+        hour12: true,
+        minute: '2-digit',
+        month: 'short',
+        second: '2-digit',
+        year: 'numeric',
+      });
+
+      // 3. Atomic conditional update to prevent race conditions
+      const updateResult = await run(
+        `
+        UPDATE customers SET
+          callActive = 1,
+          optometristCallStartTime = ?,
+          callTakenBy = ?,
+          status = 'Accepted',
+          offeredToOptometristEmail = NULL,
+          declinedByOptometristEmails = NULL,
+          lastUpdatedOn = ?
+        WHERE id = ?
+          AND status IN ('Initiated', 'Queued')
+          AND (
+            ? = 'super_admin'
+            OR status = 'Queued'
+            OR LOWER(offeredToOptometristEmail) = ?
+            OR offeredToOptometristEmail IS NULL
+          )
+      `,
+        [nowMs, callerName, timestamp, id, callerRole, callerEmail]
+      );
+
+      if (updateResult.changes === 0) {
+        return res.status(409).json({
+          error: 'Call has already been accepted by another optometrist or is no longer available.',
+        });
+      }
+
+      const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
+
+      if (!updatedRow) {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+
+      const updatedCustomer = toApiCustomer(updatedRow);
+
+      broadcastEvent('CUSTOMER_UPDATED', updatedCustomer);
+
+      return res.json({ customer: updatedCustomer, ok: true });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error('Accept call error', { errorMessage: error.message, requestId: req.requestId });
+
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+router.post('/:id/notify-admin-teams', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -868,7 +1090,7 @@ router.post('/:id/notify-admin-teams', async (req: AuthenticatedRequest, res: Re
   }
 });
 
-router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/reject-call', authorizeRoles('optometrist', 'senior_optometrist'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user!.role !== 'optometrist' && req.user!.role !== 'senior_optometrist') {
       return res.status(403).json({ error: 'Only Optometrist users can reject a call offer.' });
@@ -907,7 +1129,7 @@ router.post('/:id/reject-call', async (req: AuthenticatedRequest, res: Response)
   }
 });
 
-router.post('/:id/drop-call', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/drop-call', authorizeRoles('optometrist', 'senior_optometrist'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user!.role !== 'optometrist' && req.user!.role !== 'senior_optometrist') {
       return res.status(403).json({ error: 'Only Optometrist users can drop a call.' });
@@ -1144,7 +1366,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 
 const FEEDBACK_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-router.post('/:id/complete', async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/complete', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user!.role !== 'store') {
       return res.status(403).json({ error: 'Only Store users can mark a call as completed.' });
@@ -1264,6 +1486,8 @@ function feedbackImageColumn(slot: string): 'storeFeedbackImage1' | 'storeFeedba
 
 router.post(
   '/:id/feedback-image/:slot',
+  feedbackImageUploadLimiter,
+  authorizeRoles('store', 'super_admin'),
   (req: AuthenticatedRequest, res: Response, next) => {
     feedbackImageUpload.single('image')(req, res, (err: unknown) => {
       if (err) {
@@ -1290,7 +1514,7 @@ router.post(
         return res.status(400).json({ error: 'Invalid image slot' });
       }
 
-      if (req.user?.role === 'optometrist') {
+      if (req.user?.role === 'optometrist' || req.user?.role === 'senior_optometrist') {
         if (file) {
           fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
         }
@@ -1302,10 +1526,61 @@ router.post(
         return res.status(400).json({ error: 'An image file is required' });
       }
 
+      const filePath = path.join(IMAGE_UPLOADS_DIR, file.filename);
+
+      // Deep inspection: Read sample buffer to verify magic numbers and active scripts
+      let sampleBuffer: Buffer;
+      try {
+        const fd = fs.openSync(filePath, 'r');
+        const buf = Buffer.alloc(4096);
+        const bytesRead = fs.readSync(fd, buf, 0, 4096, 0);
+        fs.closeSync(fd);
+        sampleBuffer = buf.subarray(0, bytesRead);
+      } catch {
+        fs.unlink(filePath, () => {});
+        return res.status(500).json({ error: 'Failed to inspect uploaded file' });
+      }
+
+      // Check 1: Active script scanner (Stored XSS mitigation)
+      if (containsActiveScriptContent(sampleBuffer)) {
+        fs.unlink(filePath, () => {});
+        logSecurityEvent('XSS_PAYLOAD_DETECTED_IN_UPLOAD', {
+          callerEmail: req.user?.email,
+          callerRole: req.user?.role,
+          customerId: id,
+          filename: file.originalname,
+          ip: req.ip,
+          requestId: req.requestId,
+        });
+
+        return res.status(400).json({
+          error: 'Security Violation: Uploaded file contains active script or SVG tags and was rejected.',
+        });
+      }
+
+      // Check 2: Binary magic bytes validation (Anti-spoofing)
+      const magicValidation = validateImageMagicBytes(sampleBuffer);
+      if (!magicValidation) {
+        fs.unlink(filePath, () => {});
+        logSecurityEvent('INVALID_IMAGE_MAGIC_BYTES_UPLOAD', {
+          callerEmail: req.user?.email,
+          callerRole: req.user?.role,
+          customerId: id,
+          filename: file.originalname,
+          ip: req.ip,
+          mime: file.mimetype,
+          requestId: req.requestId,
+        });
+
+        return res.status(400).json({
+          error: 'Invalid file format: File header does not match permitted image formats (JPEG, PNG, WebP).',
+        });
+      }
+
       const customer = await verifyCustomerAccess(req, res, id);
 
       if (!customer) {
-        fs.unlink(path.join(IMAGE_UPLOADS_DIR, file.filename), () => {});
+        fs.unlink(filePath, () => {});
 
         return;
       }
@@ -1370,6 +1645,27 @@ router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: R
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'Image file missing on server' });
     }
+
+    // Inspect file header to get authentic verified MIME type
+    let safeMime = 'image/jpeg';
+    try {
+      const fd = fs.openSync(filePath, 'r');
+      const headerBuf = Buffer.alloc(16);
+      const bytesRead = fs.readSync(fd, headerBuf, 0, 16, 0);
+      fs.closeSync(fd);
+      const magic = validateImageMagicBytes(headerBuf.subarray(0, bytesRead));
+      if (magic) {
+        safeMime = magic.detectedMime;
+      }
+    } catch {}
+
+    // Defense-in-depth headers: sandbox prevents script execution in browser
+    res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    res.setHeader('Content-Type', safeMime);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, no-transform, max-age=86400');
 
     return res.sendFile(filePath);
   } catch (err) {

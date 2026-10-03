@@ -27,9 +27,9 @@ export function isEncryptedEnvelope(value: object | null | undefined): value is 
 }
 
 function getEncryptionKey(secretHex?: string): Buffer {
-  const secret = secretHex || process.env.E2EE_SECRET || process.env.INTER_SERVER_SECRET;
+  const secret = secretHex || process.env.INTER_SERVER_SECRET;
   if (!secret) {
-    throw new Error('E2EE_SECRET / INTER_SERVER_SECRET is not configured for payload encryption.');
+    throw new Error('INTER_SERVER_SECRET is not configured for payload encryption.');
   }
 
   return crypto.createHash('sha256').update(secret).digest();
@@ -96,9 +96,9 @@ export function decryptPayload<T extends object>(
  * Generates an HMAC-SHA256 signature for server-to-server requests.
  */
 export function signServerPayload(payloadString: string, timestamp: number, secretKey?: string): string {
-  const key = secretKey || process.env.E2EE_SECRET || process.env.INTER_SERVER_SECRET;
+  const key = secretKey || process.env.INTER_SERVER_SECRET;
   if (!key) {
-    throw new Error('E2EE_SECRET / INTER_SERVER_SECRET is not configured for signing.');
+    throw new Error('INTER_SERVER_SECRET is not configured for signing.');
   }
 
   return crypto.createHmac('sha256', key).update(`${timestamp}.${payloadString}`).digest('hex');

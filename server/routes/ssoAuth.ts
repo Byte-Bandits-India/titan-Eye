@@ -1,6 +1,13 @@
 import { Request, Response, Router } from 'express';
 
-import { generateToken, JWT_TTL_MS } from '../config/jwt.js';
+import { generateToken, getTtlSecondsForUser } from '../config/jwt.js';
+import {
+  AUTH_COOKIE_NAME,
+  getAuthCookieOptions,
+  isConnectionSecure,
+  SSO_STATE_COOKIE_NAME,
+  SSO_STATE_COOKIE_PATH,
+} from '../config/cookie.js';
 import {
   cryptoProvider,
   ENTRA_REDIRECT_URI,
@@ -13,7 +20,7 @@ import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 
 const router = Router();
-const STATE_COOKIE = 'sso_state';
+const STATE_COOKIE = SSO_STATE_COOKIE_NAME;
 
 interface SsoCookieState {
   state: string;
@@ -29,15 +36,6 @@ function getFrontendRedirectUrl(req: Request, targetPath: string): string {
   return `${configuredUrl}${targetPath}`;
 }
 
-function isConnectionSecure(req: Request): boolean {
-  return (
-    process.env.NODE_ENV === 'production' ||
-    req.secure ||
-    req.headers['x-forwarded-proto'] === 'https' ||
-    Boolean(req.headers.host && !req.headers.host.includes('localhost'))
-  );
-}
-
 router.get('/url', async (req: Request, res: Response) => {
   if (!isSsoConfigured || !msalClient) {
     return res.status(400).json({ error: 'SSO is not configured' });
@@ -50,7 +48,7 @@ router.get('/url', async (req: Request, res: Response) => {
     res.cookie(STATE_COOKIE, JSON.stringify({ state, verifier }), {
       httpOnly: true,
       maxAge: 5 * 60 * 1000,
-      path: '/',
+      path: SSO_STATE_COOKIE_PATH,
       sameSite: 'lax',
       secure: isConnectionSecure(req),
     });
@@ -84,7 +82,7 @@ router.get('/login', async (req: Request, res: Response) => {
     res.cookie(STATE_COOKIE, JSON.stringify({ state, verifier }), {
       httpOnly: true,
       maxAge: 5 * 60 * 1000,
-      path: '/',
+      path: SSO_STATE_COOKIE_PATH,
       sameSite: 'lax',
       secure: isConnectionSecure(req),
     });
@@ -126,6 +124,7 @@ router.get('/callback', async (req: Request, res: Response) => {
 
   try {
     const raw = req.cookies?.[STATE_COOKIE];
+    res.clearCookie(STATE_COOKIE, { path: SSO_STATE_COOKIE_PATH });
     res.clearCookie(STATE_COOKIE, { path: '/' });
 
     if (!raw) {
@@ -224,6 +223,7 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.redirect(getFrontendRedirectUrl(req, '/login?error=sso_failed'));
     }
 
+    const ttlSec = getTtlSecondsForUser(fullUser.role, true);
     const token = generateToken(
       {
         email: fullUser.email,
@@ -231,7 +231,7 @@ router.get('/callback', async (req: Request, res: Response) => {
         role: fullUser.role,
         storeName: fullUser.storeName ?? undefined,
       },
-      JWT_TTL_MS
+      ttlSec
     );
 
     const newTokenSig = token.split('.')[2];
@@ -249,13 +249,14 @@ router.get('/callback', async (req: Request, res: Response) => {
       status: fullUser.status,
     });
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      maxAge: JWT_TTL_MS,
-      path: '/',
-      sameSite: 'lax',
-      secure: isConnectionSecure(req),
-    });
+    res.cookie(
+      AUTH_COOKIE_NAME,
+      token,
+      getAuthCookieOptions(req, {
+        maxAgeMs: ttlSec * 1000,
+        sameSite: 'lax',
+      })
+    );
 
     logSecurityEvent('SSO_LOGIN_SUCCESS', {
       email: fullUser.email,

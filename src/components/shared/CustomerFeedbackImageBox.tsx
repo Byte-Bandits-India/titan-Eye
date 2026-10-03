@@ -73,13 +73,25 @@ export function CustomerFeedbackImageBox({
     { errors, isDragging },
     { getInputProps, handleDragEnter, handleDragLeave, handleDragOver, handleDrop, openFileDialog },
   ] = useFileUpload({
-    accept: 'image/*',
+    accept: 'image/jpeg,image/png,image/webp',
     maxSize: MAX_FEEDBACK_IMAGE_SIZE,
     multiple: false,
     onFilesAdded: (added) => {
       const file = added[0]?.file instanceof File ? added[0].file : null;
 
       if (file) {
+        const lowerName = file.name.toLowerCase();
+
+        if (lowerName.endsWith('.svg') || file.type === 'image/svg+xml') {
+          toast({
+            description: 'SVG and vector formats are not allowed for security reasons. Please upload a JPEG, PNG, or WebP photo.',
+            title: 'Invalid File Format',
+            type: 'error',
+          });
+
+          return;
+        }
+
         void handleUpload(file);
       }
     },
@@ -92,6 +104,18 @@ export function CustomerFeedbackImageBox({
     e.target.value = '';
 
     if (!file) {
+      return;
+    }
+
+    const lowerName = file.name.toLowerCase();
+
+    if (lowerName.endsWith('.svg') || file.type === 'image/svg+xml') {
+      toast({
+        description: 'SVG and vector formats are not allowed for security reasons. Please upload a JPEG, PNG, or WebP photo.',
+        title: 'Invalid File Format',
+        type: 'error',
+      });
+
       return;
     }
 
@@ -145,7 +169,7 @@ export function CustomerFeedbackImageBox({
     >
       <input {...getInputProps()} className="sr-only" disabled={disabled} />
       <input
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         className="sr-only"
         disabled={disabled}

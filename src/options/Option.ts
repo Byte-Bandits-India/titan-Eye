@@ -59,6 +59,7 @@ export const PAGINATION = {
 export const STORAGE_KEYS = {
   CREATE_CUSTOMER_DRAFT: 'titan_create_customer_draft',
   REMEMBERED_EMAIL: 'titan_remembered_email',
+  /** @deprecated Removed for CWE-312/CWE-614 compliance. Used only for legacy storage purging */
   USER: 'titan_user',
 } as const;
 
@@ -76,7 +77,60 @@ export const AGE_REGEX = /^(?:[1-9][0-9]?|1[0-1][0-9]|120)$/;
 export const MOBILE_REGEX = /^[1-9]\d{9}$/;
 export const CUSTOMER_MOBILE_REGEX = /^[6-9]\d{9}$/;
 export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-export const PASSWORD_REGEX = /^.{6,50}$/;
+export const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~` ]).{8,128}$/;
+
+export function validateClientPassword(
+  password: string,
+  userContext?: { email?: string; storeName?: string }
+): null | string {
+  if (!password) {
+    return 'Password is required';
+  }
+
+  if (password.length < 8) {
+    return 'Password must be at least 8 characters';
+  }
+
+  if (password.length > 128) {
+    return 'Password must not exceed 128 characters';
+  }
+
+  if (!/[a-z]/.test(password)) {
+    return 'Password must include at least one lowercase letter (a-z)';
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must include at least one uppercase letter (A-Z)';
+  }
+
+  if (!/[0-9]/.test(password)) {
+    return 'Password must include at least one number (0-9)';
+  }
+
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~` ]/.test(password)) {
+    return 'Password must include at least one special character (!@#$%^&*...)';
+  }
+
+  if (userContext?.email) {
+    const prefix = userContext.email.split('@')[0]?.toLowerCase();
+
+    if (prefix && prefix.length >= 3 && password.toLowerCase().includes(prefix)) {
+      return 'Password must not contain your email address or username';
+    }
+  }
+
+  if (userContext?.storeName) {
+    const store = userContext.storeName.toLowerCase();
+
+    if (store && store.length >= 3 && password.toLowerCase().includes(store)) {
+      return 'Password must not contain your store code';
+    }
+  }
+
+  return null;
+}
+
 export const SPH_REGEX = /^[+-]?(?:[0-9]|[1-2][0-9]|30)(?:\.\d{1,2})?$/;
 export const CYL_REGEX = /^[+-]?(?:[0-9]|[1-2][0-9]|30)(?:\.\d{1,2})?$/;
 export const AXIS_REGEX = /^(?:[0-9]|[1-9][0-9]|1[0-7][0-9]|180)$/;

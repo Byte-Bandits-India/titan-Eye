@@ -12,6 +12,7 @@ import {
 } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Spinner } from '../../../components/ui/spinner';
+import { useToast } from '../../../components/ui/toast';
 import { cn } from '../../../lib/utils';
 
 const MAX_VIDEO_SIZE = 1024 * 1024 * 1024; // 1GB
@@ -25,6 +26,7 @@ export type VideoUploadDialogProps = {
 
 export const VideoUploadDialog = React.memo(
   function VideoUploadDialog({ isUploading, onOpenChange, onUploadFile, open }: VideoUploadDialogProps) {
+    const { toast } = useToast();
     const [title, setTitle] = React.useState('');
 
     const [
@@ -40,9 +42,41 @@ export const VideoUploadDialog = React.memo(
         getInputProps,
       },
     ] = useFileUpload({
-      accept: 'video/*',
+      accept: 'video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.mov,.ogg',
       maxSize: MAX_VIDEO_SIZE,
       multiple: false,
+      onFilesAdded: (added) => {
+        const file = added[0]?.file instanceof File ? added[0].file : null;
+
+        if (file) {
+          const lowerName = file.name.toLowerCase();
+          const dangerousExts = ['.exe', '.bat', '.cmd', '.sh', '.dll', '.php', '.jsp', '.asp', '.js'];
+
+          if (dangerousExts.some((ext) => lowerName.endsWith(ext))) {
+            toast({
+              description: 'Executable and script files are strictly forbidden for security reasons.',
+              title: 'Security Violation',
+              type: 'error',
+            });
+            clearFiles();
+
+            return;
+          }
+
+          const validExts = ['.mp4', '.webm', '.mov', '.ogg', '.ogv'];
+
+          if (!validExts.some((ext) => lowerName.endsWith(ext))) {
+            toast({
+              description: 'Only valid video files (.mp4, .webm, .mov, .ogg) are accepted.',
+              title: 'Invalid File Format',
+              type: 'error',
+            });
+            clearFiles();
+
+            return;
+          }
+        }
+      },
     });
 
     const selectedFileEntry = files[0];
@@ -65,6 +99,30 @@ export const VideoUploadDialog = React.memo(
       e.preventDefault();
 
       if (!selectedFile || !title.trim()) {
+        return;
+      }
+
+      if (/[<>{}]|script/i.test(title)) {
+        toast({
+          description: 'Video title contains invalid special characters or HTML/script tags.',
+          title: 'Invalid Title',
+          type: 'error',
+        });
+
+        return;
+      }
+
+      const lowerName = selectedFile.name.toLowerCase();
+      const dangerousExts = ['.exe', '.bat', '.cmd', '.sh', '.dll', '.php', '.jsp', '.asp', '.js'];
+
+      if (dangerousExts.some((ext) => lowerName.endsWith(ext))) {
+        toast({
+          description: 'Executable and script files are strictly forbidden for security reasons.',
+          title: 'Security Violation',
+          type: 'error',
+        });
+        resetState();
+
         return;
       }
 

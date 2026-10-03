@@ -10,7 +10,13 @@ import { SheetBody, SheetFooter } from '../../../components/ui/sheet';
 import { TagInput } from '../../../components/ui/tag-input';
 import { useToast } from '../../../components/ui/toast';
 import { cn } from '../../../lib/utils';
-import { EMAIL_REGEX, LANGUAGES, MOBILE_REGEX, NAME_REGEX, PASSWORD_REGEX } from '../../../options/Option';
+import {
+  EMAIL_REGEX,
+  LANGUAGES,
+  MOBILE_REGEX,
+  NAME_REGEX,
+  validateClientPassword,
+} from '../../../options/Option';
 import { store } from '../../../store';
 import { EMPTY_FORM, ROLE_OPTIONS } from './adminUtils';
 
@@ -83,14 +89,24 @@ export const UserFormDrawer = React.memo(
     }
 
     if (!editingEmail) {
-      if (!form.password) {
-        newErrors.password = 'Password is required';
-      } else if (!PASSWORD_REGEX.test(form.password)) {
-        newErrors.password = 'Password must be between 6 and 50 characters';
+      const pwdError = validateClientPassword(form.password, {
+        email: form.email,
+        storeName: form.storeName,
+      });
+
+      if (pwdError) {
+        newErrors.password = pwdError;
       }
     } else {
-      if (form.password && !PASSWORD_REGEX.test(form.password)) {
-        newErrors.password = 'Password must be between 6 and 50 characters';
+      if (form.password) {
+        const pwdError = validateClientPassword(form.password, {
+          email: editingEmail,
+          storeName: form.storeName,
+        });
+
+        if (pwdError) {
+          newErrors.password = pwdError;
+        }
       }
     }
 
@@ -155,7 +171,7 @@ export const UserFormDrawer = React.memo(
   };
 
   return (
-    <form className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleSubmit}>
+    <form autoComplete="off" className="flex h-full min-h-0 flex-col overflow-hidden" noValidate onSubmit={handleSubmit}>
       <SheetBody className="px-6 py-5">
         <div className="space-y-4">
           {/* User Type */}
@@ -281,8 +297,11 @@ export const UserFormDrawer = React.memo(
                     clearError('password');
                   }
                 }}
+                autoComplete="off"
                 placeholder={
-                  editingEmail ? 'New password (leave blank to keep current)' : 'Password (min 6 characters)'
+                  editingEmail
+                    ? 'New password (leave blank to keep current)'
+                    : 'Password (min 8 chars, mixed case & symbols)'
                 }
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
@@ -295,7 +314,13 @@ export const UserFormDrawer = React.memo(
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            {errors.password && <p className="text-[10px] font-medium text-rose-500">{errors.password}</p>}
+            {errors.password ? (
+              <p className="text-[10px] font-medium text-rose-500">{errors.password}</p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground">
+                Minimum 8 characters with uppercase, lowercase, numbers, and symbols.
+              </p>
+            )}
           </div>
 
           {/* Mobile Number (store, optometrist & senior optometrist) */}

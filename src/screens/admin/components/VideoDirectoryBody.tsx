@@ -154,7 +154,7 @@ export const VideoDirectoryBody = React.memo(
                 <video
                   className="w-full rounded-lg bg-black"
                   controls
-                  src={`${API_BASE_URL}/videos/${previewVideo.id}/stream`}
+                  src={`${API_BASE_URL}/videos/${previewVideo.id}/stream${previewVideo.streamTicket ? `?ticket=${encodeURIComponent(previewVideo.streamTicket)}` : ''}`}
                 />
               ))}
           </DialogContent>

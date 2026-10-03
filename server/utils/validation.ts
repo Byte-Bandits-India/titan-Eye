@@ -1,4 +1,5 @@
 import type { CustomerInput, SanitizedCustomer } from '../types.js';
+import { containsScriptOrInjection, sanitizeClinicalText } from './inputSanitizer.js';
 
 const MAX_NAME_LENGTH = 100;
 const MAX_CUSTOMER_NAME_LENGTH = 20;
@@ -85,6 +86,10 @@ function validateString(
 
   if (typeof value !== 'string') {
     return { error: `${fieldName} must be a string`, valid: false };
+  }
+
+  if (containsScriptOrInjection(value)) {
+    return { error: `${fieldName} contains prohibited special characters or script tags`, valid: false };
   }
 
   const sanitized = strip ? stripHtml(value) : value.trim();
@@ -183,11 +188,10 @@ export function validateCustomerData(
     sanitized.preferredLanguage2 = lang2Result.sanitized;
   }
 
-  const storeFeedbackResult = validateOptionalString(
+  const storeFeedbackResult = sanitizeClinicalText(
     data.storeFeedback,
     'Store feedback',
-    MAX_FEEDBACK_LENGTH,
-    false
+    MAX_FEEDBACK_LENGTH
   );
 
   if (!storeFeedbackResult.valid) {
@@ -196,11 +200,10 @@ export function validateCustomerData(
     sanitized.storeFeedback = storeFeedbackResult.sanitized;
   }
 
-  const optometristFeedbackResult = validateOptionalString(
+  const optometristFeedbackResult = sanitizeClinicalText(
     data.optometristFeedback,
     'Optometrist feedback',
-    MAX_FEEDBACK_LENGTH,
-    false
+    MAX_FEEDBACK_LENGTH
   );
 
   if (!optometristFeedbackResult.valid) {
@@ -241,11 +244,10 @@ export function validateCustomerData(
     sanitized.nonConversionReason = nonConversionReasonResult.sanitized ?? null;
   }
 
-  const nonConversionCommentResult = validateOptionalString(
+  const nonConversionCommentResult = sanitizeClinicalText(
     data.nonConversionComment ?? undefined,
     'Non-conversion comment',
-    MAX_COMMENT_LENGTH,
-    false
+    MAX_COMMENT_LENGTH
   );
 
   if (!nonConversionCommentResult.valid) {
@@ -276,6 +278,18 @@ export function validateCustomerData(
     errors.push(orderDateResult.error!);
   } else {
     sanitized.orderDate = orderDateResult.sanitized || null;
+  }
+
+  const cancellationReasonResult = sanitizeClinicalText(
+    data.cancellationReason ?? undefined,
+    'Cancellation reason',
+    MAX_FEEDBACK_LENGTH
+  );
+
+  if (!cancellationReasonResult.valid) {
+    errors.push(cancellationReasonResult.error!);
+  } else {
+    sanitized.cancellationReason = cancellationReasonResult.sanitized || null;
   }
 
   sanitized.activeProfile = data.activeProfile === true || data.activeProfile === 1;

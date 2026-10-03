@@ -23,6 +23,12 @@ function SessionGuard() {
   const didVerifyRef = useRef(false);
 
   useEffect(() => {
+    // Proactively purge any legacy user/role entries from browser storage
+    try {
+      localStorage.removeItem('titan_user');
+      sessionStorage.removeItem('titan_user');
+    } catch {}
+
     if (didVerifyRef.current) {
       return;
     }

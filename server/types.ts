@@ -41,6 +41,7 @@ export interface CustomerInput {
   callDuration?: number;
   callStartTime?: null | string;
   callTakenBy?: null | string;
+  cancellationReason?: null | string;
   conversionStatus?: null | string;
   customerType?: string;
   gender?: string;
@@ -121,6 +122,7 @@ export interface SanitizedCustomer {
   callDuration: number;
   callStartTime: null | string;
   callTakenBy: null | string;
+  cancellationReason?: null | string;
   conversionStatus: null | string;
   customerType: string;
   gender: string;

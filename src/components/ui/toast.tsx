@@ -2,6 +2,8 @@
 import { AlertCircle, CheckCircle, Info, X } from 'lucide-react';
 import * as React from 'react';
 
+import { cn } from '../../lib/utils';
+
 export interface ToastMessage {
   action?: {
     label: string;
@@ -83,8 +85,11 @@ function Toaster({ dismiss, toasts }: { dismiss: (id: string) => void; toasts: T
         >
           <div className="flex items-start gap-4 p-5">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: '#F3D4FE', color: '#9035B8' }}
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                t.type === 'error' ? 'bg-rose-100 text-rose-600' : ''
+              )}
+              style={t.type === 'error' ? undefined : { backgroundColor: '#F3D4FE', color: '#9035B8' }}
             >
               {t.type === 'success' && <CheckCircle className="h-5 w-5" />}
               {t.type === 'error' && <AlertCircle className="h-5 w-5" />}
@@ -94,9 +99,21 @@ function Toaster({ dismiss, toasts }: { dismiss: (id: string) => void; toasts: T
               {t.title && <p className="truncate text-base font-bold text-white">{t.title}</p>}
               <p className="mt-1.5 text-sm font-medium text-white/90">{t.description}</p>
               {t.action && (
-                <div className="mt-3 flex items-center justify-end">
+                <div className="mt-3 flex items-center justify-end gap-2">
                   <button
-                    className="cursor-pointer rounded-md bg-white px-3 py-1 text-xs font-bold text-[#4F59C9] shadow-sm transition-all hover:bg-slate-100 active:scale-95"
+                    className="cursor-pointer rounded-md bg-white/20 px-2.5 py-1 text-xs font-medium text-white transition-all hover:bg-white/30 active:scale-95"
+                    onClick={() => dismiss(t.id)}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={cn(
+                      'cursor-pointer rounded-md px-3 py-1 text-xs font-bold shadow-sm transition-all active:scale-95',
+                      t.type === 'error'
+                        ? 'bg-rose-500 text-white hover:bg-rose-600'
+                        : 'bg-white text-[#4F59C9] hover:bg-slate-100'
+                    )}
                     onClick={() => {
                       t.action?.onClick();
                       dismiss(t.id);

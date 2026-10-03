@@ -476,7 +476,8 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'pass@123';
+  const configuredAdminEmail = process.env.ADMIN_EMAIL;
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'TitanRemote@2026!#';
   const defaultHashedPassword = hashPassword(defaultPassword);
 
   const initialUsers: Array<{
@@ -523,6 +524,20 @@ export async function initializeDatabase(): Promise<void> {
     },
   ];
 
+  if (
+    configuredAdminEmail &&
+    configuredAdminEmail.trim() &&
+    configuredAdminEmail.toLowerCase() !== 'admin@thebytebandits.onmicrosoft.com'
+  ) {
+    initialUsers.push({
+      email: configuredAdminEmail.trim(),
+      microsoftUpn: configuredAdminEmail.trim(),
+      name: 'Super Admin',
+      role: 'super_admin',
+      storeName: null,
+    });
+  }
+
   for (const u of initialUsers) {
     const existingUser = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [
       u.email,
@@ -550,8 +565,6 @@ export async function initializeDatabase(): Promise<void> {
       }
     }
   }
-
-  await run("DELETE FROM users WHERE LOWER(email) = 'admin@gmail.com'");
 
   logger.info('Seeded default user accounts.');
 }

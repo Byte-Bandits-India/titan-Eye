@@ -25,6 +25,7 @@ export type ManagedVideo = {
   size: null | number;
   sourceType: 'upload' | 'youtube';
   storedName: null | string;
+  streamTicket?: null | string;
   title: string;
   uploadedAt: string;
   uploadedBy: string;

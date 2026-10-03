@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import process from 'node:process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,8 +31,8 @@ function shouldExclude(name) {
     name === '.DS_Store' ||
     name === 'Thumbs.db' ||
     name === '__MACOSX' ||
-    lower.startsWith('.env') ||
-    lower.endsWith('.env') ||
+    (lower.startsWith('.env') && !lower.includes('example')) ||
+    (lower.endsWith('.env') && !lower.includes('example')) ||
     lower.endsWith('.db') ||
     lower.includes('.db-') ||
     lower.endsWith('.sqlite') ||
@@ -125,18 +126,70 @@ if (includeNodeModules) {
   }
 }
 
-// 7. Security verification scan (ensure NO .env or .db exists in deploy package)
-console.log('\n7. Running security exclusion check on package contents...');
+// 7. Bundle SSL Wildcard Certificates (*.titan.in)
+console.log('\n7. Bundling SSL wildcard certificates (*.titan.in)...');
+const sslSourceDir = path.join(localDataDir, 'star.titan.in_Infosec (1) 7');
+const sslDestDir = path.join(deployPkgDir, 'ssl', 'star.titan.in_Infosec (1) 7');
+if (fs.existsSync(sslSourceDir)) {
+  copyDirSync(sslSourceDir, sslDestDir);
+  console.log('   ✓ Bundled SSL certificates (PFX, CRT, CER, PEM, CA_Bundle, Private Key)');
+  const iisPfx = path.join(sslDestDir, 'PFX', 'titan_wildcard_iis.pfx');
+  if (fs.existsSync(iisPfx)) {
+    console.log('   ✓ Verified IIS-ready PFX: PFX/titan_wildcard_iis.pfx (Password: Titan@2026)');
+  }
+} else {
+  console.warn('   ⚠️ SSL source directory not found at: ' + sslSourceDir);
+}
+
+// 8. Bundle Offline Tools (nssm.exe)
+console.log('\n8. Bundling NSSM service manager tool...');
+const toolsSourceDir = path.join(localDataDir, 'tools');
+const toolsDestDir = path.join(deployPkgDir, 'tools');
+if (fs.existsSync(toolsSourceDir)) {
+  copyDirSync(toolsSourceDir, toolsDestDir);
+  console.log('   ✓ Bundled tools/nssm.exe for Windows service management');
+} else {
+  console.warn('   ⚠️ tools directory not found at: ' + toolsSourceDir);
+}
+
+// 9. Bundle Windows Deployment & Maintenance Automation Scripts
+console.log('\n9. Bundling Windows deployment automation scripts...');
+const winScriptsSource = path.join(rootDir, 'scripts', 'windows');
+const winScriptsDest = path.join(deployPkgDir, 'scripts');
+if (fs.existsSync(winScriptsSource)) {
+  copyDirSync(winScriptsSource, winScriptsDest);
+  const readmeSrc = path.join(winScriptsSource, 'README-DEPLOYMENT.md');
+  if (fs.existsSync(readmeSrc)) {
+    fs.copyFileSync(readmeSrc, path.join(deployPkgDir, 'README-DEPLOYMENT.md'));
+  }
+  console.log('   ✓ Bundled Windows PowerShell setup scripts and README-DEPLOYMENT.md');
+}
+
+// Copy .env template
+const envExampleSrc = path.join(rootDir, '.env.production.example');
+const fallbackEnvExample = path.join(rootDir, '.env.example');
+if (fs.existsSync(envExampleSrc)) {
+  fs.copyFileSync(envExampleSrc, path.join(deployPkgDir, '.env.example'));
+  console.log('   ✓ Copied .env.example configuration template');
+} else if (fs.existsSync(fallbackEnvExample)) {
+  fs.copyFileSync(fallbackEnvExample, path.join(deployPkgDir, '.env.example'));
+  console.log('   ✓ Copied .env.example configuration template');
+}
+
+// 10. Security verification scan (ensure NO .env secrets or .db exists in deploy package)
+console.log('\n10. Running security exclusion check on package contents...');
 function verifyNoSensitiveFiles(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (
-      entry.name.startsWith('.env') ||
+    const isEnvFile = entry.name === '.env' || (entry.name.startsWith('.env.') && !entry.name.includes('example'));
+    const isDbFile =
       entry.name.endsWith('.db') ||
       entry.name.includes('.db-') ||
-      entry.name.endsWith('.sqlite')
-    ) {
+      entry.name.endsWith('.sqlite') ||
+      entry.name.endsWith('.sqlite3');
+
+    if (isEnvFile || isDbFile) {
       throw new Error(`CRITICAL: Prohibited sensitive file found in deploy package: ${fullPath}`);
     }
     if (entry.isDirectory() && entry.name !== 'node_modules') {
@@ -145,10 +198,10 @@ function verifyNoSensitiveFiles(dir) {
   }
 }
 verifyNoSensitiveFiles(deployPkgDir);
-console.log('   ✓ Verified: No .env, .db, or sqlite files are present.');
+console.log('   ✓ Verified: No secret .env, .db, or sqlite files are present.');
 
-// 8. Create ZIP archive
-console.log('\n8. Creating clean ZIP archive (this may take a moment with node_modules)...');
+// 11. Create ZIP archive
+console.log('\n11. Creating clean ZIP archive (this may take a moment with node_modules)...');
 if (fs.existsSync(zipFilePath)) {
   fs.unlinkSync(zipFilePath);
 }

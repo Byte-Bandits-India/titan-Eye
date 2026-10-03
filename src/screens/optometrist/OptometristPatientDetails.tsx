@@ -16,8 +16,8 @@ import { createPortal } from 'react-dom';
 import type { Customer, CustomerStatus, OptometristPatientDetailsProps, RxValues } from '../../types';
 
 import {
+  acceptCallAction,
   dropCallAction,
-  initiateCallAction,
   rejectCallAction,
   updateCustomerAction,
 } from '../../Actions/customerActions';
@@ -325,7 +325,7 @@ export const OptometristPatientDetails = React.memo(function OptometristPatientD
     setIsUpdatingStatus(true);
 
     try {
-      await dispatch(initiateCallAction(selectedCustomer.id));
+      await dispatch(acceptCallAction(selectedCustomer.id));
       toast({
         description: 'Customer status updated to Accepted.',
         title: 'Status Updated',

@@ -70,4 +70,3 @@ export const MetricCardGrid = memo(function MetricCardGrid({ isLoading, isTablet
   prevProps.tabCounts.inProgress === nextProps.tabCounts.inProgress &&
   prevProps.tabCounts.completed === nextProps.tabCounts.completed
 );
-

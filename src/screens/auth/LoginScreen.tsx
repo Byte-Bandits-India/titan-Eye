@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Eye, EyeOff, Loader2, Lock, User } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, RefreshCw, ShieldCheck, User } from 'lucide-react';
 import * as React from 'react';
 
 import { loginAction } from '../../Actions/authActions';
@@ -42,10 +42,37 @@ export function LoginScreen() {
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(Boolean(rememberedEmail));
+  const [captchaId, setCaptchaId] = React.useState('');
+  const [captchaSvg, setCaptchaSvg] = React.useState('');
+  const [captchaSolution, setCaptchaSolution] = React.useState('');
+  const [isCaptchaLoading, setIsCaptchaLoading] = React.useState(false);
 
   const dispatch = useAppDispatch();
   const { loading: isLoading } = useAppSelector((state) => state.auth);
   const { toast } = useToast();
+
+  const fetchCaptcha = React.useCallback(async () => {
+    setIsCaptchaLoading(true);
+
+    try {
+      const res = await apiClient.get<{ captchaId: string; captchaSvg: string }>('/auth/captcha');
+
+      if (res.data?.captchaId && res.data?.captchaSvg) {
+        setCaptchaId(res.data.captchaId);
+        setCaptchaSvg(res.data.captchaSvg);
+        setCaptchaSolution('');
+      }
+    } catch {
+      // Failed to load captcha, user can click refresh
+    } finally {
+      setIsCaptchaLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchCaptcha();
+  }, [fetchCaptcha]);
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -87,9 +114,11 @@ export function LoginScreen() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!email || !password || !captchaSolution.trim()) {
       toast({
-        description: 'Please fill in all credentials.',
+        description: !captchaSolution.trim()
+          ? 'Please enter the CAPTCHA security code.'
+          : 'Please fill in all credentials.',
         title: 'Validation Error',
         type: 'error',
       });
@@ -98,7 +127,7 @@ export function LoginScreen() {
     }
 
     try {
-      await dispatch(loginAction(email, password, rememberMe));
+      await dispatch(loginAction(email, password, rememberMe, captchaId, captchaSolution.trim()));
 
       if (rememberMe) {
         localStorage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
@@ -112,6 +141,9 @@ export function LoginScreen() {
         type: 'success',
       });
     } catch (e) {
+      // Refresh CAPTCHA challenge on failed authentication
+      fetchCaptcha();
+
       const err = e instanceof Error ? e : new Error(String(e));
       let errorMessage = 'Invalid email or password.';
 
@@ -142,9 +174,9 @@ export function LoginScreen() {
         <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl">
           <div className="flex flex-col px-9 py-10 sm:px-11 sm:py-12">
             <BrandHeader />
-            <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            <form autoComplete="off" className="mt-8 space-y-4" onSubmit={handleSubmit}>
               <input
-                autoComplete="email"
+                autoComplete="off"
                 className={inputClasses}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Email"
@@ -154,7 +186,7 @@ export function LoginScreen() {
               />
 
               <input
-                autoComplete="current-password"
+                autoComplete="off"
                 className={inputClasses}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
@@ -162,6 +194,44 @@ export function LoginScreen() {
                 type="password"
                 value={password}
               />
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-500">Security Verification</span>
+                  <button
+                    className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700 disabled:opacity-50"
+                    disabled={isCaptchaLoading}
+                    onClick={fetchCaptcha}
+                    type="button"
+                  >
+                    <RefreshCw className={cn('h-3.5 w-3.5', isCaptchaLoading && 'animate-spin')} />
+                    Refresh
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-14 w-44 items-center justify-center overflow-hidden border border-black bg-gray-50">
+                    {captchaSvg ? (
+                      <img
+                        alt="Security verification code"
+                        className="h-full w-full object-contain"
+                        src={captchaSvg}
+                      />
+                    ) : (
+                      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                    )}
+                  </div>
+                  <input
+                    autoComplete="off"
+                    className={cn(inputClasses, 'font-mono text-center tracking-widest uppercase')}
+                    maxLength={6}
+                    onChange={(e) => setCaptchaSolution(e.target.value.toUpperCase())}
+                    placeholder="Enter code"
+                    required
+                    type="text"
+                    value={captchaSolution}
+                  />
+                </div>
+              </div>
 
               <button
                 className="mt-2 flex h-14 w-full items-center justify-center bg-teal-600 text-lg font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
@@ -211,7 +281,7 @@ export function LoginScreen() {
         <div className="flex flex-col justify-center px-7 py-8 sm:px-9 sm:py-10">
           <BrandHeader />
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form autoComplete="off" className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700" htmlFor="login-email">
                 User ID
@@ -222,7 +292,7 @@ export function LoginScreen() {
                   size={18}
                 />
                 <input
-                  autoComplete="email"
+                  autoComplete="off"
                   className={inputClasses}
                   id="login-email"
                   onChange={(e) => setEmail(e.target.value)}
@@ -244,7 +314,7 @@ export function LoginScreen() {
                   size={18}
                 />
                 <input
-                  autoComplete="current-password"
+                  autoComplete="off"
                   className={cn(inputClasses, 'pr-11')}
                   id="login-password"
                   onChange={(e) => setPassword(e.target.value)}
@@ -260,6 +330,54 @@ export function LoginScreen() {
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700" htmlFor="login-captcha">
+                  Security Code
+                </label>
+                <button
+                  className="flex items-center gap-1 text-xs text-teal-600 transition-colors hover:text-teal-700 disabled:opacity-50"
+                  disabled={isCaptchaLoading}
+                  onClick={fetchCaptcha}
+                  title="Generate a new security code"
+                  type="button"
+                >
+                  <RefreshCw className={cn('h-3 w-3', isCaptchaLoading && 'animate-spin')} />
+                  Refresh
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-11 w-40 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-slate-50">
+                  {captchaSvg ? (
+                    <img
+                      alt="Security verification code"
+                      className="h-full w-full select-none object-contain"
+                      src={captchaSvg}
+                    />
+                  ) : (
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+                <div className="relative flex-1">
+                  <ShieldCheck
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    size={18}
+                  />
+                  <input
+                    autoComplete="off"
+                    className={cn(inputClasses, 'font-mono font-semibold text-center tracking-widest uppercase')}
+                    id="login-captcha"
+                    maxLength={6}
+                    onChange={(e) => setCaptchaSolution(e.target.value.toUpperCase())}
+                    placeholder="CODE"
+                    required
+                    type="text"
+                    value={captchaSolution}
+                  />
+                </div>
               </div>
             </div>
 

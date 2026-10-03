@@ -108,6 +108,24 @@ export const initiateCallAction = (id: string) => async (dispatch: AppDispatch) 
   }
 };
 
+export const acceptCallAction = (id: string) => async (dispatch: AppDispatch) => {
+  try {
+    const response = await apiClient.post<{ customer: Customer; ok: boolean }>(
+      `/customers/${encodeURIComponent(id)}/accept-call`
+    );
+
+    if (response.data.customer) {
+      dispatch(customerUpdated(response.data.customer));
+    }
+
+    return response.data;
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    const msg = handleApiError(err, dispatch, 'Failed to accept call.');
+    throw new Error(msg);
+  }
+};
+
 export const notifyAdminTeamsAction = (id: string) => async (dispatch: AppDispatch) => {
   try {
     const response = await apiClient.post<{

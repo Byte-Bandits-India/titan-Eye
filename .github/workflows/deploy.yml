@@ -21,7 +21,7 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: 📦 Install Dependencies
@@ -30,7 +30,6 @@ jobs:
       - name: 🏗 Set Build Environment Variables for Vite
         run: |
           echo "VITE_API_BASE_URL=/api" > .env.production
-          echo "VITE_E2EE_SECRET=${{ secrets.VITE_E2EE_SECRET }}" >> .env.production
 
       - name: 🏗 Build App (Frontend & Backend)
         run: npm run build
@@ -112,29 +111,30 @@ jobs:
             APP_DIR="/home/$(whoami)/titan"
             TEMP_ARCHIVE="/home/$(whoami)/deploy.tar.gz"
 
+            # 1. Ensure PM2 / Node binary is discoverable across different shell environments
+            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/$(node -v 2>/dev/null || echo "")/bin
+
             echo "📁 Ensuring required application directories exist..."
             mkdir -p "$APP_DIR"
             mkdir -p "$APP_DIR/uploads"
             mkdir -p "$APP_DIR/logs"
 
-            # 1. Clean old build directories (dist and dist-server)
+            # 2. Clean old build directories (dist and dist-server)
             echo "🧹 Cleaning old build directories..."
             rm -rf "$APP_DIR/dist" "$APP_DIR/dist-server"
 
-            # 2. Extract new build package into app directory (preserves .env, database.db, and uploads)
+            # 3. Extract new build package into app directory (preserves .env, database.db, and uploads)
             echo "📦 Extracting new build package..."
             tar -xzf "$TEMP_ARCHIVE" -C "$APP_DIR"
             rm -f "$TEMP_ARCHIVE"
 
-            # 3. Enter application directory
+            # 4. Enter application directory
             cd "$APP_DIR"
 
-            # 4. Install production dependencies and compile native binaries for Linux
+            # 5. Install production dependencies and compile native binaries for Linux
             echo "📦 Installing production dependencies..."
             npm install --omit=dev --legacy-peer-deps
-
-            # 5. Ensure PM2 / Node binary is discoverable across different shell environments
-            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/$(node -v 2>/dev/null || echo "")/bin
+            npm rebuild better-sqlite3
 
             # 6. Restart backend process using PM2
             echo "🔄 Restarting application with PM2..."

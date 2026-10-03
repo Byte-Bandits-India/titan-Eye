@@ -3,9 +3,16 @@ import { ParamsDictionary } from 'express-serve-static-core';
 
 import type { AuthUserResponse, ErrorResponse } from '../types.js';
 
-import { generateToken, JWT_TTL_MS, verifyToken } from '../config/jwt.js';
+import { generateToken, getTtlSecondsForUser, verifyToken } from '../config/jwt.js';
+import {
+  AUTH_COOKIE_NAME,
+  AUTH_COOKIE_PATH,
+  getAuthCookieOptions,
+  isConnectionSecure,
+} from '../config/cookie.js';
 import { db, get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest, authenticateToken } from '../middleware/auth.js';
+import { generateCaptcha, verifyCaptcha } from '../utils/captcha.js';
 import { verifyPassword } from '../utils/hash.js';
 import { alertCritical, logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
@@ -17,6 +24,8 @@ const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000;
 
 interface LoginBody {
+  captchaId?: string;
+  captchaSolution?: string;
   email?: string;
   password?: string;
   rememberMe?: boolean;
@@ -24,14 +33,39 @@ interface LoginBody {
 
 type LoginResponseBody = ErrorResponse | { user: AuthUserResponse };
 
+router.get('/auth/captcha', (_req: Request, res: Response) => {
+  const captcha = generateCaptcha();
+
+  return res.json(captcha);
+});
+
+router.get('/captcha', (_req: Request, res: Response) => {
+  const captcha = generateCaptcha();
+
+  return res.json(captcha);
+});
+
 router.post(
   '/login',
   async (req: Request<ParamsDictionary, LoginResponseBody, LoginBody>, res: Response<LoginResponseBody>) => {
     try {
-      const { email, password, rememberMe } = req.body;
+      const { captchaId, captchaSolution, email, password, rememberMe } = req.body;
 
       if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      // Enforce CAPTCHA challenge-response verification against automated brute force & credential stuffing
+      if (!captchaId || !captchaSolution || !verifyCaptcha(captchaId, captchaSolution)) {
+        logSecurityEvent('LOGIN_CAPTCHA_FAILED', {
+          email: email.trim(),
+          ip: req.ip,
+          requestId: req.requestId,
+        });
+
+        return res.status(400).json({
+          error: 'Invalid or expired CAPTCHA code. Please enter the code shown in the image.',
+        });
       }
 
       const user = await get<UserRow>(
@@ -67,9 +101,10 @@ router.post(
           return res.status(403).json({ error: 'This account has been deactivated' });
         }
 
+        const ttlSec = getTtlSecondsForUser(user.role, Boolean(rememberMe));
         const token = generateToken(
           { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-          JWT_TTL_MS
+          ttlSec
         );
         const newTokenSig = token.split('.')[2];
         const loginTimestamp = new Date().toISOString();
@@ -96,19 +131,14 @@ router.post(
           role: user.role,
         });
 
-        const isSecure =
-          process.env.NODE_ENV === 'production' ||
-          req.secure ||
-          req.headers['x-forwarded-proto'] === 'https' ||
-          Boolean(req.headers.host && !req.headers.host.includes('localhost'));
-
-        res.cookie('token', token, {
-          httpOnly: true,
-          path: '/',
-          sameSite: 'strict',
-          secure: isSecure,
-          ...(rememberMe ? { maxAge: JWT_TTL_MS } : {}),
-        });
+        res.cookie(
+          AUTH_COOKIE_NAME,
+          token,
+          getAuthCookieOptions(req, {
+            maxAgeMs: rememberMe ? ttlSec * 1000 : undefined,
+            sameSite: 'strict',
+          })
+        );
 
         return res.json({
           user: {
@@ -182,6 +212,35 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
       return res.status(401).json({ error: 'Session is no longer valid' });
     }
 
+    if (req.user?.exp) {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const expSec = req.user.exp < 100_000_000_000 ? req.user.exp : Math.floor(req.user.exp / 1000);
+      const ttlSec = getTtlSecondsForUser(user.role, true);
+
+      // If more than 50% of the token's lifetime has elapsed, slide/refresh token
+      if (expSec - nowSec < ttlSec / 2) {
+        const refreshedToken = generateToken(
+          { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
+          ttlSec
+        );
+        const refreshedTokenSig = refreshedToken.split('.')[2];
+
+        await run('UPDATE users SET activeTokenSig = ? WHERE LOWER(email) = LOWER(?)', [
+          refreshedTokenSig,
+          user.email,
+        ]);
+
+        res.cookie(
+          AUTH_COOKIE_NAME,
+          refreshedToken,
+          getAuthCookieOptions(req, {
+            maxAgeMs: ttlSec * 1000,
+            sameSite: 'strict',
+          })
+        );
+      }
+    }
+
     return res.json({
       user: {
         email: user.email,
@@ -228,13 +287,17 @@ router.post('/logout', (req: Request, res: Response<LogoutResponseBody>) => {
     }
   }
 
-  const isSecure =
-    process.env.NODE_ENV === 'production' ||
-    req.secure ||
-    req.headers['x-forwarded-proto'] === 'https' ||
-    Boolean(req.headers.host && !req.headers.host.includes('localhost'));
+  const isSecure = isConnectionSecure(req);
 
-  res.clearCookie('token', {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    path: AUTH_COOKIE_PATH,
+    sameSite: 'strict',
+    secure: isSecure,
+  });
+
+  // Defense-in-depth: Clear legacy root path cookie to ensure seamless session migration
+  res.clearCookie(AUTH_COOKIE_NAME, {
     httpOnly: true,
     path: '/',
     sameSite: 'strict',

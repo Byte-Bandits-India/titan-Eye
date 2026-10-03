@@ -8,7 +8,9 @@ import { all, get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { hashPassword } from '../utils/hash.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
+import { validatePassword } from '../utils/passwordPolicy.js';
 import { broadcastEvent } from '../utils/sse.js';
+import { validateSafeShortText } from '../utils/inputSanitizer.js';
 
 function isPresenceOnline(u: Pick<UserRow, 'activeTokenSig' | 'lastPing'>): boolean {
   if (!u.activeTokenSig || !u.lastPing) {
@@ -19,6 +21,13 @@ function isPresenceOnline(u: Pick<UserRow, 'activeTokenSig' | 'lastPing'>): bool
 }
 
 const router = Router();
+
+router.param('email', (_req, res, next, email) => {
+  if (/[<>{}\\\^`|]/.test(email) || email.length > 254) {
+    return res.status(400).json({ error: 'Invalid email parameter format' });
+  }
+  next();
+});
 
 const onlineEmails = new Set<string>();
 
@@ -105,29 +114,62 @@ function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () =>
   next();
 }
 
-router.get('/', async (_req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
+router.get('/', async (req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
   try {
+    const isSuperAdmin = req.user?.role === 'super_admin';
+
+    if (isSuperAdmin) {
+      const rows = await all<UserRow>(
+        'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, lastPing, status, activeTokenSig FROM users ORDER BY email'
+      );
+      const result = rows.map((u) => ({
+        city: u.city,
+        email: u.email,
+        isLoggedIn: isPresenceOnline(u),
+        languages: parseLanguages(u.languages),
+        lastLogin: u.lastLogin,
+        location: u.location,
+        mobile: u.mobile,
+        name: u.name,
+        role: u.role,
+        status: u.status,
+        storeName: u.storeName,
+      }));
+
+      logSecurityEvent('USER_LIST_VIEWED', {
+        adminEmail: req.user?.email,
+        ip: req.ip,
+        requestId: req.requestId,
+        resultCount: result.length,
+        role: req.user?.role,
+      });
+
+      return res.json(result);
+    }
+
+    // Non-super-admin roles (store, optometrist, senior_optometrist):
+    // Return only active optometrist availability projection with all personal PII redacted
     const rows = await all<UserRow>(
-      'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, lastPing, status, activeTokenSig FROM users ORDER BY email'
+      "SELECT email, name, role, languages, lastPing, status FROM users WHERE role IN ('optometrist', 'senior_optometrist') AND status = 'active' ORDER BY name"
     );
-    const result = rows.map((u) => ({
-      city: u.city,
+    const sanitizedResult = rows.map((u) => ({
+      city: null,
       email: u.email,
       isLoggedIn: isPresenceOnline(u),
       languages: parseLanguages(u.languages),
-      lastLogin: u.lastLogin,
-      location: u.location,
-      mobile: u.mobile,
+      lastLogin: null,
+      location: null,
+      mobile: null,
       name: u.name,
       role: u.role,
       status: u.status,
-      storeName: u.storeName,
+      storeName: null,
     }));
 
-    return res.json(result);
+    return res.json(sanitizedResult);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    logger.error('Fetch users error', { errorMessage: error.message, requestId: _req.requestId });
+    logger.error('Fetch users error', { errorMessage: error.message, requestId: req.requestId });
 
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -193,8 +235,24 @@ router.post(
         return res.status(400).json({ error: 'Email is required' });
       }
 
-      if (!password || typeof password !== 'string' || password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      if (!password || typeof password !== 'string') {
+        return res.status(400).json({ error: 'Password is required' });
+      }
+
+      const passwordValidation = validatePassword(password, { email, name, storeName });
+
+      if (!passwordValidation.valid) {
+        logSecurityEvent('WEAK_PASSWORD_REJECTED', {
+          adminEmail: req.user?.email,
+          email: email.trim(),
+          ip: req.ip,
+          reason: passwordValidation.error,
+          requestId: req.requestId,
+        });
+
+        return res.status(400).json({
+          error: passwordValidation.error || 'Password does not meet complexity requirements',
+        });
       }
 
       if (!role || !VALID_ROLES.includes(role)) {
@@ -203,6 +261,27 @@ router.post(
 
       if (role === 'store' && (!storeName || !STORE_CODE_REGEX.test(storeName.trim()))) {
         return res.status(400).json({ error: 'Store code must be at most 4 letters/digits' });
+      }
+
+      if (city) {
+        const cityCheck = validateSafeShortText(city, 'City', 100);
+        if (!cityCheck.valid) {
+          return res.status(400).json({ error: cityCheck.error || 'Invalid city format' });
+        }
+      }
+
+      if (location) {
+        const locCheck = validateSafeShortText(location, 'Location', 100);
+        if (!locCheck.valid) {
+          return res.status(400).json({ error: locCheck.error || 'Invalid location format' });
+        }
+      }
+
+      if (name) {
+        const nameCheck = validateSafeShortText(name, 'Name', 100);
+        if (!nameCheck.valid) {
+          return res.status(400).json({ error: nameCheck.error || 'Invalid name format' });
+        }
       }
 
       const normalizedEmail = email.trim().toLowerCase();
@@ -292,12 +371,47 @@ router.put(
         return res.status(400).json({ error: 'Store code must be at most 4 letters/digits' });
       }
 
-      if (
-        password !== undefined &&
-        password !== '' &&
-        (typeof password !== 'string' || password.length < 6)
-      ) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      if (password !== undefined && password !== '') {
+        const passwordValidation = validatePassword(password, {
+          email: existing.email,
+          name,
+          storeName,
+        });
+
+        if (!passwordValidation.valid) {
+          logSecurityEvent('WEAK_PASSWORD_REJECTED', {
+            adminEmail: req.user?.email,
+            email: existing.email,
+            ip: req.ip,
+            reason: passwordValidation.error,
+            requestId: req.requestId,
+          });
+
+          return res.status(400).json({
+            error: passwordValidation.error || 'Password does not meet complexity requirements',
+          });
+        }
+      }
+
+      if (city) {
+        const cityCheck = validateSafeShortText(city, 'City', 100);
+        if (!cityCheck.valid) {
+          return res.status(400).json({ error: cityCheck.error || 'Invalid city format' });
+        }
+      }
+
+      if (location) {
+        const locCheck = validateSafeShortText(location, 'Location', 100);
+        if (!locCheck.valid) {
+          return res.status(400).json({ error: locCheck.error || 'Invalid location format' });
+        }
+      }
+
+      if (name) {
+        const nameCheck = validateSafeShortText(name, 'Name', 100);
+        if (!nameCheck.valid) {
+          return res.status(400).json({ error: nameCheck.error || 'Invalid name format' });
+        }
       }
 
       const finalStoreName = role === 'store' ? storeName || null : null;

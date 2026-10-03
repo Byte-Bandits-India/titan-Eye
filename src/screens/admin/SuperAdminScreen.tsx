@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Stethoscope, Store, UserPlus } from 'lucide-react';
 import * as React from 'react';
 
@@ -215,8 +216,13 @@ export function SuperAdminScreen() {
       setIsUploadDialogOpen(false);
       toast({ description: `${title} has been uploaded.`, title: 'Video Uploaded', type: 'success' });
     } catch (err) {
+      const errorMessage =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? (err.response.data.error as string)
+          : (err instanceof Error ? err : new Error(String(err))).message;
+
       toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
+        description: errorMessage,
         title: 'Failed to upload video',
         type: 'error',
       });
@@ -225,28 +231,38 @@ export function SuperAdminScreen() {
     }
   };
 
-  const handleDeleteVideo = async (video: ManagedVideo) => {
-    if (!window.confirm(`Delete "${video.title}"? This cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await apiClient.delete(`/videos/${video.id}`);
-      setVideos((prev) => prev.filter((v) => v.id !== video.id));
-
-      if (tvModeVideoId === video.id) {
-        setTvModeVideoId(null);
-      }
-
-      toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
-    } catch (err) {
+  const handleDeleteVideo = React.useCallback(
+    (video: ManagedVideo) => {
       toast({
-        description: (err instanceof Error ? err : new Error(String(err))).message,
-        title: 'Failed to delete video',
+        action: {
+          label: 'Delete',
+          onClick: async () => {
+            try {
+              await apiClient.delete(`/videos/${video.id}`);
+              setVideos((prev) => prev.filter((v) => v.id !== video.id));
+
+              if (tvModeVideoId === video.id) {
+                setTvModeVideoId(null);
+              }
+
+              toast({ description: `${video.title} has been removed.`, title: 'Video Deleted', type: 'success' });
+            } catch (err) {
+              toast({
+                description: (err instanceof Error ? err : new Error(String(err))).message,
+                title: 'Failed to delete video',
+                type: 'error',
+              });
+            }
+          },
+        },
+        description: `Delete "${video.title}"? This cannot be undone.`,
+        duration: 10000,
+        title: 'Confirm Deletion',
         type: 'error',
       });
-    }
-  };
+    },
+    [toast, tvModeVideoId]
+  );
 
   const handleSetTvModeVideo = async (video: ManagedVideo) => {
     try {
@@ -385,30 +401,38 @@ export function SuperAdminScreen() {
   );
 
   const handleDeleteUser = React.useCallback(
-    async (u: ManagedUser) => {
-      if (!window.confirm(`Delete ${u.name || u.email}? This cannot be undone.`)) {
-        return;
-      }
+    (u: ManagedUser) => {
+      const targetName = u.name || u.email;
+      toast({
+        action: {
+          label: 'Delete',
+          onClick: async () => {
+            try {
+              await dispatch(deleteUserAction(u.email));
+              toast({
+                description: `${targetName} has been removed.`,
+                title: 'User Deleted',
+                type: 'success',
+              });
 
-      try {
-        await dispatch(deleteUserAction(u.email));
-        toast({
-          description: `${u.name || u.email} has been removed.`,
-          title: 'User Deleted',
-          type: 'success',
-        });
-
-        if (editingEmail === u.email) {
-          closeForm();
-        }
-      } catch (e) {
-        const err = e instanceof Error ? e : new Error(String(e));
-        toast({
-          description: err.message,
-          title: 'Failed to Delete User',
-          type: 'error',
-        });
-      }
+              if (editingEmail === u.email) {
+                closeForm();
+              }
+            } catch (e) {
+              const err = e instanceof Error ? e : new Error(String(e));
+              toast({
+                description: err.message,
+                title: 'Failed to Delete User',
+                type: 'error',
+              });
+            }
+          },
+        },
+        description: `Delete ${targetName}? This cannot be undone.`,
+        duration: 10000,
+        title: 'Confirm Deletion',
+        type: 'error',
+      });
     },
     [closeForm, dispatch, editingEmail, toast]
   );

@@ -1,17 +1,33 @@
 /* eslint-disable react-refresh/only-export-components */
+import { lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Navigate, useLocation } from 'react-router-dom';
 
 import type { ProtectedRouteProps, RouteProps, UserRole } from '../types';
 
-import { SuperAdminScreen } from '../screens/admin/SuperAdminScreen';
 import { LoginScreen } from '../screens/auth/LoginScreen';
-import { SsoCallbackScreen } from '../screens/auth/SsoCallbackScreen';
-import { OptometristScreen } from '../screens/optometrist/OptometristScreen';
-import { FeedbackScreen } from '../screens/public/FeedbackScreen';
-import { StoreScreen } from '../screens/store/StoreScreen';
-import { TvModeScreen } from '../screens/store/TvModeScreen';
 import { useAppSelector } from '../store';
+
+// VAPT Finding 17 Remediation: Dynamic code-splitting for protected routes
+// Prevents exposing admin logic, customer deletion, and private APIs in the initial bundle
+const SuperAdminScreen = lazy(() =>
+  import('../screens/admin/SuperAdminScreen').then((m) => ({ default: m.SuperAdminScreen }))
+);
+const OptometristScreen = lazy(() =>
+  import('../screens/optometrist/OptometristScreen').then((m) => ({ default: m.OptometristScreen }))
+);
+const StoreScreen = lazy(() =>
+  import('../screens/store/StoreScreen').then((m) => ({ default: m.StoreScreen }))
+);
+const TvModeScreen = lazy(() =>
+  import('../screens/store/TvModeScreen').then((m) => ({ default: m.TvModeScreen }))
+);
+const SsoCallbackScreen = lazy(() =>
+  import('../screens/auth/SsoCallbackScreen').then((m) => ({ default: m.SsoCallbackScreen }))
+);
+const FeedbackScreen = lazy(() =>
+  import('../screens/public/FeedbackScreen').then((m) => ({ default: m.FeedbackScreen }))
+);
 
 function AuthChecking() {
   return (
@@ -98,7 +114,9 @@ export const routes = [
   {
     element: (
       <ProtectedRoute allowedRole="store">
-        <StoreScreen />
+        <Suspense fallback={<AuthChecking />}>
+          <StoreScreen />
+        </Suspense>
       </ProtectedRoute>
     ),
     path: '/store',
@@ -106,7 +124,9 @@ export const routes = [
   {
     element: (
       <ProtectedRoute allowedRole="store">
-        <TvModeScreen />
+        <Suspense fallback={<AuthChecking />}>
+          <TvModeScreen />
+        </Suspense>
       </ProtectedRoute>
     ),
     path: '/store/tvmode',
@@ -114,7 +134,9 @@ export const routes = [
   {
     element: (
       <ProtectedRoute allowedRole={['optometrist', 'senior_optometrist']}>
-        <OptometristScreen />
+        <Suspense fallback={<AuthChecking />}>
+          <OptometristScreen />
+        </Suspense>
       </ProtectedRoute>
     ),
     path: '/optometrist',
@@ -122,17 +144,27 @@ export const routes = [
   {
     element: (
       <ProtectedRoute allowedRole="super_admin">
-        <SuperAdminScreen />
+        <Suspense fallback={<AuthChecking />}>
+          <SuperAdminScreen />
+        </Suspense>
       </ProtectedRoute>
     ),
     path: '/super-admin',
   },
   {
-    element: <SsoCallbackScreen />,
+    element: (
+      <Suspense fallback={<AuthChecking />}>
+        <SsoCallbackScreen />
+      </Suspense>
+    ),
     path: '/sso/callback',
   },
   {
-    element: <FeedbackScreen />,
+    element: (
+      <Suspense fallback={<AuthChecking />}>
+        <FeedbackScreen />
+      </Suspense>
+    ),
     path: '/feedback/:token',
   },
   {

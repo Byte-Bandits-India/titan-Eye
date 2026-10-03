@@ -4,53 +4,12 @@ import type { AuthState, User } from '../types';
 
 import { STORAGE_KEYS } from '../options/Option';
 
-interface StoredUserPayload {
-  email?: string;
-  microsoftUpn?: string | null;
-  mobile?: string | null;
-  name?: string;
-  role?: string;
-  storeName?: string | null;
-}
-
-function isUser(obj: StoredUserPayload | object | null | undefined): obj is User {
-  if (!obj || typeof obj !== 'object') {
-    return false;
-  }
-
-  const candidate = obj as StoredUserPayload;
-
-  return (
-    typeof candidate.email === 'string' &&
-    typeof candidate.name === 'string' &&
-    (candidate.role === 'optometrist' ||
-      candidate.role === 'senior_optometrist' ||
-      candidate.role === 'store' ||
-      candidate.role === 'super_admin')
-  );
-}
-
 const getInitialState = (): AuthState => {
+  // Proactively purge any legacy storage entries on boot
   try {
-    const stored = sessionStorage.getItem(STORAGE_KEYS.USER) || localStorage.getItem(STORAGE_KEYS.USER);
-
-    if (stored) {
-      const parsed = JSON.parse(stored);
-
-      if (isUser(parsed)) {
-        return {
-          authChecked: true,
-          error: null,
-          isAuthenticated: true,
-          loading: false,
-          user: parsed,
-        };
-      }
-    }
-  } catch {
     localStorage.removeItem(STORAGE_KEYS.USER);
     sessionStorage.removeItem(STORAGE_KEYS.USER);
-  }
+  } catch {}
 
   return {
     authChecked: false,
@@ -69,8 +28,11 @@ const authSlice = createSlice({
       state.authChecked = true;
       state.isAuthenticated = false;
       state.user = null;
-      localStorage.removeItem(STORAGE_KEYS.USER);
-      sessionStorage.removeItem(STORAGE_KEYS.USER);
+
+      try {
+        localStorage.removeItem(STORAGE_KEYS.USER);
+        sessionStorage.removeItem(STORAGE_KEYS.USER);
+      } catch {}
     },
     loginFailure(state, action: PayloadAction<string>) {
       state.loading = false;
@@ -97,16 +59,12 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.isAuthenticated = true;
       state.error = null;
-      const { email, name, role, storeName } = action.payload.user;
-      const serialized = JSON.stringify({ email, name, role, storeName });
 
-      if (action.payload.rememberMe) {
-        localStorage.setItem(STORAGE_KEYS.USER, serialized);
-        sessionStorage.removeItem(STORAGE_KEYS.USER);
-      } else {
-        sessionStorage.setItem(STORAGE_KEYS.USER, serialized);
+      // Keep user authorization and identity strictly in-memory (Redux); never write to Local Storage
+      try {
         localStorage.removeItem(STORAGE_KEYS.USER);
-      }
+        sessionStorage.removeItem(STORAGE_KEYS.USER);
+      } catch {}
     },
     logout(state) {
       state.authChecked = true;

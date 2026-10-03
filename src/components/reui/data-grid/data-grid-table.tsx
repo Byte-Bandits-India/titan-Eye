@@ -1367,6 +1367,7 @@ function DataGridTableResizeIndicator({
     indicator.style.left = `${indicatorLeft}px`;
     indicator.style.transform = `translateX(${deltaOffset}px)`;
     indicatorHead.style.height = `${Math.max(headerHeight, 6)}px`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, resizingColumnId, columnResizing.deltaOffset, columnResizing.startOffset, table]);
 
   if (!isActive) {

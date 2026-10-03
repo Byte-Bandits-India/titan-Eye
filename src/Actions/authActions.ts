@@ -7,12 +7,18 @@ import { AppDispatch } from '../store';
 import { apiClient } from '../Util/apiClient';
 
 export const loginAction =
-  (email: string, password: string, rememberMe = false) =>
+  (email: string, password: string, rememberMe = false, captchaId?: string, captchaSolution?: string) =>
   async (dispatch: AppDispatch) => {
     dispatch(loginStart());
 
     try {
-      const response = await apiClient.post<LoginResponse>('/login', { email, password, rememberMe });
+      const response = await apiClient.post<LoginResponse>('/login', {
+        captchaId,
+        captchaSolution,
+        email,
+        password,
+        rememberMe,
+      });
       dispatch(loginSuccess({ ...response.data, rememberMe }));
     } catch (e) {
       let message = 'An error occurred during login.';
