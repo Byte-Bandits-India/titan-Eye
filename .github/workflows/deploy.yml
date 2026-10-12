@@ -1,4 +1,4 @@
-name: 🚀 Build & Deploy Titan to Linux EC2 Server
+name: Deploy Titan to EC2 Automation Platform
 
 on:
   push:
@@ -7,11 +7,12 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: production-deploy
-  cancel-in-progress: true
+  group: deploy-titan
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
+    name: Build & Deploy Titan
     runs-on: ubuntu-latest
 
     steps:
@@ -22,147 +23,78 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: "npm"
 
       - name: 📦 Install Dependencies
         run: npm ci || npm install
 
-      - name: 🏗 Set Build Environment Variables for Vite
+      - name: 🏗️ Set Build Environment for Vite
         run: |
           echo "VITE_API_BASE_URL=/api" > .env.production
 
-      - name: 🏗 Build App (Frontend & Backend)
+      - name: 🏗️ Build Application (Frontend & Server)
         run: npm run build
 
-      - name: 📦 Create Deployment Package
+      - name: 📦 Prune Dev Dependencies & Package Artifact
         run: |
-          tar -czf deploy.tar.gz \
-            dist \
-            dist-server \
-            server.js \
-            package.json \
-            package-lock.json
+          npm prune --omit=dev --legacy-peer-deps
+          tar -czf /tmp/titan-deploy.tar.gz \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='src' \
+            --exclude='*.ts' \
+            .
+          echo "✅ Package created: $(ls -lh /tmp/titan-deploy.tar.gz)"
 
       - name: 🔑 Configure SSH Key
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY || secrets.SSH_PRIVATE_KEY }}
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY || secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
-          
-          # 1. Handle literal \n if pasted as single-line string or standard multiline
-          if echo "$SSH_PRIVATE_KEY" | grep -q '\\n'; then
-            printf "%b\n" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          if echo "$SSH_KEY" | grep -q '\\n'; then
+            printf "%b\n" "$SSH_KEY" > ~/.ssh/id_rsa
           else
-            printf "%s\n" "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+            printf "%s\n" "$SSH_KEY" > ~/.ssh/id_rsa
           fi
-
-          # 2. Clean Windows carriage returns (\r)
           sed -i 's/\r$//' ~/.ssh/id_rsa
-
-          # 3. Ensure trailing newline (required by OpenSSH libcrypto)
           if [ -n "$(tail -c1 ~/.ssh/id_rsa 2>/dev/null)" ]; then
             echo "" >> ~/.ssh/id_rsa
           fi
-
           chmod 600 ~/.ssh/id_rsa
-
-          # 4. Configure SSH client options (enables RSA key types for modern Ubuntu runners)
-          cat << 'EOF' > ~/.ssh/config
+          cat << 'EOF_SSH' > ~/.ssh/config
           Host *
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
-            HostKeyAlgorithms +ssh-rsa,ssh-ed25519
-            PubkeyAcceptedKeyTypes +ssh-rsa,ssh-ed25519
             ServerAliveInterval 15
             ServerAliveCountMax 3
-          EOF
+          EOF_SSH
           chmod 600 ~/.ssh/config
 
-          # 5. Pre-validate key format with ssh-keygen
-          if ! ssh-keygen -y -f ~/.ssh/id_rsa > /dev/null 2>&1; then
-            echo "❌ ERROR: OpenSSH libcrypto could not parse the private key."
-            echo "👉 Make sure your GitHub Secret contains the entire .pem key file, including:"
-            echo "-----BEGIN ... PRIVATE KEY-----"
-            echo "and"
-            echo "-----END ... PRIVATE KEY-----"
-            exit 1
-          fi
-          echo "✅ SSH Key successfully loaded and validated!"
-
-      - name: 📤 Upload to Linux EC2 (SCP)
+      - name: 📤 Transfer Artifact to EC2
         env:
-          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP }}
+          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP || '15.135.74.113' }}
           USER: ${{ secrets.EC2_USER || secrets.USERNAME || 'ec2-user' }}
-          PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          echo "Uploading deployment package to $USER@$HOST..."
-          scp -P $PORT -i ~/.ssh/id_rsa deploy.tar.gz $USER@$HOST:/home/$USER/deploy.tar.gz
+          echo "Uploading /tmp/titan-deploy.tar.gz to EC2..."
+          scp -i ~/.ssh/id_rsa /tmp/titan-deploy.tar.gz "${USER}@${HOST}:/tmp/titan-deploy.tar.gz"
 
-      - name: 🚀 Deploy on Linux EC2 Server (SSH)
+      - name: 🚀 Execute Atomic Deployment Engine
         env:
-          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP }}
+          HOST: ${{ secrets.EC2_HOST || secrets.SERVER_IP || '15.135.74.113' }}
           USER: ${{ secrets.EC2_USER || secrets.USERNAME || 'ec2-user' }}
-          PORT: ${{ secrets.SSH_PORT || '22' }}
         run: |
-          ssh -p $PORT -i ~/.ssh/id_rsa $USER@$HOST bash -s << 'EOF'
-            set -e
-            echo "🚀 Starting Linux EC2 Deployment..."
+          ssh -i ~/.ssh/id_rsa "${USER}@${HOST}" bash -s << 'EOF_DEPLOY'
+            set -euo pipefail
+            PROJECT="titan"
+            ARTIFACT="/tmp/titan-deploy.tar.gz"
+            ENGINE="/opt/devops-automation/scripts/deploy.sh"
 
-            APP_DIR="/home/$(whoami)/titan"
-            TEMP_ARCHIVE="/home/$(whoami)/deploy.tar.gz"
-
-            # 1. Ensure PM2 / Node binary is discoverable across different shell environments
-            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/$(node -v 2>/dev/null || echo "")/bin
-
-            echo "📁 Ensuring required application directories exist..."
-            mkdir -p "$APP_DIR"
-            mkdir -p "$APP_DIR/uploads"
-            mkdir -p "$APP_DIR/logs"
-
-            # 2. Clean old build directories (dist and dist-server)
-            echo "🧹 Cleaning old build directories..."
-            rm -rf "$APP_DIR/dist" "$APP_DIR/dist-server"
-
-            # 3. Extract new build package into app directory (preserves .env, database.db, and uploads)
-            echo "📦 Extracting new build package..."
-            tar -xzf "$TEMP_ARCHIVE" -C "$APP_DIR"
-            rm -f "$TEMP_ARCHIVE"
-
-            # 4. Enter application directory
-            cd "$APP_DIR"
-
-            # 5. Install production dependencies and compile native binaries for Linux
-            echo "📦 Installing production dependencies..."
-            npm install --omit=dev --legacy-peer-deps
-            npm rebuild better-sqlite3
-
-            # 6. Restart backend process using PM2
-            echo "🔄 Restarting application with PM2..."
-            if command -v pm2 &> /dev/null; then
-              if pm2 describe titan &> /dev/null; then
-                pm2 reload titan || pm2 restart titan
-              else
-                pm2 start server.js --name titan --time
-                pm2 save
-              fi
-            else
-              echo "⚠️ PM2 not found in PATH. Checking if running on port 3001..."
-              fuser -k 3001/tcp || true
-              nohup node server.js > logs/app.log 2>&1 &
+            if [[ ! -f "$ENGINE" ]]; then
+              echo "❌ ERROR: Deployment engine not found at $ENGINE"
+              exit 1
             fi
 
-            # 7. Health Check Verification
-            echo "🔍 Verifying application health..."
-            sleep 4
-            if command -v curl &> /dev/null; then
-              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3001/api/ping || true)
-              echo "Health check response code: $HTTP_CODE"
-              if [ "$HTTP_CODE" = "200" ]; then
-                echo "✅ Health check passed: Server is running on port 3001!"
-              else
-                echo "ℹ️ Health check response: $HTTP_CODE"
-              fi
-            fi
-
-            echo "✅ Titan deployment to Linux EC2 completed successfully!"
-          EOF
+            echo "🚀 Executing native deployment for $PROJECT..."
+            "$ENGINE" "$PROJECT" "$ARTIFACT"
+            rm -f "$ARTIFACT"
+          EOF_DEPLOY

@@ -1,10 +1,11 @@
-import { Phone, User } from 'lucide-react';
+import { ExternalLink, Phone, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, CustomerStatus, StorePatientDetailsProps } from '../../types';
 
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
 import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { SheetBody, SheetFooter } from '../../components/ui/sheet';
@@ -39,6 +40,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
           preferredLanguage2: customer.preferredLanguage2 || 'None',
           status: customer.status,
           storeName: customer.storeName || user?.name || '',
+          consentAccepted: true,
         };
       }
 
@@ -53,6 +55,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         preferredLanguage2: 'None',
         status: 'Created' as CustomerStatus,
         storeName: user?.name || '',
+        consentAccepted: false,
       };
     },
     [user]
@@ -130,6 +133,10 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       newErrors.preferredLanguage2 = 'Preferred Language 2 cannot be the same as Preferred Language 1';
     }
 
+    if (isAddingNew && !form.consentAccepted) {
+      newErrors.consent = 'You must agree to the Terms and Conditions to create a customer';
+    }
+
     return newErrors;
   };
 
@@ -192,6 +199,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         status: form.status,
         storeFeedback: '',
         storeName: form.storeName,
+        consentAccepted: form.consentAccepted,
       };
 
       try {
@@ -354,6 +362,49 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
             <p className="text-sm font-medium text-red-500">{errors.preferredLanguage2}</p>
           )}
         </div>
+
+        {isAddingNew && (
+          <div className="pt-2">
+            <div
+              className={cn(
+                'rounded-lg border p-3 transition-colors',
+                errors.consent
+                  ? 'border-rose-500/60 bg-rose-50/40 dark:bg-rose-950/20'
+                  : 'border-border/60 bg-muted/30 hover:bg-muted/50'
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <Checkbox
+                  checked={form.consentAccepted}
+                  id="patient-consent-checkbox"
+                  onCheckedChange={(checked) => {
+                    setField('consentAccepted')(Boolean(checked));
+                  }}
+                />
+                <label
+                  className="cursor-pointer select-none text-xs leading-normal text-foreground"
+                  htmlFor="patient-consent-checkbox"
+                >
+                  I have read and agree to the{' '}
+                  <a
+                    className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                    href="https://www.titaneyeplus.com/terms-and-conditions"
+                    onClick={(e) => e.stopPropagation()}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Terms and Conditions
+                    <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
+                  </a>
+                  <span className="ml-0.5 text-rose-500">*</span>
+                </label>
+              </div>
+              {errors.consent && (
+                <p className="mt-1.5 pl-[26px] text-[10px] font-medium text-rose-500">{errors.consent}</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -363,7 +414,8 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       <SheetBody className="px-6 py-5">{sheetFieldsMarkup}</SheetBody>
       <SheetFooter className="sticky bottom-0 justify-center bg-card">
         <Button
-          className="active:scale-98 h-10 w-48 cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all"
+          className="active:scale-98 h-10 w-48 cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isAddingNew && !form.consentAccepted}
           type="submit"
           variant="primary"
         >

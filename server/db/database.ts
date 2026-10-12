@@ -55,6 +55,8 @@ export interface CustomerRow {
   storeFeedbackImage1: null | string;
   storeFeedbackImage2: null | string;
   storeName: string;
+  consentAccepted?: number;
+  consentAcceptedAt?: null | string;
 }
 
 export interface FeedbackTokenRow {
@@ -103,6 +105,8 @@ export interface UserRow {
   role: string;
   status: string;
   storeName: null | string;
+  consentAccepted?: number;
+  consentAcceptedAt?: null | string;
 }
 
 const DB_PATH = process.env.DATABASE_PATH || 'database.db';
@@ -155,7 +159,9 @@ export async function initializeDatabase(): Promise<void> {
       location TEXT,
       city TEXT,
       languages TEXT,
-      lastPing TEXT
+      lastPing TEXT,
+      consentAccepted INTEGER DEFAULT 0,
+      consentAcceptedAt TEXT
     )
   `);
 
@@ -173,6 +179,14 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     await run(`ALTER TABLE users ADD COLUMN lastPing TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN consentAccepted INTEGER DEFAULT 0`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE users ADD COLUMN consentAcceptedAt TEXT`);
   } catch {}
 
   await run(`
@@ -198,7 +212,9 @@ export async function initializeDatabase(): Promise<void> {
       callActive INTEGER DEFAULT 0,
       callTakenBy TEXT,
       storeContactEmail TEXT,
-      callDuration INTEGER DEFAULT 0
+      callDuration INTEGER DEFAULT 0,
+      consentAccepted INTEGER DEFAULT 0,
+      consentAcceptedAt TEXT
     )
   `);
 
@@ -304,6 +320,14 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     await run(`ALTER TABLE customers ADD COLUMN nonConversionComment TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN consentAccepted INTEGER DEFAULT 0`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN consentAcceptedAt TEXT`);
   } catch {}
 
   try {
@@ -472,7 +496,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, feedbackEase, feedbackExperience, feedbackRecommend, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment
+    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, feedbackEase, feedbackExperience, feedbackRecommend, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment, consentAccepted, consentAcceptedAt
     FROM customers
   `);
 

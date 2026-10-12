@@ -71,6 +71,7 @@ export type CommonRxValues = {
 
 export type CreateUserPayload = {
   city?: string;
+  consentAccepted?: boolean;
   email: string;
   languages?: string[];
   location?: string;
@@ -128,6 +129,8 @@ export type Customer = {
   storeFeedbackImage1?: null | string;
   storeFeedbackImage2?: null | string;
   storeName: string;
+  consentAccepted?: boolean;
+  consentAcceptedAt?: null | string;
 };
 
 export type CustomerLog = {
@@ -385,6 +388,7 @@ export type User = {
 
 export type UserFormData = {
   city: string;
+  consentAccepted: boolean;
   email: string;
   languages: string[];
   location: string;

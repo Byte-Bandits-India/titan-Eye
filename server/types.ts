@@ -23,6 +23,8 @@ export interface ApiCustomer {
   storeContactEmail: null | string;
   storeFeedback: string;
   storeName: string;
+  consentAccepted?: boolean | number;
+  consentAcceptedAt?: null | string;
 }
 
 export interface AuthUserResponse {
@@ -62,6 +64,8 @@ export interface CustomerInput {
   status?: string;
   storeFeedback?: string;
   storeName?: string;
+  consentAccepted?: boolean | number;
+  consentAcceptedAt?: null | string;
 }
 
 export interface CustomerOptometristRxData {
@@ -142,6 +146,8 @@ export interface SanitizedCustomer {
   status: string;
   storeFeedback: string;
   storeName: string;
+  consentAccepted?: boolean | number;
+  consentAcceptedAt?: null | string;
 }
 
 export interface WebhookCallEventBody {

@@ -41,6 +41,7 @@ export const ROLE_OPTIONS = [
 
 export const EMPTY_FORM: UserFormData = {
   city: '',
+  consentAccepted: false,
   email: '',
   languages: [],
   location: '',

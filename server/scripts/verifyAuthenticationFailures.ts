@@ -192,7 +192,7 @@ async function runA07Verification() {
     console.log('\n--- TEST 2: JWT Expiration, RFC 7519 Compliance & Revocation (Finding 15 - CVSS 3.7) ---');
 
     console.log('  [2.1] Authenticating Super Admin and inspecting JWT claims...');
-    const { rawToken: adminToken, cookie: adminCookie } = await solveCaptchaAndLogin(
+    const { rawToken: adminToken, cookie: _adminCookie } = await solveCaptchaAndLogin(
       'admin@thebytebandits.onmicrosoft.com',
       'TitanRemote@2026!#'
     );
@@ -269,6 +269,7 @@ async function runA07Verification() {
     console.log('  [3.1] Testing rejection of audit POC password "000000"...');
     const weakRes1 = await fetch(`${BASE_URL}/api/users`, {
       body: JSON.stringify({
+        consentAccepted: true,
         email: 'test_weak1@titan.in',
         name: 'Weak Test User',
         password: '000000',
@@ -294,6 +295,7 @@ async function runA07Verification() {
     console.log('  [3.2] Testing password missing special characters (e.g. "Password123456")...');
     const weakRes2 = await fetch(`${BASE_URL}/api/users`, {
       body: JSON.stringify({
+        consentAccepted: true,
         email: 'test_weak2@titan.in',
         name: 'Weak Test User 2',
         password: 'Password123456',
@@ -319,6 +321,7 @@ async function runA07Verification() {
     console.log('  [3.3] Testing contextual password containing email username...');
     const weakRes3 = await fetch(`${BASE_URL}/api/users`, {
       body: JSON.stringify({
+        consentAccepted: true,
         email: 'johndoe@titan.in',
         name: 'John Doe',
         password: 'Johndoe@2026!#',

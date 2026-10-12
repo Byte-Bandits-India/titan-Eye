@@ -280,6 +280,8 @@ export function toApiCustomer(row: CustomerRow) {
     ...row,
     activeProfile: row.activeProfile === 1,
     callActive: row.callActive === 1,
+    consentAccepted: row.consentAccepted === 1,
+    consentAcceptedAt: row.consentAcceptedAt || null,
     isPriority: row.isPriority === 1,
     optometristCallStartTime: row.optometristCallStartTime || null,
     optometristFeedback: row.optometristFeedback || '',
@@ -456,6 +458,10 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
   try {
     const c = req.body as CustomerInput;
 
+    if (!c.consentAccepted) {
+      return res.status(400).json({ error: 'Consent to Terms and Conditions is required to register a customer' });
+    }
+
     if (req.user && req.user.role === 'store') {
       if (!req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store user is not assigned to a valid store.' });
@@ -499,8 +505,9 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
         id, name, age, gender, mobile, customerType, storeName,
         preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
         status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
-        callStartTime, callActive, callTakenBy, callDuration
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        callStartTime, callActive, callTakenBy, callDuration,
+        consentAccepted, consentAcceptedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         finalId,
@@ -524,6 +531,8 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
         sanitized.callActive ? 1 : 0,
         sanitized.callTakenBy ?? null,
         sanitized.callDuration ?? 0,
+        1,
+        new Date().toISOString(),
       ]
     );
 
@@ -535,6 +544,13 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
 
     const createdCustomer = toApiCustomer(row);
     broadcastEvent('CUSTOMER_CREATED', createdCustomer);
+    logSecurityEvent('CUSTOMER_CREATED', {
+      callerEmail: req.user?.email,
+      consentAccepted: true,
+      customerId: finalId,
+      ip: req.ip,
+      requestId: req.requestId,
+    });
 
     return res.status(201).json({ id: finalId, ok: true });
   } catch (err) {

@@ -360,6 +360,7 @@ export function SuperAdminScreen() {
         await dispatch(
           createUserAction({
             city: formData.role === 'store' ? formData.city || undefined : undefined,
+            consentAccepted: formData.consentAccepted,
             email: formData.email,
             languages: isOptomLike ? formData.languages : undefined,
             location: formData.role === 'store' ? formData.location || undefined : undefined,

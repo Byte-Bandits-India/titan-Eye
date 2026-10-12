@@ -1,4 +1,4 @@
-import { CheckIcon, ChevronLeft, Phone, Trash2, User } from 'lucide-react';
+import { CheckIcon, ChevronLeft, ExternalLink, Phone, Trash2, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, OptometristRxValues, RxValues, StoreCustomerTestPageProps } from '../../types';
@@ -29,6 +29,7 @@ import {
   StepperTrigger,
 } from '../../components/reui/stepper';
 import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -66,6 +67,7 @@ type RxRow = 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
 type CustomerForm = {
   activeProfile: boolean;
   age: string;
+  consentAccepted: boolean;
   customerType: string;
   gender: string;
   mobile: string;
@@ -81,10 +83,11 @@ type OptometristRxFormState = { le: OptometristRxValues; re: OptometristRxValues
 type CustomerDetailsFieldsProps = {
   errors: Record<string, string>;
   form: CustomerForm;
-  setField: (key: string) => (val: string) => void;
+  isNewCustomer?: boolean;
+  setField: (key: string) => (val: boolean | string) => void;
 };
 
-function CustomerDetailsFieldsComponent({ errors, form, setField }: CustomerDetailsFieldsProps) {
+function CustomerDetailsFieldsComponent({ errors, form, isNewCustomer, setField }: CustomerDetailsFieldsProps) {
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
       <div className="space-y-1.5">
@@ -188,6 +191,49 @@ function CustomerDetailsFieldsComponent({ errors, form, setField }: CustomerDeta
           <p className="text-sm font-medium text-red-500">{errors.preferredLanguage2}</p>
         )}
       </div>
+
+      {isNewCustomer && (
+        <div className="col-span-full pt-1">
+          <div
+            className={cn(
+              'rounded-lg border p-3 transition-colors',
+              errors.consent
+                ? 'border-rose-500/60 bg-rose-50/40 dark:bg-rose-950/20'
+                : 'border-border/60 bg-muted/30 hover:bg-muted/50'
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              <Checkbox
+                checked={form.consentAccepted}
+                id="customer-consent-checkbox"
+                onCheckedChange={(checked) => {
+                  setField('consentAccepted')(Boolean(checked));
+                }}
+              />
+              <label
+                className="cursor-pointer select-none text-xs leading-normal text-foreground"
+                htmlFor="customer-consent-checkbox"
+              >
+                I have read and agree to the{' '}
+                <a
+                  className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                  href="https://www.titaneyeplus.com/terms-and-conditions"
+                  onClick={(e) => e.stopPropagation()}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Terms and Conditions
+                  <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
+                </a>
+                <span className="ml-0.5 text-rose-500">*</span>
+              </label>
+            </div>
+            {errors.consent && (
+              <p className="mt-1.5 pl-[26px] text-[10px] font-medium text-rose-500">{errors.consent}</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -460,6 +506,7 @@ export const StoreCustomerTestPage = React.memo(
       (customer: Customer | null): CustomerForm => ({
         activeProfile: customer?.activeProfile || false,
         age: customer?.age || '',
+        consentAccepted: customer ? true : false,
         customerType: customer?.customerType || 'New',
         gender: customer?.gender || '',
         mobile: customer?.mobile || '',
@@ -722,8 +769,12 @@ export const StoreCustomerTestPage = React.memo(
         newErrors.preferredLanguage2 = 'Preferred Language 2 cannot be the same as Preferred Language 1';
       }
 
+      if (!selectedCustomer && !form.consentAccepted) {
+        newErrors.consent = 'You must agree to the Terms and Conditions to register a customer';
+      }
+
       return newErrors;
-    }, [form]);
+    }, [form, selectedCustomer]);
 
     const validatePrescriptionFormat = (): boolean => {
       const validationErrors: Record<string, boolean> = {};
@@ -858,6 +909,7 @@ export const StoreCustomerTestPage = React.memo(
       const newCustomer: Customer = {
         activeProfile: true,
         age: form.age,
+        consentAccepted: form.consentAccepted,
         customerType: form.customerType,
         gender: form.gender,
         id: newId,
@@ -1178,7 +1230,12 @@ export const StoreCustomerTestPage = React.memo(
 
             <StepperPanel>
               <StepperContent className="space-y-6 sm:space-y-8" value={1}>
-                <CustomerDetailsFields errors={errors} form={form} setField={setField} />
+                <CustomerDetailsFields
+                  errors={errors}
+                  form={form}
+                  isNewCustomer={!selectedCustomer}
+                  setField={setField}
+                />
 
                 <div className="grid grid-cols-1 items-center gap-3 border-t border-border pt-4 sm:grid-cols-3">
                   <div className="flex justify-center sm:justify-start">
@@ -1209,7 +1266,7 @@ export const StoreCustomerTestPage = React.memo(
                     )}
                     <Button
                       className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
-                      disabled={isSaving || isRequesting}
+                      disabled={isSaving || isRequesting || (!selectedCustomer && !form.consentAccepted)}
                       onClick={handleSave}
                       type="button"
                       variant="secondary"
@@ -1221,7 +1278,7 @@ export const StoreCustomerTestPage = React.memo(
                   <div className="flex justify-center sm:justify-end">
                     <Button
                       className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
-                      disabled={isSaving || isRequesting}
+                      disabled={isSaving || isRequesting || (!selectedCustomer && !form.consentAccepted)}
                       onClick={handleNext}
                       type="button"
                       variant="primary"

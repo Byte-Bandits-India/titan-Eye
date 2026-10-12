@@ -36,6 +36,7 @@ const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {
   city?: string;
+  consentAccepted?: boolean;
   email?: string;
   languages?: string[];
   location?: string;
@@ -229,7 +230,11 @@ router.post(
     res: Response<ManagedUserResponseBody>
   ) => {
     try {
-      const { city, email, languages, location, mobile, name, password, role, storeName } = req.body;
+      const { city, consentAccepted, email, languages, location, mobile, name, password, role, storeName } = req.body;
+
+      if (!consentAccepted) {
+        return res.status(400).json({ error: 'Consent to Terms and Conditions is required' });
+      }
 
       if (!email || typeof email !== 'string' || !email.trim()) {
         return res.status(400).json({ error: 'Email is required' });
@@ -298,7 +303,7 @@ router.post(
       const finalLanguages = serializeLanguages(role, languages);
 
       await run(
-        'INSERT INTO users (email, name, role, storeName, mobile, location, city, languages, status, password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO users (email, name, role, storeName, mobile, location, city, languages, status, password, consentAccepted, consentAcceptedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           normalizedEmail,
           derivedName,
@@ -310,6 +315,8 @@ router.post(
           finalLanguages,
           'active',
           hashPassword(password),
+          1,
+          new Date().toISOString(),
         ]
       );
 
@@ -318,6 +325,7 @@ router.post(
       broadcastEvent('USER_CREATED', { email: normalizedEmail, name: derivedName, role });
       logSecurityEvent('ADMIN_USER_CREATED', {
         adminEmail,
+        consentAccepted: true,
         requestId: req.requestId,
         role,
         target: normalizedEmail,

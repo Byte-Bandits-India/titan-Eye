@@ -17,7 +17,7 @@ interface CaptchaResponse {
   captchaSvg: string;
 }
 
-interface LoginResponse {
+interface _LoginResponse {
   error?: string;
   user?: {
     email: string;
@@ -86,6 +86,7 @@ async function ensureTestCustomerExists(cookie: string): Promise<string> {
       preferredLanguage: 'English',
       status: 'Created',
       storeName: 'STRA',
+      consentAccepted: true,
     }),
     headers: {
       'Content-Type': 'application/json',
