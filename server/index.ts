@@ -23,6 +23,7 @@ import usersRouter from './routes/users.js';
 import videosRouter from './routes/videos.js';
 import { callsRouter } from './routes/calls.js';
 import webhooksRouter from './routes/webhooks.js';
+import { runRetentionPurge } from './scripts/retentionPurge.js';
 import { alertCritical, logger, logSecurityEvent, resolveLogDir } from './utils/logger.js';
 import { addSseClient, removeSseClient } from './utils/sse.js';
 
@@ -490,7 +491,23 @@ initializeDatabase()
         env: process.env.NODE_ENV || 'development',
         logDir: resolveLogDir(),
         port: PORT,
+
       });
+
+      runRetentionPurge().catch((e) => {
+        logger.error('[RetentionPurge] Startup purge error', {
+          errorMessage: e instanceof Error ? e.message : String(e),
+        });
+      });
+
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      setInterval(() => {
+        runRetentionPurge().catch((e) => {
+          logger.error('[RetentionPurge] Interval purge error', {
+            errorMessage: e instanceof Error ? e.message : String(e),
+          });
+        });
+      }, ONE_DAY_MS).unref();
     });
   })
   .catch((err) => {

@@ -8,6 +8,7 @@ import type { FeedbackEase, FeedbackExperience, FeedbackRecommend } from '../../
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 import { API_BASE_URL } from '../../options/Option';
+import { COMPLIANCE_CONFIG } from '../../options/complianceConfig';
 
 type LoadState = 'error' | 'loading' | 'ready';
 
@@ -101,10 +102,9 @@ export function FeedbackScreen() {
 
         {loadState === 'error' && (
           <>
-            <h1 className="mb-1 text-base font-bold text-foreground">Link Unavailable</h1>
+            <h1 className="mb-1 text-base font-bold text-foreground">Link Expired or Invalid</h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              This feedback link is invalid or has expired. Please check with the store if you&apos;d like to
-              leave feedback.
+              This feedback link has already been used or has expired. Thank you for your time.
             </p>
           </>
         )}
@@ -142,6 +142,22 @@ export function FeedbackScreen() {
               <ChoiceGroup onSelect={setFeedbackRecommend} options={RECOMMEND_OPTIONS} value={feedbackRecommend} />
             </div>
 
+            {/* Compliance Consent & Privacy Disclaimer */}
+            <div className="mb-4 rounded-lg border border-border/60 bg-muted/30 p-2.5 text-left text-[11px] leading-relaxed text-muted-foreground">
+              <p>
+                {COMPLIANCE_CONFIG.FEEDBACK_CONSENT.disclaimer}{' '}
+                <a
+                  className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                  href="/privacy-notice"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Privacy Notice
+                </a>
+                .
+              </p>
+            </div>
+
             <Button
               className="h-9 w-full rounded-xl text-sm font-medium"
               disabled={isSubmitting || !isComplete}
@@ -167,3 +183,4 @@ export function FeedbackScreen() {
     </main>
   );
 }
+export default FeedbackScreen;

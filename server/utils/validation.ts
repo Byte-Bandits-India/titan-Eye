@@ -335,8 +335,15 @@ function validateAge(value: unknown): FieldResult {
 
   const num = parseInt(str, 10);
 
-  if (isNaN(num) || num < 0 || num > 120) {
-    return { error: 'Age must be a valid number between 0 and 120', valid: false };
+  if (isNaN(num) || num < 18 || num > 120) {
+    if (!isNaN(num) && num < 18 && num >= 0) {
+      return {
+        error:
+          'Customers under 18 years of age cannot be registered for tele-optometry (Children Data Protection policy).',
+        valid: false,
+      };
+    }
+    return { error: 'Age must be a valid number between 18 and 120', valid: false };
   }
 
   return { sanitized: str, valid: true };

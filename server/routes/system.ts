@@ -1,10 +1,13 @@
 import { exec, spawn } from 'child_process';
 import { NextFunction, Response, Router } from 'express';
+import fs from 'fs';
+import path from 'path';
 
 import { get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { authorizeRoles } from '../middleware/rbac.js';
 import { findUserByEmail, getUserPhoto, getUserPresence } from '../services/microsoft/graph.js';
-import { logger } from '../utils/logger.js';
+import { logger, resolveLogDir } from '../utils/logger.js';
 import { getChromePath, getScreenSize, getTeamViewerPath } from '../utils/system.js';
 
 const router = Router();
@@ -282,6 +285,50 @@ router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Respons
     return res
       .status(500)
       .json({ message: error.message || 'Failed to get Microsoft photo', success: false });
+  }
+});
+
+router.get('/audit-logs', authorizeRoles('super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const logDir = resolveLogDir();
+    if (!fs.existsSync(logDir)) {
+      return res.json({ logs: [] });
+    }
+
+    const files = fs
+      .readdirSync(logDir)
+      .filter((f) => /^security-\d{4}-\d{2}-\d{2}\.log$/.test(f))
+      .sort()
+      .reverse();
+
+    const resultLogs: Record<string, unknown>[] = [];
+    const limit = parseInt(String(req.query.limit || '150'), 10);
+
+    for (const file of files) {
+      if (resultLogs.length >= limit) {
+        break;
+      }
+
+      const content = fs.readFileSync(path.join(logDir, file), 'utf8');
+      const lines = content.split('\n').filter(Boolean).reverse();
+      for (const line of lines) {
+        if (resultLogs.length >= limit) {
+          break;
+        }
+
+        try {
+          const parsed = JSON.parse(line) as Record<string, unknown>;
+          resultLogs.push(parsed);
+        } catch {}
+      }
+    }
+
+    return res.json({ logs: resultLogs });
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Fetch audit logs error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

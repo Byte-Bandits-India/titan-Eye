@@ -61,6 +61,7 @@ import {
   SPH_REGEX,
   STORAGE_KEYS,
 } from '../../options/Option';
+import { COMPLIANCE_CONFIG } from '../../options/complianceConfig';
 import { store, useAppDispatch, useAppSelector } from '../../store';
 
 type RxRow = 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
@@ -202,27 +203,39 @@ function CustomerDetailsFieldsComponent({ errors, form, isNewCustomer, setField 
                 : 'border-border/60 bg-muted/30 hover:bg-muted/50'
             )}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-start gap-2.5">
               <Checkbox
                 checked={form.consentAccepted}
+                className="mt-0.5"
                 id="customer-consent-checkbox"
                 onCheckedChange={(checked) => {
                   setField('consentAccepted')(Boolean(checked));
                 }}
               />
               <label
-                className="cursor-pointer select-none text-xs leading-normal text-foreground"
+                className="cursor-pointer select-none text-xs leading-relaxed text-foreground"
                 htmlFor="customer-consent-checkbox"
               >
-                I have read and agree to the{' '}
+                {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.checkboxLabel}{' '}
                 <a
-                  className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                  href="https://www.titaneyeplus.com/terms-and-conditions"
+                  className="inline font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
+                  href="/privacy-notice"
                   onClick={(e) => e.stopPropagation()}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  Terms and Conditions
+                  {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.privacyNoticeLinkText}
+                  <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
+                </a>{' '}
+                and{' '}
+                <a
+                  className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                  href={COMPLIANCE_CONFIG.REGISTRATION_CONSENT.termsUrl}
+                  onClick={(e) => e.stopPropagation()}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.termsLinkText}
                   <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
                 </a>
                 <span className="ml-0.5 text-rose-500">*</span>
@@ -680,9 +693,9 @@ export const StoreCustomerTestPage = React.memo(
 
       onBack();
     }, [onBack]);
-
+ 
     const setField = React.useCallback(
-      (key: string) => (val: string) => {
+      (key: string) => (val: string | boolean) => {
         setForm((f) => {
           const next = { ...f, [key]: val };
 
@@ -744,7 +757,10 @@ export const StoreCustomerTestPage = React.memo(
       if (!form.age) {
         newErrors.age = 'Age is required';
       } else if (!AGE_REGEX.test(form.age.trim())) {
-        newErrors.age = 'Age must be a valid number between 1 and 120';
+        newErrors.age =
+          parseInt(form.age.trim(), 10) < 18
+            ? 'Tele-optometry consultations cannot be performed for individuals under 18 years of age.'
+            : 'Age must be a valid number between 18 and 120';
       }
 
       if (!form.mobile) {
@@ -770,7 +786,7 @@ export const StoreCustomerTestPage = React.memo(
       }
 
       if (!selectedCustomer && !form.consentAccepted) {
-        newErrors.consent = 'You must agree to the Terms and Conditions to register a customer';
+        newErrors.consent = COMPLIANCE_CONFIG.REGISTRATION_CONSENT.errorMessage;
       }
 
       return newErrors;

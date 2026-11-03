@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "package:deploy": "node scripts/package-deploy.js",
+    "retention:purge": "npm run build:server && node dist-server/scripts/retentionPurge.js",
     "verify-logs": "npm run build:server && node dist-server/scripts/verifySecurityLog.js"
   },
   "dependencies": {
@@ -43,7 +44,7 @@
     "@tanstack/react-table": "^9.1.2",
     "@tanstack/react-virtual": "^3.14.9",
     "axios": "^1.18.1",
-    "better-sqlite3": "^13.0.2",
+    "better-sqlite3": "^12.11.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",

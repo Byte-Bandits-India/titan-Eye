@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import type { Table } from '@tanstack/react-table';
 
-import { Download, Stethoscope, TrendingUp, Users2 } from 'lucide-react';
+import { Stethoscope, TrendingUp, Users2 } from 'lucide-react';
 
 import type { DataGridFeatures } from '../../../components/reui/data-grid/data-grid';
 import type {
@@ -21,7 +21,7 @@ import {
 } from '../../../components/shared/ConversionStatusFilter';
 import { DirectoryListSkeleton } from '../../../components/shared/DirectoryListSkeleton';
 import { TableToolbar } from '../../../components/shared/table/TableToolbar';
-import { Button } from '../../../components/ui/button';
+
 import { OptometristUsersInfiniteBody } from '../../optometrist/components/OptometristUsersInfiniteBody';
 import { MetricCardGrid } from './MetricCardGrid';
 import { RecentCustomersBody } from './RecentCustomersBody';
@@ -51,8 +51,7 @@ type RecentCustomersVariant = {
   hideStatusTabs?: boolean;
   isLoading?: boolean;
   onConversionStatusFilterChange?: (value: ConversionStatusFilterValue) => void;
-  onExportCsv?: () => void;
-  onlyPendingAndAll?: boolean;
+    onlyPendingAndAll?: boolean;
   onDateRangeChange: (v: DateFilterRange) => void;
   onNextPage?: () => void;
   onPageSizeChange?: (size: number) => void;
@@ -112,8 +111,7 @@ export const StoreCard = memo(
       hideStatusTabs,
       isLoading,
       onConversionStatusFilterChange,
-      onExportCsv,
-      onlyPendingAndAll,
+            onlyPendingAndAll,
       onDateRangeChange,
       onNextPage,
       onPageSizeChange,
@@ -139,8 +137,7 @@ export const StoreCard = memo(
         columns={columns}
         dateRange={dateRange}
         extra={
-          onExportCsv ||
-          (showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange) ? (
+                    (showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange) ? (
             <div className="flex shrink-0 items-center gap-2">
               {showConversionStatusFilter && conversionStatusFilter && onConversionStatusFilterChange && (
                 <ConversionStatusFilter
@@ -148,17 +145,7 @@ export const StoreCard = memo(
                   value={conversionStatusFilter}
                 />
               )}
-              {onExportCsv && (
-                <Button
-                  className="active:scale-98 flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border-0 px-3 text-sm font-medium shadow-sm transition-all"
-                  onClick={onExportCsv}
-                  title="Download all records as CSV"
-                  variant="primary"
-                >
-                  <Download size={14} />
-                  <span>Export CSV</span>
-                </Button>
-              )}
+              
             </div>
           ) : undefined
         }

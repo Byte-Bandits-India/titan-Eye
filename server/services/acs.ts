@@ -67,6 +67,8 @@ export async function createTeamsOnlineMeeting(
           scope: 'everyone',
         },
         startDateTime: now.toISOString(),
+        recordAutomatically: false,
+        allowCloudRecording: false,
         subject,
       }),
       headers: {

@@ -28,6 +28,8 @@ const badgeVariants = cva(
           'border-transparent bg-emerald-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-emerald-600',
         Created:
           'border-transparent bg-zinc-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-zinc-600',
+        crm_user:
+          'border-transparent bg-amber-100 px-2.5 py-1 text-[9px] font-medium tracking-wide text-amber-700',
         default: 'border-transparent bg-[#2d3a5e] text-white hover:bg-[#232d4a]',
         destructive: 'border-red-200 border-transparent bg-red-100 text-red-800',
         Drop: 'border-transparent bg-amber-50 px-2.5 py-1 text-[9px] font-medium tracking-wide text-amber-600 dark:bg-amber-950/40 dark:text-amber-300',

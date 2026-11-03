@@ -31,7 +31,7 @@ router.param('email', (_req, res, next, email) => {
 
 const onlineEmails = new Set<string>();
 
-const VALID_ROLES = ['store', 'optometrist', 'senior_optometrist', 'super_admin'];
+const VALID_ROLES = ['crm_user', 'optometrist', 'senior_optometrist', 'store', 'super_admin'];
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {

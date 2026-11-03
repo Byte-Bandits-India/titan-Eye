@@ -1,5 +1,5 @@
 import { type ColumnDef, useTable } from '@tanstack/react-table';
-import { Download } from 'lucide-react';
+
 import * as React from 'react';
 
 import type { AdminTab, ColumnOption, Customer, OptometristUserRow, StatusTab } from '../../types';
@@ -16,13 +16,13 @@ import { PAGINATION } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
 import { hasCustomerFeedback } from '../../utils/customerFeedback';
-import { exportAllCustomersReport } from '../../utils/excelExport';
+
 import { renderCallDuration, WaitingCell } from '../store/components/cells';
 import { parseTimestamp } from '../store/components/formatters';
 import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
 import { AdminCard } from '../admin/components/AdminCard';
 import { DEFAULT_FEEDBACK_COLUMNS } from '../admin/components/adminUtils';
-import { Button } from '../../components/ui/button';
+
 import { OptometristActionsCell } from './components/OptometristActionsCell';
 import { OptometristCard } from './components/OptometristCard';
 import { OptometristPatientDetails } from './OptometristPatientDetails';
@@ -206,12 +206,7 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
     [customers, dateRange]
   );
 
-  const exportableCustomers = React.useMemo(
-    () => filterCustomersByDate(customers, dateRange),
-    [customers, dateRange]
-  );
-
-  const dateFilteredCustomersForFeedback = React.useMemo(
+    const dateFilteredCustomersForFeedback = React.useMemo(
     () => filterCustomersByDate(customers, dateRange),
     [customers, dateRange]
   );
@@ -856,19 +851,7 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
               <h1 className="text-[28px] font-semibold leading-tight text-foreground">{pageTitle}</h1>
               <p className="mt-0.5 text-sm font-normal text-muted-foreground">{pageSubtitle}</p>
             </div>
-            {isSeniorOptometrist && activeTab === 'queue' && (
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  className="h-10 gap-2 px-4 text-sm font-medium text-white shadow-sm"
-                  onClick={() => exportAllCustomersReport(exportableCustomers)}
-                  title="Download full Excel report for all patients"
-                  variant="primary"
-                >
-                  <Download size={14} />
-                  Export All Excel Reports
-                </Button>
-              </div>
-            )}
+            
           </div>
 
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">

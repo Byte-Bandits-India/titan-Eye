@@ -1,7 +1,7 @@
 import * as React from 'react';
 export type { DateFilterRange } from '../utils/dateFilter';
 
-export type AdminTab = 'customers' | 'feedback' | 'queue' | 'videos';
+export type AdminTab = 'audit' | 'customers' | 'feedback' | 'queue' | 'videos';
 export type FeedbackEase = 'Difficult' | 'Easy' | 'Okay' | 'Very Easy';
 export type FeedbackExperience = 'Average' | 'Excellent' | 'Good' | 'Poor';
 export type FeedbackRecommend = 'Maybe' | 'No' | 'Yes';
@@ -399,7 +399,7 @@ export type UserFormData = {
   storeName: string;
 };
 
-export type UserRole = 'optometrist' | 'senior_optometrist' | 'store' | 'super_admin';
+export type UserRole = 'crm_user' | 'optometrist' | 'senior_optometrist' | 'store' | 'super_admin';
 
 export type UserState = {
   error: null | string;

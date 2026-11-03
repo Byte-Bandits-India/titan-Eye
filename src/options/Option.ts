@@ -49,7 +49,7 @@ export function isObjectiveRxComplete(
   );
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 
 export const PAGINATION = {
   OPTOMETRIST_PAGE_SIZE: 6,
@@ -73,7 +73,7 @@ export const APP_CONFIG = {
 
 export const NAME_REGEX = /^[A-Za-z\s]{3,50}$/;
 export const CUSTOMER_NAME_REGEX = /^[A-Za-z\s]{3,20}$/;
-export const AGE_REGEX = /^(?:[1-9][0-9]?|1[0-1][0-9]|120)$/;
+export const AGE_REGEX = /^(?:1[89]|[2-9][0-9]|1[0-1][0-9]|120)$/;
 export const MOBILE_REGEX = /^[1-9]\d{9}$/;
 export const CUSTOMER_MOBILE_REGEX = /^[6-9]\d{9}$/;
 export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;

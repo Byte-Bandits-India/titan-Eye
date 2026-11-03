@@ -24,7 +24,6 @@ import { usePagination } from '../../hooks/usePagination';
 import { PAGINATION, STORAGE_KEYS } from '../../options/Option';
 import { useAppDispatch, useAppSelector } from '../../store';
 import { type DateFilterRange, filterCustomersByDate } from '../../utils/dateFilter';
-import { exportSalesConversionCsv } from '../../utils/excelExport';
 import { computeOptometristAvailability } from '../../utils/optometristAvailability';
 import { renderCallDuration, WaitingCell } from './components/cells';
 import {
@@ -985,11 +984,7 @@ export function StoreScreen() {
     [resetPage]
   );
 
-  const handleExportSalesConversionCsv = React.useCallback(() => {
-    exportSalesConversionCsv(salesConversionFilteredCustomers);
-  }, [salesConversionFilteredCustomers]);
-
-  const handleTestPageBack = React.useCallback(() => {
+    const handleTestPageBack = React.useCallback(() => {
     try {
       sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
     } catch {}
@@ -1017,8 +1012,7 @@ export function StoreScreen() {
       isLoading={isInitialCustomersLoading}
       onConversionStatusFilterChange={handleConversionStatusFilterChange}
       onDateRangeChange={setCustomerDateRange}
-      onExportCsv={onlyPendingAndAll ? handleExportSalesConversionCsv : undefined}
-      onNextPage={nextPage}
+            onNextPage={nextPage}
       onPageSizeChange={handleStorePageSizeChange}
       onPrevPage={prevPage}
       onResetColumns={handleResetColumns}

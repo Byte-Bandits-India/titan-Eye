@@ -9,6 +9,7 @@ const getInitialState = (): AuthState => {
   try {
     localStorage.removeItem(STORAGE_KEYS.USER);
     sessionStorage.removeItem(STORAGE_KEYS.USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
   } catch {}
 
   return {
@@ -32,6 +33,7 @@ const authSlice = createSlice({
       try {
         localStorage.removeItem(STORAGE_KEYS.USER);
         sessionStorage.removeItem(STORAGE_KEYS.USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
       } catch {}
     },
     loginFailure(state, action: PayloadAction<string>) {
@@ -48,6 +50,7 @@ const authSlice = createSlice({
       if (!action.payload?.user) {
         state.loading = false;
         state.error = 'Failed to process user authentication data.';
+        state.authChecked = true;
         state.isAuthenticated = false;
         state.user = null;
 
@@ -64,6 +67,7 @@ const authSlice = createSlice({
       try {
         localStorage.removeItem(STORAGE_KEYS.USER);
         sessionStorage.removeItem(STORAGE_KEYS.USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
       } catch {}
     },
     logout(state) {
@@ -74,6 +78,7 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem(STORAGE_KEYS.USER);
       sessionStorage.removeItem(STORAGE_KEYS.USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
     },
     sessionExpired(state) {
       state.authChecked = true;
@@ -83,6 +88,7 @@ const authSlice = createSlice({
       state.error = 'Your session expired because you signed in from another location.';
       localStorage.removeItem(STORAGE_KEYS.USER);
       sessionStorage.removeItem(STORAGE_KEYS.USER);
+    sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
     },
   },
 });

@@ -29,6 +29,7 @@ import {
 } from '../../utils/optometristAvailability';
 import { AvailableDirectoryCard } from '../../components/shared/AvailableDirectoryCard';
 import { AdminCard } from './components/AdminCard';
+import { AuditLogsBody } from './components/AuditLogsBody';
 import { DEFAULT_FEEDBACK_COLUMNS, DEFAULT_USER_COLUMNS, getRoleBasedUserId } from './components/adminUtils';
 import { UserFormDrawer } from './components/UserFormDrawer';
 import { VideoDirectoryBody } from './components/VideoDirectoryBody';
@@ -468,14 +469,18 @@ export function SuperAdminScreen() {
                 ? 'User Directory'
                 : activeTab === 'feedback'
                   ? 'Customer & Store Feedback'
-                  : 'Video Library'}
+                  : activeTab === 'audit'
+                    ? 'Security & Access Audit Trail'
+                    : 'Video Library'}
             </h1>
             <p className="mt-0.5 text-sm font-normal text-muted-foreground sm:text-sm">
               {activeTab === 'customers'
                 ? 'Search, filter, and manage system access'
                 : activeTab === 'feedback'
                   ? 'View store action notes, optometrist assessments, and direct patient feedback'
-                  : 'Upload and manage videos available in the admin console'}
+                  : activeTab === 'audit'
+                    ? 'Tamper-evident logs of customer data access, prescription image views, and retention purges'
+                    : 'Upload and manage videos available in the admin console'}
             </p>
           </div>
           {activeTab === 'customers' && (
@@ -493,7 +498,7 @@ export function SuperAdminScreen() {
         </div>
 
         {/* Layout Row 1: Metrics Grid (left) + Available Directory Card (right) */}
-        {activeTab !== 'videos' && (
+        {activeTab !== 'videos' && activeTab !== 'audit' && (
           <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
             <div className="grid grid-rows-2 gap-4">
               {isInitialUsersLoading ? (
@@ -532,7 +537,9 @@ export function SuperAdminScreen() {
         )}
 
         {/* Layout Row 2: Selected Directory Table View */}
-        {activeTab === 'customers' ? (
+        {activeTab === 'audit' ? (
+          <AuditLogsBody />
+        ) : activeTab === 'customers' ? (
           <AdminCard
             currentPage={userCurrentPage}
             currentUser={currentUser}

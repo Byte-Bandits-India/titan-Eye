@@ -38,5 +38,9 @@ export const logoutAction = () => async (dispatch: AppDispatch) => {
     await apiClient.post('/logout');
   } catch {}
 
+  try {
+    sessionStorage.clear();
+  } catch {}
+
   dispatch(logout());
 };

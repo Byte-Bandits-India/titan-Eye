@@ -28,6 +28,9 @@ const SsoCallbackScreen = lazy(() =>
 const FeedbackScreen = lazy(() =>
   import('../screens/public/FeedbackScreen').then((m) => ({ default: m.FeedbackScreen }))
 );
+const PrivacyNoticeScreen = lazy(() =>
+  import('../screens/public/PrivacyNoticeScreen').then((m) => ({ default: m.PrivacyNoticeScreen }))
+);
 
 function AuthChecking() {
   return (
@@ -52,7 +55,7 @@ export function BaseRedirect() {
 }
 
 export function getHomeRoute(role: UserRole): string {
-  if (role === 'store') {
+  if (role === 'store' || role === 'crm_user') {
     return '/store';
   }
 
@@ -113,7 +116,7 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="store">
+      <ProtectedRoute allowedRole={['store', 'crm_user']}>
         <Suspense fallback={<AuthChecking />}>
           <StoreScreen />
         </Suspense>
@@ -123,7 +126,7 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="store">
+      <ProtectedRoute allowedRole={['store', 'crm_user']}>
         <Suspense fallback={<AuthChecking />}>
           <TvModeScreen />
         </Suspense>
@@ -166,6 +169,14 @@ export const routes = [
       </Suspense>
     ),
     path: '/feedback/:token',
+  },
+  {
+    element: (
+      <Suspense fallback={<AuthChecking />}>
+        <PrivacyNoticeScreen />
+      </Suspense>
+    ),
+    path: '/privacy-notice',
   },
   {
     element: <BaseRedirect />,

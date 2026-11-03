@@ -42,7 +42,11 @@ function SessionGuard() {
     apiClient
       .get('/me')
       .then((res) => {
-        dispatch(loginSuccess({ user: res.data.user }));
+        if (res.data?.user) {
+          dispatch(loginSuccess({ user: res.data.user }));
+        } else {
+          dispatch(authCheckFailed());
+        }
       })
       .catch(() => {
         dispatch(authCheckFailed());

@@ -275,7 +275,8 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
   return (await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id])) ?? null;
 }
 
-export function toApiCustomer(row: CustomerRow) {
+export function toApiCustomer(row: CustomerRow, viewerRole?: string) {
+  const isCrm = viewerRole === 'crm_user';
   return {
     ...row,
     activeProfile: row.activeProfile === 1,
@@ -284,9 +285,11 @@ export function toApiCustomer(row: CustomerRow) {
     consentAcceptedAt: row.consentAcceptedAt || null,
     isPriority: row.isPriority === 1,
     optometristCallStartTime: row.optometristCallStartTime || null,
-    optometristFeedback: row.optometristFeedback || '',
-    optometristRxData: row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined,
-    rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
+    optometristFeedback: isCrm ? '' : (row.optometristFeedback || ''),
+    optometristRxData: isCrm ? undefined : (row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined),
+    rxData: isCrm ? undefined : (row.rxData ? JSON.parse(row.rxData) : undefined),
+    storeFeedbackImage1: isCrm ? null : row.storeFeedbackImage1,
+    storeFeedbackImage2: isCrm ? null : row.storeFeedbackImage2,
   };
 }
 
@@ -433,7 +436,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const rows = await all<CustomerRow>(query, params);
     const queuePositions = await computeQueuePositions();
     const customers = rows.map((row) => ({
-      ...toApiCustomer(row),
+      ...toApiCustomer(row, req.user?.role),
       queuePosition: queuePositions.get(row.id) ?? null,
     }));
 
@@ -1450,6 +1453,32 @@ router.post('/:id/complete', authorizeRoles('store', 'super_admin'), async (req:
   }
 });
 
+router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const customer = await verifyCustomerAccess(req, res, id);
+
+    if (!customer) {
+      return;
+    }
+
+    logSecurityEvent('CUSTOMER_RECORD_ACCESSED', {
+      callerEmail: req.user?.email,
+      callerRole: req.user?.role,
+      customerId: id,
+      ip: req.ip,
+      requestId: req.requestId,
+    });
+
+    return res.json(toApiCustomer(customer, req.user?.role));
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    logger.error('Fetch customer by id error', { errorMessage: error.message, requestId: req.requestId });
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/:id/logs', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
@@ -1650,6 +1679,10 @@ router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: R
       return;
     }
 
+    if (req.user?.role === 'crm_user') {
+      return res.status(403).json({ error: 'Access Denied: CRM users cannot access clinical prescription images.' });
+    }
+
     const filename = customer[column];
 
     if (!filename) {
@@ -1681,7 +1714,18 @@ router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: R
     res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     res.setHeader('Content-Type', safeMime);
     res.setHeader('Content-Disposition', 'inline');
-    res.setHeader('Cache-Control', 'private, no-transform, max-age=86400');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    logSecurityEvent('CUSTOMER_HEALTH_IMAGE_ACCESSED', {
+      callerEmail: req.user?.email,
+      callerRole: req.user?.role,
+      customerId: id,
+      ip: req.ip,
+      requestId: req.requestId,
+      slot: req.params.slot,
+    });
 
     return res.sendFile(filePath);
   } catch (err) {
@@ -1712,6 +1756,10 @@ router.delete('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res
 
     if (!customer) {
       return;
+    }
+
+    if (req.user?.role === 'crm_user') {
+      return res.status(403).json({ error: 'Access Denied: CRM users cannot access clinical prescription images.' });
     }
 
     const filename = customer[column];

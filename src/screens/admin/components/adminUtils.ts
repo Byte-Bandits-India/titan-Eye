@@ -37,6 +37,7 @@ export const ROLE_OPTIONS = [
   { label: 'Store', value: 'store' },
   { label: 'Optometrist', value: 'optometrist' },
   { label: 'Senior Optometrist', value: 'senior_optometrist' },
+  { label: 'CRM User', value: 'crm_user' },
 ];
 
 export const EMPTY_FORM: UserFormData = {

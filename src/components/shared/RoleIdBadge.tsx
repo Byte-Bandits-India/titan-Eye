@@ -5,6 +5,8 @@ import type { UserRole } from '../../types';
 import { cn } from '../../lib/utils';
 
 const ROLE_ID_BADGE_CLASSES: Record<UserRole, string> = {
+  crm_user:
+    'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300',
   optometrist:
     'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300',
   senior_optometrist:
