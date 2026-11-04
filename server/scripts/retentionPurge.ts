@@ -10,13 +10,14 @@ export interface RetentionPurgeResult {
   deletedCustomerLogs: number;
   deletedFeedbackTokens: number;
   deletedImageFiles: number;
+  deletedLogFiles: number;
   dryRun: boolean;
   executedAt: string;
 }
 
 const DEFAULT_IMAGE_RETENTION_DAYS = 90;
 const DEFAULT_TOKEN_RETENTION_DAYS = 180; // 6 months (DPA Survey & Tokens)
-const DEFAULT_LOG_RETENTION_DAYS = 365;
+const DEFAULT_LOG_RETENTION_DAYS = 180; // 180 days maximum log retention
 const DEFAULT_CUSTOMER_RETENTION_DAYS = 1095; // 3 years
 
 export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeResult> {
@@ -141,11 +142,47 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
     );
   }
 
+  // 5. Purge log files exceeding 180 days across all log directories (audit, err, signin, monitoring)
+  let deletedLogFiles = 0;
+  const logCutoffMs = now.getTime() - logDays * 24 * 60 * 60 * 1000;
+  const baseLogDir = path.resolve(process.env.LOG_DIR || 'logs');
+  const logDirectories = [
+    baseLogDir,
+    path.join(baseLogDir, 'audit'),
+    path.join(baseLogDir, 'err'),
+    path.join(baseLogDir, 'signin'),
+    path.join(baseLogDir, 'monitoring'),
+  ];
+
+  for (const logDir of logDirectories) {
+    if (fs.existsSync(logDir)) {
+      try {
+        const files = fs.readdirSync(logDir);
+        for (const file of files) {
+          if (!file.endsWith('.log') && !file.endsWith('.log.gz')) {
+            continue;
+          }
+          const fullPath = path.join(logDir, file);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile() && stat.mtimeMs < logCutoffMs) {
+            deletedLogFiles++;
+            if (!dryRun) {
+              fs.unlinkSync(fullPath);
+            }
+          }
+        }
+      } catch {
+        /* ignore unreadable log folders */
+      }
+    }
+  }
+
   const result: RetentionPurgeResult = {
     anonymizedCustomers,
     deletedCustomerLogs,
     deletedFeedbackTokens,
     deletedImageFiles,
+    deletedLogFiles,
     dryRun,
     executedAt: now.toISOString(),
   };
@@ -155,6 +192,7 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
     deletedCustomerLogs,
     deletedFeedbackTokens,
     deletedImageFiles,
+    deletedLogFiles,
     dryRun,
     executedAt: result.executedAt,
   });

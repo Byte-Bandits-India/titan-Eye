@@ -114,7 +114,7 @@ if (includeNodeModules) {
 
   if (fs.existsSync(srcNm)) {
     if (process.platform === 'win32') {
-      execSync(`robocopy "${srcNm}" "${destNm}" /E /XF *.log *.db .DS_Store /XD logs data uploads localData /NP /NFL /NDO || exit 0`, {
+      execSync(`robocopy "${srcNm}" "${destNm}" /E /XF *.log *.db .DS_Store /XD logs data uploads localData /NP /NFL /NDL /NJH /NJS || cmd /c "if %ERRORLEVEL% LEQ 7 exit 0"`, {
         stdio: 'inherit',
       });
     } else {
@@ -141,13 +141,13 @@ if (fs.existsSync(sslSourceDir)) {
   console.warn('   ⚠️ SSL source directory not found at: ' + sslSourceDir);
 }
 
-// 8. Bundle Offline Tools (nssm.exe)
-console.log('\n8. Bundling NSSM service manager tool...');
+// 8. Bundle Offline Tools (nssm.exe, node.js msi, rewrite msi, requestRouter msi)
+console.log('\n8. Bundling offline installation tools & installers...');
 const toolsSourceDir = path.join(localDataDir, 'tools');
 const toolsDestDir = path.join(deployPkgDir, 'tools');
 if (fs.existsSync(toolsSourceDir)) {
   copyDirSync(toolsSourceDir, toolsDestDir);
-  console.log('   ✓ Bundled tools/nssm.exe for Windows service management');
+  console.log('   ✓ Bundled tools directory (Node.js LTS, URL Rewrite, ARR 3.0, NSSM)');
 } else {
   console.warn('   ⚠️ tools directory not found at: ' + toolsSourceDir);
 }
@@ -201,17 +201,31 @@ verifyNoSensitiveFiles(deployPkgDir);
 console.log('   ✓ Verified: No secret .env, .db, or sqlite files are present.');
 
 // 11. Create ZIP archive
-console.log('\n11. Creating clean ZIP archive (this may take a moment with node_modules)...');
+console.log('\n11. Creating clean ZIP archive (offline package with dependencies)...');
 if (fs.existsSync(zipFilePath)) {
   fs.unlinkSync(zipFilePath);
 }
 
 try {
   if (process.platform === 'win32') {
-    execSync(
-      `powershell -Command "Compress-Archive -Path '${deployPkgDir}\\*' -DestinationPath '${zipFilePath}' -Force"`,
-      { stdio: 'inherit' }
-    );
+    let useTar = false;
+    try {
+      execSync('tar.exe --version', { stdio: 'ignore' });
+      useTar = true;
+    } catch {
+      useTar = false;
+    }
+
+    if (useTar) {
+      console.log('   Using Windows native tar.exe for rapid zip creation...');
+      execSync(`tar.exe -a -c -f "${zipFilePath}" -C "${deployPkgDir}" .`, { stdio: 'inherit' });
+    } else {
+      console.log('   Using PowerShell Compress-Archive fallback...');
+      execSync(
+        `powershell -Command "Compress-Archive -Path '${deployPkgDir}\\*' -DestinationPath '${zipFilePath}' -Force"`,
+        { stdio: 'inherit' }
+      );
+    }
   } else {
     execSync(`cd "${deployPkgDir}" && zip -r -q -X "${zipFilePath}" . -x "*.DS_Store" -x "__MACOSX*" -x "*.db" -x "*.db-*" -x "*.env*"`, {
       stdio: 'inherit',
