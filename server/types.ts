@@ -10,7 +10,8 @@ export interface ApiCustomer {
   gender: string;
   id: string;
   lastUpdatedOn: null | string;
-  mobile: string;
+  firstName?: null | string;
+  lastName?: null | string;
   name: string;
   optometristCallStartTime: null | string;
   optometristFeedback: string;
@@ -48,8 +49,9 @@ export interface CustomerInput {
   customerType?: string;
   gender?: string;
   id?: string;
+  firstName?: string;
+  lastName?: string;
   lastUpdatedOn?: string;
-  mobile?: string;
   name?: string;
   nonConversionComment?: null | string;
   nonConversionReason?: null | string;
@@ -130,8 +132,9 @@ export interface SanitizedCustomer {
   conversionStatus: null | string;
   customerType: string;
   gender: string;
+  firstName: string;
+  lastName: string;
   lastUpdatedOn: string;
-  mobile: string;
   name: string;
   nonConversionComment: null | string;
   nonConversionReason: null | string;

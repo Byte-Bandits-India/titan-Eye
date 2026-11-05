@@ -325,8 +325,7 @@ export const OptometristScreen = React.memo(function OptometristScreen() {
         (c) =>
           c.id.toLowerCase().includes(search) ||
           c.name.toLowerCase().includes(search) ||
-          (c.storeName ?? '').toLowerCase().includes(search) ||
-          (c.mobile ?? '').toLowerCase().includes(search)
+          (c.storeName ?? '').toLowerCase().includes(search)
       );
     }
 

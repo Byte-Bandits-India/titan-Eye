@@ -1,19 +1,3 @@
-/**
- * OWASP A07:2025 - Identification and Authentication Failures Verification Suite
- *
- * Verifies live remediations for:
- * 1. Finding 18 (Alert 5588608, CVSS 5.3 Medium, CWE-307):
- *    No CAPTCHA on Login Page / Anti-Brute-Force Controls
- * 2. Finding 15 (Alert 5588617, CVSS 3.7 Low, CWE-347):
- *    JWT Token Misconfiguration (Excessive Expiry, RFC 7519 NumericDate, Token Revocation)
- * 3. Finding 6 (Alert 5589185, CVSS 3.7 Low, CWE-521):
- *    Weak Password Policy Enforcement
- * 4. Finding 7 (Alert 5589179, CVSS 8.1 High, CWE-269):
- *    Privilege Escalation on Customer & User Management
- * 5. Finding 16 (Alert 5588613, CVSS 5.4 Medium, CWE-312):
- *    Sensitive Data in Local Storage Eradication & Cookie Hardening
- */
-
 const TARGET_HOST = 'titan.xylozentech.com';
 const BASE_URL = `https://${TARGET_HOST}`;
 
@@ -361,7 +345,8 @@ async function runA07Verification() {
         age: 30,
         customerType: 'New',
         gender: 'Female',
-        mobile: '9876543210',
+        firstName: 'Unauthorized',
+        lastName: 'Patient',
         name: 'Unauthorized Patient',
         preferredLanguage: 'English',
         status: 'Created',

@@ -15,7 +15,11 @@
     "preview": "vite preview",
     "package:deploy": "node scripts/package-deploy.js",
     "retention:purge": "npm run build:server && node dist-server/scripts/retentionPurge.js",
-    "verify-logs": "npm run build:server && node dist-server/scripts/verifySecurityLog.js"
+    "decrypt-logs": "npm run build:server && node dist-server/scripts/decryptLogs.js",
+    "verify-logs": "npm run build:server && node dist-server/scripts/verifySecurityLog.js",
+    "purge-logs": "npm run build:server && node dist-server/scripts/retentionPurge.js",
+    "logs:decrypt": "npm run build:server && node dist-server/scripts/decryptLogs.js",
+    "logs:tail": "npm run build:server && node dist-server/scripts/decryptLogs.js --tail"
   },
   "dependencies": {
     "@azure/communication-calling": "^1.43.1",

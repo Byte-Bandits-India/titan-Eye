@@ -295,9 +295,10 @@ router.get('/audit-logs', authorizeRoles('super_admin'), async (req: Authenticat
       return res.json({ logs: [] });
     }
 
+    const auditDir = fs.existsSync(path.join(logDir, 'audit')) ? path.join(logDir, 'audit') : logDir;
     const files = fs
-      .readdirSync(logDir)
-      .filter((f) => /^security-\d{4}-\d{2}-\d{2}\.log$/.test(f))
+      .readdirSync(auditDir)
+      .filter((f) => /^(audit|security)-\d{4}-\d{2}-\d{2}\.log$/.test(f))
       .sort()
       .reverse();
 
@@ -309,7 +310,7 @@ router.get('/audit-logs', authorizeRoles('super_admin'), async (req: Authenticat
         break;
       }
 
-      const content = fs.readFileSync(path.join(logDir, file), 'utf8');
+      const content = fs.readFileSync(path.join(auditDir, file), 'utf8');
       const lines = content.split('\n').filter(Boolean).reverse();
       for (const line of lines) {
         if (resultLogs.length >= limit) {

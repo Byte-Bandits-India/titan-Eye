@@ -90,10 +90,10 @@ async function runBusinessLogicVerification() {
       const id = `BL_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       await run(
         `INSERT INTO customers (
-          id, name, age, gender, mobile, customerType, storeName,
+          id, name, firstName, lastName, age, gender, customerType, storeName,
           preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
           status, callActive, offeredToOptometristEmail, callTakenBy, createdOn, lastUpdatedOn
-        ) VALUES (?, 'Test Patient', '30', 'Male', '9876543210', 'Walk-in', ?, 'English', '', '', '', ?, ?, ?, ?, '2026-10-01 10:00:00', '2026-10-01 10:00:00')`,
+        ) VALUES (?, 'Test Patient', 'Test', 'Patient', '30', 'Male', 'Walk-in', ?, 'English', '', '', '', ?, ?, ?, ?, '2026-10-01 10:00:00', '2026-10-01 10:00:00')`,
         [id, storeUser.storeName || null, status, status === 'Initiated' || status === 'Accepted' ? 1 : 0, offeredEmail, callTakenBy]
       );
       return id;

@@ -1,17 +1,22 @@
-import { ExternalLink, Phone, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, CustomerStatus, StorePatientDetailsProps } from '../../types';
 
 import { createCustomerAction, updateCustomerAction } from '../../Actions/customerActions';
 import { Button } from '../../components/ui/button';
-import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { SheetBody, SheetFooter } from '../../components/ui/sheet';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
-import { AGE_REGEX, CUSTOMER_NAME_REGEX, emptyRxValues, LANGUAGES, MOBILE_REGEX } from '../../options/Option';
+import {
+  AGE_REGEX,
+  CUSTOMER_FIRST_NAME_REGEX,
+  CUSTOMER_LAST_NAME_REGEX,
+  emptyRxValues,
+  LANGUAGES,
+} from '../../options/Option';
 import { store, useAppDispatch, useAppSelector } from '../../store';
 
 export const StorePatientDetails = React.memo(function StorePatientDetails({
@@ -28,14 +33,18 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
 
   const buildFormState = React.useCallback(
     (customer: Customer | null, addingNew: boolean) => {
+      const nameParts = (customer?.name || '').trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       if (customer && !addingNew) {
         return {
           activeProfile: customer.activeProfile || false,
           age: customer.age || '',
           customerType: customer.customerType || 'New',
+          firstName,
           gender: customer.gender || 'Male',
-          mobile: customer.mobile || '',
-          name: customer.name || '',
+          lastName,
           preferredLanguage: customer.preferredLanguage || 'English',
           preferredLanguage2: customer.preferredLanguage2 || 'None',
           status: customer.status,
@@ -48,14 +57,14 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         activeProfile: addingNew,
         age: '',
         customerType: 'New',
+        firstName: '',
         gender: 'Male',
-        mobile: '',
-        name: '',
+        lastName: '',
         preferredLanguage: 'English',
         preferredLanguage2: 'None',
         status: 'Created' as CustomerStatus,
         storeName: user?.name || '',
-        consentAccepted: false,
+        consentAccepted: true,
       };
     },
     [user]
@@ -103,22 +112,20 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
   const getValidationErrors = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.name.trim()) {
-      newErrors.name = 'Name is required';
-    } else if (!CUSTOMER_NAME_REGEX.test(form.name.trim())) {
-      newErrors.name = 'Name must be between 3 and 20 characters and contain only letters and spaces';
+    if (!form.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (!CUSTOMER_FIRST_NAME_REGEX.test(form.firstName.trim())) {
+      newErrors.firstName = 'First name must be between 2 and 20 characters and contain only letters and spaces';
+    }
+
+    if (form.lastName.trim() && !CUSTOMER_LAST_NAME_REGEX.test(form.lastName.trim())) {
+      newErrors.lastName = 'Last name must contain only letters and spaces';
     }
 
     if (!form.age) {
       newErrors.age = 'Age is required';
     } else if (!AGE_REGEX.test(form.age.trim())) {
       newErrors.age = 'Age must be a valid number between 1 and 120';
-    }
-
-    if (!form.mobile) {
-      newErrors.mobile = 'Mobile number is required';
-    } else if (!MOBILE_REGEX.test(form.mobile.trim())) {
-      newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
     }
 
     if (!form.preferredLanguage) {
@@ -131,10 +138,6 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       form.preferredLanguage === form.preferredLanguage2
     ) {
       newErrors.preferredLanguage2 = 'Preferred Language 2 cannot be the same as Preferred Language 1';
-    }
-
-    if (isAddingNew && !form.consentAccepted) {
-      newErrors.consent = 'You must agree to the Terms and Conditions to create a customer';
     }
 
     return newErrors;
@@ -172,6 +175,8 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       year: 'numeric',
     });
 
+    const fullName = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
+
     if (isAddingNew) {
       const customers = store.getState().customers.customers;
       const numericIds = customers.map((c) => parseInt(c.id.replace('#', ''), 10)).filter((n) => !isNaN(n));
@@ -185,8 +190,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         gender: form.gender,
         id: newId,
         lastUpdatedOn: timestamp,
-        mobile: form.mobile,
-        name: form.name,
+        name: fullName,
         optometristFeedback: '',
         preferredLanguage: form.preferredLanguage,
         preferredLanguage2: form.preferredLanguage2,
@@ -199,7 +203,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         status: form.status,
         storeFeedback: '',
         storeName: form.storeName,
-        consentAccepted: form.consentAccepted,
+        consentAccepted: true,
       };
 
       try {
@@ -226,8 +230,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         customerType: form.customerType,
         gender: form.gender,
         lastUpdatedOn: timestamp,
-        mobile: form.mobile,
-        name: form.name,
+        name: fullName,
         preferredLanguage: form.preferredLanguage,
         preferredLanguage2: form.preferredLanguage2,
         status: form.status,
@@ -238,7 +241,7 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
         await dispatch(updateCustomerAction(selectedCustomer.id, updatedCustomer));
         onBack();
         toast({
-          description: `Patient details for ${form.name} have been updated.`,
+          description: `Patient details for ${fullName} have been updated.`,
           title: 'Profile Updated',
           type: 'success',
         });
@@ -264,34 +267,36 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       <div className="border-b border-border" />
       <div className="grid grid-cols-3 gap-x-6 gap-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">Customer Number *</label>
+          <label className="text-sm font-medium text-muted-foreground">First Name *</label>
           <Input
-            className={cn('rounded-none', errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
-            icon={Phone}
-            onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            placeholder="Enter mobile number"
-            required
-            type="tel"
-            value={form.mobile}
-          />
-          {errors.mobile && <p className="text-sm font-medium text-red-500">{errors.mobile}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">Name *</label>
-          <Input
-            className={cn('rounded-none', errors.name && 'border-red-500 focus-visible:ring-red-500')}
+            className={cn('rounded-none', errors.firstName && 'border-red-500 focus-visible:ring-red-500')}
             icon={User}
             onChange={(e) => {
               const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
-              setField('name')(cleanVal);
+              setField('firstName')(cleanVal);
             }}
-            placeholder="Enter full name"
+            placeholder="Enter first name"
             required
             type="text"
-            value={form.name}
+            value={form.firstName}
           />
-          {errors.name && <p className="text-sm font-medium text-red-500">{errors.name}</p>}
+          {errors.firstName && <p className="text-sm font-medium text-red-500">{errors.firstName}</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+          <Input
+            className={cn('rounded-none', errors.lastName && 'border-red-500 focus-visible:ring-red-500')}
+            icon={User}
+            onChange={(e) => {
+              const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
+              setField('lastName')(cleanVal);
+            }}
+            placeholder="Enter last name"
+            type="text"
+            value={form.lastName}
+          />
+          {errors.lastName && <p className="text-sm font-medium text-red-500">{errors.lastName}</p>}
         </div>
 
         <div className="space-y-1.5">
@@ -362,49 +367,6 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
             <p className="text-sm font-medium text-red-500">{errors.preferredLanguage2}</p>
           )}
         </div>
-
-        {isAddingNew && (
-          <div className="pt-2">
-            <div
-              className={cn(
-                'rounded-lg border p-3 transition-colors',
-                errors.consent
-                  ? 'border-rose-500/60 bg-rose-50/40 dark:bg-rose-950/20'
-                  : 'border-border/60 bg-muted/30 hover:bg-muted/50'
-              )}
-            >
-              <div className="flex items-center gap-2.5">
-                <Checkbox
-                  checked={form.consentAccepted}
-                  id="patient-consent-checkbox"
-                  onCheckedChange={(checked) => {
-                    setField('consentAccepted')(Boolean(checked));
-                  }}
-                />
-                <label
-                  className="cursor-pointer select-none text-xs leading-normal text-foreground"
-                  htmlFor="patient-consent-checkbox"
-                >
-                  I have read and agree to the{' '}
-                  <a
-                    className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                    href="https://www.titaneyeplus.com/terms-and-conditions"
-                    onClick={(e) => e.stopPropagation()}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Terms and Conditions
-                    <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
-                  </a>
-                  <span className="ml-0.5 text-rose-500">*</span>
-                </label>
-              </div>
-              {errors.consent && (
-                <p className="mt-1.5 pl-[26px] text-[10px] font-medium text-rose-500">{errors.consent}</p>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -415,7 +377,6 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
       <SheetFooter className="sticky bottom-0 justify-center bg-card">
         <Button
           className="active:scale-98 h-10 w-48 cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isAddingNew && !form.consentAccepted}
           type="submit"
           variant="primary"
         >
@@ -432,5 +393,5 @@ export const StorePatientDetails = React.memo(function StorePatientDetails({
   prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
   prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
   prevProps.selectedCustomer?.name === nextProps.selectedCustomer?.name &&
-  prevProps.selectedCustomer?.mobile === nextProps.selectedCustomer?.mobile
+  true
 );

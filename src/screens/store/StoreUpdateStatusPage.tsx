@@ -1,4 +1,4 @@
-import { Calendar, CheckCircle2, Hash, Phone, Stethoscope, User } from 'lucide-react';
+import { Calendar, CheckCircle2, Hash, Stethoscope, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, StoreUpdateStatusPageProps } from '../../types';
@@ -267,7 +267,6 @@ export const StoreUpdateStatusPage = React.memo(function StoreUpdateStatusPage({
         <CardFrame className="h-full p-4 sm:p-6 md:p-8">
           <div className="space-y-3.5">
             <SummaryRow Icon={Hash} label="Customer ID" value={selectedCustomer?.id ?? ''} />
-            <SummaryRow Icon={Phone} label="Number" value={selectedCustomer?.mobile ?? ''} />
             <SummaryRow Icon={User} label="Customer Name" value={selectedCustomer?.name ?? ''} />
             <SummaryRow Icon={Stethoscope} label="Optometrist" value={selectedCustomer?.callTakenBy ?? ''} />
             <SummaryRow

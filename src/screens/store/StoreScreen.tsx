@@ -270,8 +270,7 @@ export function StoreScreen() {
       list = byDate.filter(
         (c) =>
           c.id.toLowerCase().includes(search) ||
-          c.name.toLowerCase().includes(search) ||
-          c.mobile.toLowerCase().includes(search)
+          c.name.toLowerCase().includes(search)
       );
     }
 
@@ -344,8 +343,7 @@ export function StoreScreen() {
     return byDate.filter(
       (c) =>
         c.id.toLowerCase().includes(search) ||
-        c.name.toLowerCase().includes(search) ||
-        c.mobile.toLowerCase().includes(search)
+        c.name.toLowerCase().includes(search)
     );
   }, [customers, statusTab, customerDateRange, customerSearchTerm, conversionStatusFilter]);
 
@@ -655,17 +653,7 @@ export function StoreScreen() {
         meta: { cellClassName: 'py-3' },
         size: 100,
       },
-      {
-        accessorKey: 'mobile',
-        cell: ({ row }) => <span className="text-sm font-medium text-foreground">{row.original.mobile}</span>,
-        enableSorting: false,
-        header: () => (
-          <span className="whitespace-nowrap text-sm font-semibold text-muted-foreground">Mobile Number</span>
-        ),
-        id: 'mobile',
-        meta: { cellClassName: 'py-3' },
-        size: 140,
-      },
+
       {
         accessorKey: 'name',
         cell: ({ row }) => (

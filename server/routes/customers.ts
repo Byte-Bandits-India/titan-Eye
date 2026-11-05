@@ -279,6 +279,8 @@ export function toApiCustomer(row: CustomerRow, viewerRole?: string) {
   const isCrm = viewerRole === 'crm_user';
   return {
     ...row,
+    firstName: row.firstName || (row.name ? row.name.split(' ')[0] : ''),
+    lastName: row.lastName || (row.name ? row.name.split(' ').slice(1).join(' ') : ''),
     activeProfile: row.activeProfile === 1,
     callActive: row.callActive === 1,
     consentAccepted: row.consentAccepted === 1,
@@ -350,7 +352,7 @@ async function verifyCustomerAccess(
   }
 
   const customer = await get<CustomerRow>(
-    `SELECT id, name, age, gender, mobile, customerType, storeName,
+    `SELECT id, name, firstName, lastName, age, gender, customerType, storeName,
             preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2,
             optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
             callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime,
@@ -461,10 +463,6 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
   try {
     const c = req.body as CustomerInput;
 
-    if (!c.consentAccepted) {
-      return res.status(400).json({ error: 'Consent to Terms and Conditions is required to register a customer' });
-    }
-
     if (req.user && req.user.role === 'store') {
       if (!req.user.storeName) {
         return res.status(403).json({ error: 'Access Denied: Store user is not assigned to a valid store.' });
@@ -505,19 +503,20 @@ router.post('/', authorizeRoles('store', 'super_admin'), async (req: Authenticat
     await run(
       `
       INSERT INTO customers (
-        id, name, age, gender, mobile, customerType, storeName,
+        id, name, firstName, lastName, age, gender, customerType, storeName,
         preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
         status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
         callStartTime, callActive, callTakenBy, callDuration,
         consentAccepted, consentAcceptedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       [
         finalId,
         sanitized.name!,
+        sanitized.firstName || '',
+        sanitized.lastName || '',
         sanitized.age!,
         sanitized.gender!,
-        sanitized.mobile!,
         sanitized.customerType!,
         sanitized.storeName!,
         sanitized.preferredLanguage!,
@@ -570,7 +569,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     const c = req.body as CustomerInput;
 
     const existing = await get<CustomerRow>(
-      `SELECT id, name, age, gender, mobile, customerType, storeName,
+      `SELECT id, name, firstName, lastName, age, gender, customerType, storeName,
               preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
               status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData,
               callStartTime, callActive, callTakenBy, callDuration, optometristCallStartTime,
@@ -614,7 +613,6 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.name = existing.name;
       c.age = existing.age;
       c.gender = existing.gender;
-      c.mobile = existing.mobile;
       c.customerType = existing.customerType;
       c.storeName = existing.storeName;
       c.preferredLanguage = existing.preferredLanguage;
@@ -634,8 +632,12 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.gender = existing.gender;
     }
 
-    if (c.mobile === undefined) {
-      c.mobile = existing.mobile;
+    if (c.firstName === undefined) {
+      c.firstName = existing.firstName || '';
+    }
+
+    if (c.lastName === undefined) {
+      c.lastName = existing.lastName || '';
     }
 
     if (c.customerType === undefined) {
@@ -736,7 +738,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     await run(
       `
       UPDATE customers SET
-        name = ?, age = ?, gender = ?, mobile = ?, customerType = ?, storeName = ?,
+        name = ?, firstName = ?, lastName = ?, age = ?, gender = ?, customerType = ?, storeName = ?,
         preferredLanguage = ?, preferredLanguage2 = ?, storeFeedback = ?, optometristFeedback = ?,
         status = ?, activeProfile = ?, lastUpdatedOn = ?, rxData = ?, optometristRxData = ?,
         callStartTime = ?, callActive = ?, callTakenBy = ?, callDuration = ?, optometristCallStartTime = ?,
@@ -745,9 +747,10 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     `,
       [
         sanitized.name!,
+        sanitized.firstName || '',
+        sanitized.lastName || '',
         sanitized.age!,
         sanitized.gender!,
-        sanitized.mobile!,
         sanitized.customerType!,
         sanitized.storeName!,
         sanitized.preferredLanguage!,

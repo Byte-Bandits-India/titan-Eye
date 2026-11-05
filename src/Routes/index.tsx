@@ -28,10 +28,6 @@ const SsoCallbackScreen = lazy(() =>
 const FeedbackScreen = lazy(() =>
   import('../screens/public/FeedbackScreen').then((m) => ({ default: m.FeedbackScreen }))
 );
-const PrivacyNoticeScreen = lazy(() =>
-  import('../screens/public/PrivacyNoticeScreen').then((m) => ({ default: m.PrivacyNoticeScreen }))
-);
-
 function AuthChecking() {
   return (
     <div className="flex min-h-[80vh] flex-1 items-center justify-center">
@@ -169,14 +165,6 @@ export const routes = [
       </Suspense>
     ),
     path: '/feedback/:token',
-  },
-  {
-    element: (
-      <Suspense fallback={<AuthChecking />}>
-        <PrivacyNoticeScreen />
-      </Suspense>
-    ),
-    path: '/privacy-notice',
   },
   {
     element: <BaseRedirect />,

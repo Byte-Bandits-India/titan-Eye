@@ -4,7 +4,6 @@ import {
   ChevronRight,
   Images,
   Languages,
-  Phone,
   Store,
   Users,
   Video,
@@ -522,12 +521,7 @@ export const OptometristPatientDetails = React.memo(function OptometristPatientD
                   <span className="text-[#4B5568]">Gender :</span> {selectedCustomer?.gender || '—'}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-[15px] text-foreground">
-                <Phone className="shrink-0 text-[#4B5568]" size={18} />
-                <span>
-                  <span className="text-[#4B5568]">Mobile :</span> {selectedCustomer?.mobile || '—'}
-                </span>
-              </div>
+
               <div className="flex items-center gap-3 text-[15px] text-foreground">
                 <Languages className="shrink-0 text-[#4B5568]" size={18} />
                 <span>

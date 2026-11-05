@@ -119,10 +119,10 @@ async function runXssVerification() {
     const custId = `XSS_CUST_${Date.now()}`;
     await run(
       `INSERT INTO customers (
-        id, name, age, gender, mobile, customerType, storeName,
+        id, name, firstName, lastName, age, gender, customerType, storeName,
         preferredLanguage, preferredLanguage2, storeFeedback, optometristFeedback,
         status, callActive, createdOn, lastUpdatedOn
-      ) VALUES (?, 'XSS Test Patient', '28', 'Female', '9876543211', 'Walk-in', ?, 'English', '', '', '', 'Created', 0, '2026-10-01 10:00:00', '2026-10-01 10:00:00')`,
+      ) VALUES (?, 'XSS Test Patient', 'XSS', 'Patient', '28', 'Female', 'Walk-in', ?, 'English', '', '', '', 'Created', 0, '2026-10-01 10:00:00', '2026-10-01 10:00:00')`,
       [custId, storeUser.storeName || null]
     );
 

@@ -35,7 +35,8 @@ export interface CustomerRow {
   id: string;
   isPriority: number;
   lastUpdatedOn: null | string;
-  mobile: string;
+  firstName?: null | string;
+  lastName?: null | string;
   name: string;
   nonConversionComment: null | string;
   nonConversionReason: null | string;
@@ -195,7 +196,8 @@ export async function initializeDatabase(): Promise<void> {
       name TEXT NOT NULL,
       age TEXT NOT NULL,
       gender TEXT NOT NULL,
-      mobile TEXT NOT NULL,
+      firstName TEXT,
+      lastName TEXT,
       customerType TEXT NOT NULL,
       storeName TEXT NOT NULL,
       preferredLanguage TEXT NOT NULL,
@@ -236,6 +238,18 @@ export async function initializeDatabase(): Promise<void> {
 
   try {
     await run(`ALTER TABLE customers RENAME COLUMN declinedByOptomEmails TO declinedByOptometristEmails`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers DROP COLUMN mobile`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN firstName TEXT`);
+  } catch {}
+
+  try {
+    await run(`ALTER TABLE customers ADD COLUMN lastName TEXT`);
   } catch {}
 
   try {
@@ -496,7 +510,7 @@ export async function initializeDatabase(): Promise<void> {
   await run(`DROP VIEW IF EXISTS customer_summary`);
   await run(`
     CREATE VIEW customer_summary AS
-    SELECT id, name, age, gender, mobile, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, feedbackEase, feedbackExperience, feedbackRecommend, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment, consentAccepted, consentAcceptedAt
+    SELECT id, name, firstName, lastName, age, gender, customerType, storeName, preferredLanguage, preferredLanguage2, storeFeedback, storeFeedbackImage1, storeFeedbackImage2, optometristFeedback, status, activeProfile, createdOn, lastUpdatedOn, rxData, optometristRxData, callStartTime, callActive, callTakenBy, storeContactEmail, callDuration, optometristCallStartTime, offeredToOptometristEmail, declinedByOptometristEmails, patientFeedback, feedbackEase, feedbackExperience, feedbackRecommend, isPriority, cancellationReason, conversionStatus, salesOrderNumber, orderDate, nonConversionReason, nonConversionComment, consentAccepted, consentAcceptedAt
     FROM customers
   `);
 

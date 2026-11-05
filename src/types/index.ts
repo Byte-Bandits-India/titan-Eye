@@ -96,11 +96,12 @@ export type Customer = {
   feedbackEase?: FeedbackEase | null;
   feedbackExperience?: FeedbackExperience | null;
   feedbackRecommend?: FeedbackRecommend | null;
+  firstName?: string;
   gender: string;
   id: string;
   isPriority?: boolean;
+  lastName?: string;
   lastUpdatedOn?: string;
-  mobile: string;
   name: string;
   nonConversionComment?: null | string;
   nonConversionReason?: null | string;

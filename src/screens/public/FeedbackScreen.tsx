@@ -8,7 +8,6 @@ import type { FeedbackEase, FeedbackExperience, FeedbackRecommend } from '../../
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
 import { API_BASE_URL } from '../../options/Option';
-import { COMPLIANCE_CONFIG } from '../../options/complianceConfig';
 
 type LoadState = 'error' | 'loading' | 'ready';
 
@@ -140,22 +139,6 @@ export function FeedbackScreen() {
                 Would you recommend this eye test to others?
               </p>
               <ChoiceGroup onSelect={setFeedbackRecommend} options={RECOMMEND_OPTIONS} value={feedbackRecommend} />
-            </div>
-
-            {/* Compliance Consent & Privacy Disclaimer */}
-            <div className="mb-4 rounded-lg border border-border/60 bg-muted/30 p-2.5 text-left text-[11px] leading-relaxed text-muted-foreground">
-              <p>
-                {COMPLIANCE_CONFIG.FEEDBACK_CONSENT.disclaimer}{' '}
-                <a
-                  className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
-                  href="/privacy-notice"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Privacy Notice
-                </a>
-                .
-              </p>
             </div>
 
             <Button

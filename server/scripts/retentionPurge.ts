@@ -3,21 +3,22 @@ import fs from 'fs';
 import path from 'path';
 
 import { all, db, run } from '../db/database.js';
-import { logger, logSecurityEvent } from '../utils/logger.js';
+import { errorLogger, monitoringLogger, logSecurityEvent } from '../utils/logger.js';
 
 export interface RetentionPurgeResult {
   anonymizedCustomers: number;
   deletedCustomerLogs: number;
   deletedFeedbackTokens: number;
   deletedImageFiles: number;
+  deletedLogFiles: number;
   dryRun: boolean;
   executedAt: string;
 }
 
 const DEFAULT_IMAGE_RETENTION_DAYS = 90;
-const DEFAULT_TOKEN_RETENTION_DAYS = 180; // 6 months (DPA Survey & Tokens)
-const DEFAULT_LOG_RETENTION_DAYS = 365;
-const DEFAULT_CUSTOMER_RETENTION_DAYS = 1095; // 3 years
+const DEFAULT_TOKEN_RETENTION_DAYS = 90; // 3 months
+const DEFAULT_LOG_RETENTION_DAYS = 90;
+const DEFAULT_CUSTOMER_RETENTION_DAYS = 1095;
 
 export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeResult> {
   const imageDays = parseInt(process.env.RETENTION_IMAGE_DAYS || '', 10) || DEFAULT_IMAGE_RETENTION_DAYS;
@@ -25,7 +26,7 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
   const logDays = parseInt(process.env.RETENTION_LOG_DAYS || '', 10) || DEFAULT_LOG_RETENTION_DAYS;
   const customerDays = parseInt(process.env.RETENTION_CUSTOMER_DAYS || '', 10) || DEFAULT_CUSTOMER_RETENTION_DAYS;
 
-  logger.info('[RetentionPurge] Starting data retention purge cycle', {
+  monitoringLogger.info('[RetentionPurge] Starting data retention purge cycle', {
     customerDays,
     dryRun,
     imageDays,
@@ -104,7 +105,7 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
           }
         }
       } catch (fileErr) {
-        logger.warn('[RetentionPurge] Unable to inspect image file', {
+        monitoringLogger.warn('[RetentionPurge] Unable to inspect image file', {
           errorMessage: fileErr instanceof Error ? fileErr.message : String(fileErr),
           file,
         });
@@ -126,7 +127,8 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
     await run(
       `UPDATE customers
        SET name = 'ANONYMIZED',
-           mobile = '0000000000',
+           firstName = 'ANONYMIZED',
+           lastName = '',
            rxData = NULL,
            optometristRxData = NULL,
            storeFeedback = '',
@@ -141,11 +143,41 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
     );
   }
 
+  // 5. Purge log files exceeding 90 days across all log directories
+  let deletedLogFiles = 0;
+  const logCutoffMs = now.getTime() - logDays * 24 * 60 * 60 * 1000;
+  const baseLogDir = path.resolve(process.env.LOG_DIR || 'logs');
+  const logDirectories = [
+    baseLogDir,
+    path.join(baseLogDir, 'audit'),
+    path.join(baseLogDir, 'err'),
+    path.join(baseLogDir, 'signin'),
+    path.join(baseLogDir, 'monitoring'),
+  ];
+
+  for (const dir of logDirectories) {
+    if (fs.existsSync(dir)) {
+      try {
+        const files = fs.readdirSync(dir);
+        for (const file of files) {
+          if (!file.endsWith('.log') && !file.endsWith('.log.gz')) continue;
+          const fullPath = path.join(dir, file);
+          const stat = fs.statSync(fullPath);
+          if (stat.isFile() && stat.mtimeMs < logCutoffMs) {
+            deletedLogFiles++;
+            if (!dryRun) fs.unlinkSync(fullPath);
+          }
+        }
+      } catch {}
+    }
+  }
+
   const result: RetentionPurgeResult = {
     anonymizedCustomers,
     deletedCustomerLogs,
     deletedFeedbackTokens,
     deletedImageFiles,
+    deletedLogFiles,
     dryRun,
     executedAt: now.toISOString(),
   };
@@ -155,11 +187,12 @@ export async function runRetentionPurge(dryRun = false): Promise<RetentionPurgeR
     deletedCustomerLogs,
     deletedFeedbackTokens,
     deletedImageFiles,
+    deletedLogFiles,
     dryRun,
     executedAt: result.executedAt,
   });
 
-  logger.info('[RetentionPurge] Completed data retention purge cycle', result);
+  monitoringLogger.info('[RetentionPurge] Completed data retention purge cycle', result);
 
   return result;
 }
@@ -173,7 +206,7 @@ async function cli() {
     process.exit(0);
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
-    logger.error('[RetentionPurge] Purge process failed', {
+    errorLogger.error('[RetentionPurge] Purge process failed', {
       errorMessage: error.message,
       stack: error.stack,
     });

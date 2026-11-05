@@ -1,21 +1,33 @@
+import '../config/env.js';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import winston from 'winston';
-
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { Syslog } from 'winston-syslog';
 
+import { encryptLogLine, isLogEncryptionEnabled } from './logCrypto.js';
+
 const LOG_DIR = process.env.LOG_DIR || 'logs';
-const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug');
+const LOG_AUDIT_DIR = process.env.LOG_AUDIT_DIR || path.join(process.cwd(), '.log-audit');
+const LOG_RETENTION_DAYS = process.env.LOG_RETENTION_DAYS || '90d';
 const isProduction = process.env.NODE_ENV === 'production';
 
-fs.mkdirSync(LOG_DIR, { mode: 0o750, recursive: true });
+// Subfolder paths for the 4 dedicated log categories
+export const AUDIT_LOG_DIR = path.join(LOG_DIR, 'audit');
+export const ERR_LOG_DIR = path.join(LOG_DIR, 'err');
+export const SIGNIN_LOG_DIR = path.join(LOG_DIR, 'signin');
+export const MONITORING_LOG_DIR = path.join(LOG_DIR, 'monitoring');
 
-try {
-  fs.chmodSync(LOG_DIR, 0o750);
-} catch {
-  /* platform doesn't support chmod */
+const ALL_LOG_DIRS = [LOG_DIR, LOG_AUDIT_DIR, AUDIT_LOG_DIR, ERR_LOG_DIR, SIGNIN_LOG_DIR, MONITORING_LOG_DIR];
+
+for (const dir of ALL_LOG_DIRS) {
+  fs.mkdirSync(dir, { mode: 0o750, recursive: true });
+  try {
+    fs.chmodSync(dir, 0o750);
+  } catch {
+    /* platform doesn't support chmod */
+  }
 }
 
 const RESTRICTED_FILE_OPTIONS = { flags: 'a', mode: 0o640 };
@@ -106,6 +118,19 @@ const baseFormat = winston.format.combine(
   winston.format.json()
 );
 
+const fileFormat = winston.format.combine(
+  winston.format.timestamp(),
+  redactFormat(),
+  winston.format.errors({ stack: true }),
+  winston.format.printf((info) => {
+    const jsonStr = JSON.stringify(info);
+    if (isLogEncryptionEnabled()) {
+      return encryptLogLine(jsonStr);
+    }
+    return jsonStr;
+  })
+);
+
 const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   redactFormat(),
@@ -119,13 +144,14 @@ const consoleFormat = winston.format.combine(
   })
 );
 
-function rotateFile(filename: string, level: string, maxFiles: string) {
+function createDailyRotateTransport(dirname: string, filename: string, level: string, maxFiles = LOG_RETENTION_DAYS) {
   return new DailyRotateFile({
+    auditFile: path.join(LOG_AUDIT_DIR, `.${filename}-audit.json`),
     datePattern: 'YYYY-MM-DD',
-    dirname: LOG_DIR,
+    dirname,
     filename: `${filename}-%DATE%.log`,
     level,
-    maxFiles,
+    maxFiles, // 90 days retention
     maxSize: '20m',
     options: RESTRICTED_FILE_OPTIONS,
     zippedArchive: true,
@@ -145,90 +171,204 @@ function syslogTransport(): InstanceType<typeof Syslog> | null {
   });
 }
 
-export const logger = winston.createLogger({
-  defaultMeta: { service: 'titan-server' },
+// ==============================================================================
+// 1. AUDIT LOGGER (logs/audit/audit-YYYY-MM-DD.log) - 90 Days Retention
+// ==============================================================================
+const auditTransport = createDailyRotateTransport(AUDIT_LOG_DIR, 'audit', 'info', '90d');
+export const auditLogger = winston.createLogger({
+  defaultMeta: { channel: 'audit', service: 'titan-server' },
   exitOnError: false,
-  format: baseFormat,
-  level: LOG_LEVEL,
-  transports: [rotateFile('app', 'info', '30d'), rotateFile('error', 'error', '90d')],
-});
-
-if (!isProduction) {
-  logger.add(new winston.transports.Console({ format: consoleFormat }));
-} else {
-  logger.add(new winston.transports.Console({ format: baseFormat, level: 'info' }));
-}
-
-const appSyslog = syslogTransport();
-
-if (appSyslog) {
-  logger.add(appSyslog);
-}
-
-const securityTransport = rotateFile('security', 'info', '365d');
-export const securityLogger = winston.createLogger({
-  defaultMeta: { channel: 'security', service: 'titan-server' },
-  exitOnError: false,
-  format: baseFormat,
+  format: fileFormat,
   level: 'info',
-  transports: [securityTransport],
+  transports: [auditTransport],
 });
 
-const securitySyslog = syslogTransport();
+// ==============================================================================
+// 2. ERROR LOGGER (logs/err/error-YYYY-MM-DD.log) - 90 Days Retention
+// ==============================================================================
+const errorTransport = createDailyRotateTransport(ERR_LOG_DIR, 'error', 'error', '90d');
+export const errorLogger = winston.createLogger({
+  defaultMeta: { channel: 'error', service: 'titan-server' },
+  exitOnError: false,
+  format: fileFormat,
+  level: 'error',
+  transports: [errorTransport],
+});
 
-if (securitySyslog) {
-  securityLogger.add(securitySyslog);
+// ==============================================================================
+// 3. SIGNIN LOGGER (logs/signin/signin-YYYY-MM-DD.log) - 90 Days Retention
+// ==============================================================================
+const signinTransport = createDailyRotateTransport(SIGNIN_LOG_DIR, 'signin', 'info', '90d');
+export const signinLogger = winston.createLogger({
+  defaultMeta: { channel: 'signin', service: 'titan-server' },
+  exitOnError: false,
+  format: fileFormat,
+  level: 'info',
+  transports: [signinTransport],
+});
+
+// ==============================================================================
+// 4. MONITORING LOGGER (logs/monitoring/monitoring-YYYY-MM-DD.log) - 90 Days Retention
+// ==============================================================================
+const monitoringTransport = createDailyRotateTransport(MONITORING_LOG_DIR, 'monitoring', 'info', '90d');
+export const monitoringLogger = winston.createLogger({
+  defaultMeta: { channel: 'monitoring', service: 'titan-server' },
+  exitOnError: false,
+  format: fileFormat,
+  level: 'info',
+  transports: [monitoringTransport],
+});
+
+// Attach Console transports according to environment
+if (!isProduction) {
+  auditLogger.add(new winston.transports.Console({ format: consoleFormat }));
+  errorLogger.add(new winston.transports.Console({ format: consoleFormat }));
+} else {
+  auditLogger.add(new winston.transports.Console({ format: baseFormat, level: 'info' }));
+  errorLogger.add(new winston.transports.Console({ format: baseFormat, level: 'error' }));
 }
 
+// Attach Syslog if configured
+const auditSyslog = syslogTransport();
+if (auditSyslog) {
+  auditLogger.add(auditSyslog);
+}
+
+// Backward compatibility alias: logger -> auditLogger
+export const logger = auditLogger;
+
+// Backward compatibility alias: securityLogger -> auditLogger
+export const securityLogger = auditLogger;
+
+// ==============================================================================
+// Tamper-Evident SHA-256 Hash Chaining (Audit & Signin)
+// ==============================================================================
 const GENESIS_HASH = '0'.repeat(64);
-const CHAIN_STATE_FILE = path.join(LOG_DIR, '.security-chain-state.json');
+const AUDIT_CHAIN_STATE_FILE = path.join(LOG_AUDIT_DIR, '.audit-chain-state.json');
+const SIGNIN_CHAIN_STATE_FILE = path.join(LOG_AUDIT_DIR, '.signin-chain-state.json');
 
-function loadChainState(): { lastHash: string } {
+function loadChainState(filePath: string): { lastHash: string } {
   try {
-    const raw = JSON.parse(fs.readFileSync(CHAIN_STATE_FILE, 'utf8'));
-
-    if (typeof raw?.lastHash === 'string') {
-      return raw;
+    if (fs.existsSync(filePath)) {
+      const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (typeof raw?.lastHash === 'string') {
+        return raw;
+      }
     }
   } catch {
-    /* first run, or file missing/corrupt — restart the chain */
+    /* start chain if file is missing or corrupt */
   }
 
   return { lastHash: GENESIS_HASH };
 }
 
-const chainState = loadChainState();
+const auditChainState = loadChainState(AUDIT_CHAIN_STATE_FILE);
+const signinChainState = loadChainState(SIGNIN_CHAIN_STATE_FILE);
 
-export function logSecurityEvent(event: string, meta: SecurityEventMeta = {}) {
+function persistChainState(filePath: string, state: { lastHash: string }) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(state), { mode: 0o640 });
+  } catch (e) {
+    errorLogger.error('Failed to persist log chain state', {
+      errorMessage: e instanceof Error ? e.message : String(e),
+      filePath,
+    });
+  }
+}
+
+/**
+ * Logs an administrative, compliance, data mutation or security audit event.
+ * Writes to logs/audit/audit-YYYY-MM-DD.log with cryptographic chaining.
+ */
+export function logAuditEvent(event: string, meta: SecurityEventMeta = {}) {
   const eventTimestamp = new Date().toISOString();
-  const prevHash = chainState.lastHash;
+  const prevHash = auditChainState.lastHash;
   const redactedMeta = redact(meta) as JsonObject;
 
   const canonical = stableStringify({ event, eventTimestamp, meta: redactedMeta, prevHash });
   const hash = crypto.createHash('sha256').update(canonical).digest('hex');
 
   const chainedMeta = { ...redactedMeta, eventTimestamp, hash, prevHash };
-  securityLogger.info(event, chainedMeta);
-  logger.info(`[security] ${event}`, chainedMeta);
+  auditLogger.info(event, chainedMeta);
 
-  chainState.lastHash = hash;
-  persistChainState();
+  auditChainState.lastHash = hash;
+  persistChainState(AUDIT_CHAIN_STATE_FILE, auditChainState);
 }
 
-function persistChainState() {
-  try {
-    fs.writeFileSync(CHAIN_STATE_FILE, JSON.stringify(chainState), { mode: 0o640 });
-  } catch (e) {
-    logger.error('Failed to persist security log chain state', {
-      errorMessage: e instanceof Error ? e.message : String(e),
-    });
+/**
+ * Logs an authentication or signin event (login, logout, SSO, lockout, token event).
+ * Writes to logs/signin/signin-YYYY-MM-DD.log with cryptographic chaining.
+ */
+export function logSigninEvent(event: string, meta: SecurityEventMeta = {}) {
+  const eventTimestamp = new Date().toISOString();
+  const prevHash = signinChainState.lastHash;
+  const redactedMeta = redact(meta) as JsonObject;
+
+  const canonical = stableStringify({ event, eventTimestamp, meta: redactedMeta, prevHash });
+  const hash = crypto.createHash('sha256').update(canonical).digest('hex');
+
+  const chainedMeta = { ...redactedMeta, eventTimestamp, hash, prevHash };
+  signinLogger.info(event, chainedMeta);
+
+  signinChainState.lastHash = hash;
+  persistChainState(SIGNIN_CHAIN_STATE_FILE, signinChainState);
+}
+
+/**
+ * Logs request and latency metrics for system monitoring and observability.
+ * Writes to logs/monitoring/monitoring-YYYY-MM-DD.log.
+ */
+export function logMonitoringMetric(meta: SecurityEventMeta = {}) {
+  monitoringLogger.info('HTTP_REQUEST', redact(meta) as JsonObject);
+}
+
+/**
+ * Logs an error with message, error stack, and request metadata.
+ * Writes to logs/err/error-YYYY-MM-DD.log.
+ */
+export function logError(message: string, error?: Error | unknown, meta: SecurityEventMeta = {}) {
+  const errObj = error instanceof Error
+    ? { errorMessage: error.message, stack: error.stack }
+    : error
+      ? { errorMessage: String(error) }
+      : {};
+
+  errorLogger.error(message, {
+    ...(redact(meta) as JsonObject),
+    ...errObj,
+  });
+}
+
+const SIGNIN_EVENT_KEYWORDS = [
+  'LOGIN',
+  'LOGOUT',
+  'SSO',
+  'AUTH',
+  'TOKEN',
+  'SESSION',
+  'PASSWORD',
+  'CAPTCHA',
+  'ACCOUNT_LOCKED',
+];
+
+/**
+ * Unified security event dispatcher for backward compatibility.
+ * Intelligently routes authentication events to signin log, and system events to audit log.
+ */
+export function logSecurityEvent(event: string, meta: SecurityEventMeta = {}) {
+  const isSigninEvent = SIGNIN_EVENT_KEYWORDS.some((kw) => event.toUpperCase().includes(kw));
+
+  if (isSigninEvent) {
+    logSigninEvent(event, meta);
+  } else {
+    logAuditEvent(event, meta);
   }
 }
 
 const ALERT_WEBHOOK_URL = process.env.ALERT_WEBHOOK_URL;
 
 export function alertCritical(message: string, meta: SecurityEventMeta = {}) {
-  logger.error(`[ALERT] ${message}`, meta);
+  logError(`[ALERT] ${message}`, undefined, meta);
 
   if (!ALERT_WEBHOOK_URL) {
     return;
@@ -240,7 +380,7 @@ export function alertCritical(message: string, meta: SecurityEventMeta = {}) {
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
   }).catch((err) => {
-    logger.error('Failed to deliver alert webhook', {
+    errorLogger.error('Failed to deliver alert webhook', {
       errorMessage: err instanceof Error ? err.message : String(err),
     });
   });

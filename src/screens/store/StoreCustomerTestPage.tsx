@@ -1,4 +1,4 @@
-import { CheckIcon, ChevronLeft, ExternalLink, Phone, Trash2, User } from 'lucide-react';
+import { CheckIcon, ChevronLeft, Trash2, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { Customer, OptometristRxValues, RxValues, StoreCustomerTestPageProps } from '../../types';
@@ -29,7 +29,6 @@ import {
   StepperTrigger,
 } from '../../components/reui/stepper';
 import { Button } from '../../components/ui/button';
-import { Checkbox } from '../../components/ui/checkbox';
 import { Input } from '../../components/ui/input';
 import { LegacySelect as Select } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -42,8 +41,8 @@ import {
   AXIS_OPTIONS,
   AXIS_REGEX,
   BASE_OPTIONS,
-  CUSTOMER_MOBILE_REGEX,
-  CUSTOMER_NAME_REGEX,
+  CUSTOMER_FIRST_NAME_REGEX,
+  CUSTOMER_LAST_NAME_REGEX,
   CYL_OPTIONS,
   CYL_REGEX,
   emptyOptometristRxValues,
@@ -61,7 +60,6 @@ import {
   SPH_REGEX,
   STORAGE_KEYS,
 } from '../../options/Option';
-import { COMPLIANCE_CONFIG } from '../../options/complianceConfig';
 import { store, useAppDispatch, useAppSelector } from '../../store';
 
 type RxRow = 'autoRefLe' | 'autoRefRe' | 'pgpLe' | 'pgpRe';
@@ -70,9 +68,9 @@ type CustomerForm = {
   age: string;
   consentAccepted: boolean;
   customerType: string;
+  firstName: string;
   gender: string;
-  mobile: string;
-  name: string;
+  lastName: string;
   preferredLanguage: string;
   preferredLanguage2: string;
   status: Customer['status'];
@@ -88,38 +86,40 @@ type CustomerDetailsFieldsProps = {
   setField: (key: string) => (val: boolean | string) => void;
 };
 
-function CustomerDetailsFieldsComponent({ errors, form, isNewCustomer, setField }: CustomerDetailsFieldsProps) {
+function CustomerDetailsFieldsComponent({ errors, form, setField }: CustomerDetailsFieldsProps) {
   return (
     <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-muted-foreground">Customer Number *</label>
+        <label className="text-sm font-medium text-muted-foreground">First Name *</label>
         <Input
-          className={cn('rounded-none', errors.mobile && 'border-red-500 focus-visible:ring-red-500')}
-          icon={Phone}
-          onChange={(e) => setField('mobile')(e.target.value.replace(/\D/g, '').slice(0, 10))}
-          placeholder="Enter mobile number"
-          required
-          type="tel"
-          value={form.mobile}
-        />
-        {errors.mobile && <p className="text-sm font-medium text-red-500">{errors.mobile}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="text-sm font-medium text-muted-foreground">Name *</label>
-        <Input
-          className={cn('rounded-none', errors.name && 'border-red-500 focus-visible:ring-red-500')}
+          className={cn('rounded-none', errors.firstName && 'border-red-500 focus-visible:ring-red-500')}
           icon={User}
           onChange={(e) => {
             const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
-            setField('name')(cleanVal);
+            setField('firstName')(cleanVal);
           }}
-          placeholder="Enter full name"
+          placeholder="Enter first name"
           required
           type="text"
-          value={form.name}
+          value={form.firstName}
         />
-        {errors.name && <p className="text-sm font-medium text-red-500">{errors.name}</p>}
+        {errors.firstName && <p className="text-sm font-medium text-red-500">{errors.firstName}</p>}
+      </div>
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-muted-foreground">Last Name</label>
+        <Input
+          className={cn('rounded-none', errors.lastName && 'border-red-500 focus-visible:ring-red-500')}
+          icon={User}
+          onChange={(e) => {
+            const cleanVal = e.target.value.replace(/[^A-Za-z\s]/g, '').slice(0, 20);
+            setField('lastName')(cleanVal);
+          }}
+          placeholder="Enter last name"
+          type="text"
+          value={form.lastName}
+        />
+        {errors.lastName && <p className="text-sm font-medium text-red-500">{errors.lastName}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -193,60 +193,7 @@ function CustomerDetailsFieldsComponent({ errors, form, isNewCustomer, setField 
         )}
       </div>
 
-      {isNewCustomer && (
-        <div className="col-span-full pt-1">
-          <div
-            className={cn(
-              'rounded-lg border p-3 transition-colors',
-              errors.consent
-                ? 'border-rose-500/60 bg-rose-50/40 dark:bg-rose-950/20'
-                : 'border-border/60 bg-muted/30 hover:bg-muted/50'
-            )}
-          >
-            <div className="flex items-start gap-2.5">
-              <Checkbox
-                checked={form.consentAccepted}
-                className="mt-0.5"
-                id="customer-consent-checkbox"
-                onCheckedChange={(checked) => {
-                  setField('consentAccepted')(Boolean(checked));
-                }}
-              />
-              <label
-                className="cursor-pointer select-none text-xs leading-relaxed text-foreground"
-                htmlFor="customer-consent-checkbox"
-              >
-                {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.checkboxLabel}{' '}
-                <a
-                  className="inline font-semibold text-primary underline underline-offset-2 hover:text-primary/80"
-                  href="/privacy-notice"
-                  onClick={(e) => e.stopPropagation()}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.privacyNoticeLinkText}
-                  <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
-                </a>{' '}
-                and{' '}
-                <a
-                  className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                  href={COMPLIANCE_CONFIG.REGISTRATION_CONSENT.termsUrl}
-                  onClick={(e) => e.stopPropagation()}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {COMPLIANCE_CONFIG.REGISTRATION_CONSENT.termsLinkText}
-                  <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
-                </a>
-                <span className="ml-0.5 text-rose-500">*</span>
-              </label>
-            </div>
-            {errors.consent && (
-              <p className="mt-1.5 pl-[26px] text-[10px] font-medium text-rose-500">{errors.consent}</p>
-            )}
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }
@@ -516,19 +463,25 @@ export const StoreCustomerTestPage = React.memo(
     const user = useAppSelector((state) => state.auth.user);
 
     const buildFormState = React.useCallback(
-      (customer: Customer | null): CustomerForm => ({
-        activeProfile: customer?.activeProfile || false,
-        age: customer?.age || '',
-        consentAccepted: customer ? true : false,
-        customerType: customer?.customerType || 'New',
-        gender: customer?.gender || '',
-        mobile: customer?.mobile || '',
-        name: customer?.name || '',
-        preferredLanguage: customer?.preferredLanguage || 'English',
-        preferredLanguage2: customer?.preferredLanguage2 || 'None',
-        status: customer?.status || 'Created',
-        storeName: customer?.storeName || user?.name || '',
-      }),
+      (customer: Customer | null): CustomerForm => {
+        const nameParts = (customer?.name || '').trim().split(/\s+/);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        return {
+          activeProfile: customer?.activeProfile || false,
+          age: customer?.age || '',
+          consentAccepted: true,
+          customerType: customer?.customerType || 'New',
+          firstName,
+          gender: customer?.gender || '',
+          lastName,
+          preferredLanguage: customer?.preferredLanguage || 'English',
+          preferredLanguage2: customer?.preferredLanguage2 || 'None',
+          status: customer?.status || 'Created',
+          storeName: customer?.storeName || user?.name || '',
+        };
+      },
       [user]
     );
 
@@ -621,12 +574,9 @@ export const StoreCustomerTestPage = React.memo(
             if (parsed?.activeStep === 2 && parsed?.form) {
               const f = parsed.form;
               const valid =
-                Boolean(f.name?.trim()) &&
-                CUSTOMER_NAME_REGEX.test(f.name.trim()) &&
+                (Boolean(f.firstName?.trim()) || Boolean(f.name?.trim())) &&
                 Boolean(f.age) &&
                 AGE_REGEX.test(f.age.trim()) &&
-                Boolean(f.mobile) &&
-                CUSTOMER_MOBILE_REGEX.test(f.mobile.trim()) &&
                 Boolean(f.gender) &&
                 Boolean(f.preferredLanguage);
 
@@ -748,25 +698,20 @@ export const StoreCustomerTestPage = React.memo(
     const getCustomerValidationErrors = React.useCallback((): Record<string, string> => {
       const newErrors: Record<string, string> = {};
 
-      if (!form.name.trim()) {
-        newErrors.name = 'Name is required';
-      } else if (!CUSTOMER_NAME_REGEX.test(form.name.trim())) {
-        newErrors.name = 'Name must be between 3 and 20 characters and contain only letters and spaces';
+      if (!form.firstName.trim()) {
+        newErrors.firstName = 'First name is required';
+      } else if (!CUSTOMER_FIRST_NAME_REGEX.test(form.firstName.trim())) {
+        newErrors.firstName = 'First name must be between 2 and 20 characters and contain only letters and spaces';
+      }
+
+      if (form.lastName.trim() && !CUSTOMER_LAST_NAME_REGEX.test(form.lastName.trim())) {
+        newErrors.lastName = 'Last name must contain only letters and spaces';
       }
 
       if (!form.age) {
         newErrors.age = 'Age is required';
       } else if (!AGE_REGEX.test(form.age.trim())) {
-        newErrors.age =
-          parseInt(form.age.trim(), 10) < 18
-            ? 'Tele-optometry consultations cannot be performed for individuals under 18 years of age.'
-            : 'Age must be a valid number between 18 and 120';
-      }
-
-      if (!form.mobile) {
-        newErrors.mobile = 'Mobile number is required';
-      } else if (!CUSTOMER_MOBILE_REGEX.test(form.mobile.trim())) {
-        newErrors.mobile = 'Mobile number must be a valid 10-digit number (starting with 6-9)';
+        newErrors.age = 'Age must be a valid number between 1 and 120';
       }
 
       if (!form.gender) {
@@ -785,9 +730,7 @@ export const StoreCustomerTestPage = React.memo(
         newErrors.preferredLanguage2 = 'Preferred Language 2 cannot be the same as Preferred Language 1';
       }
 
-      if (!selectedCustomer && !form.consentAccepted) {
-        newErrors.consent = COMPLIANCE_CONFIG.REGISTRATION_CONSENT.errorMessage;
-      }
+      
 
       return newErrors;
     }, [form, selectedCustomer]);
@@ -832,16 +775,12 @@ export const StoreCustomerTestPage = React.memo(
     const getMissingMandatoryFieldsForRequest = (): string[] => {
       const missing: string[] = [];
 
-      if (!form.name.trim()) {
-        missing.push('Name');
+      if (!form.firstName.trim()) {
+        missing.push('First Name');
       }
 
       if (!form.age.trim()) {
         missing.push('Age');
-      }
-
-      if (!form.mobile.trim()) {
-        missing.push('Mobile Number');
       }
 
       if (!form.preferredLanguage.trim()) {
@@ -892,6 +831,7 @@ export const StoreCustomerTestPage = React.memo(
 
     const persistCustomer = async (): Promise<string> => {
       const timestamp = buildTimestamp();
+      const fullName = [form.firstName.trim(), form.lastName.trim()].filter(Boolean).join(' ');
 
       if (selectedCustomer) {
         const updatedCustomer: Customer = {
@@ -901,8 +841,7 @@ export const StoreCustomerTestPage = React.memo(
           customerType: form.customerType,
           gender: form.gender,
           lastUpdatedOn: timestamp,
-          mobile: form.mobile,
-          name: form.name,
+          name: fullName,
           optometristRxData: optometristRxForm,
           preferredLanguage: form.preferredLanguage,
           preferredLanguage2: form.preferredLanguage2,
@@ -925,13 +864,12 @@ export const StoreCustomerTestPage = React.memo(
       const newCustomer: Customer = {
         activeProfile: true,
         age: form.age,
-        consentAccepted: form.consentAccepted,
+        consentAccepted: true,
         customerType: form.customerType,
         gender: form.gender,
         id: newId,
         lastUpdatedOn: timestamp,
-        mobile: form.mobile,
-        name: form.name,
+        name: fullName,
         optometristFeedback: '',
         optometristRxData: optometristRxForm,
         preferredLanguage: form.preferredLanguage,
@@ -1026,8 +964,10 @@ export const StoreCustomerTestPage = React.memo(
           sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
         } catch {}
 
+        const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ');
+
         toast({
-          description: `Details for ${form.name} have been saved.`,
+          description: `Details for ${fullName} have been saved.`,
           title: 'Details Saved',
           type: 'success',
         });
@@ -1112,7 +1052,7 @@ export const StoreCustomerTestPage = React.memo(
 
         if (err.message?.includes('No Optometrists answered') || err.message?.includes('No Optometrists are currently available')) {
           toast({
-            description: err.message || `No Optometrists answered your request for ${form.name || selectedCustomer?.name || 'this customer'}.`,
+            description: err.message || `No Optometrists answered your request for ${[form.firstName, form.lastName].filter(Boolean).join(' ') || selectedCustomer?.name || 'this customer'}.`,
             title: 'No Optometrist Answered',
             type: 'error',
           });
@@ -1282,7 +1222,7 @@ export const StoreCustomerTestPage = React.memo(
                     )}
                     <Button
                       className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
-                      disabled={isSaving || isRequesting || (!selectedCustomer && !form.consentAccepted)}
+                      disabled={isSaving || isRequesting}
                       onClick={handleSave}
                       type="button"
                       variant="secondary"
@@ -1294,7 +1234,7 @@ export const StoreCustomerTestPage = React.memo(
                   <div className="flex justify-center sm:justify-end">
                     <Button
                       className="active:scale-98 h-10 w-full cursor-pointer px-5 text-sm font-medium shadow-md transition-all sm:w-auto"
-                      disabled={isSaving || isRequesting || (!selectedCustomer && !form.consentAccepted)}
+                      disabled={isSaving || isRequesting}
                       onClick={handleNext}
                       type="button"
                       variant="primary"
@@ -1385,5 +1325,5 @@ export const StoreCustomerTestPage = React.memo(
     prevProps.selectedCustomer?.lastUpdatedOn === nextProps.selectedCustomer?.lastUpdatedOn &&
     prevProps.selectedCustomer?.callActive === nextProps.selectedCustomer?.callActive &&
     prevProps.selectedCustomer?.name === nextProps.selectedCustomer?.name &&
-    prevProps.selectedCustomer?.mobile === nextProps.selectedCustomer?.mobile
+    true
 );

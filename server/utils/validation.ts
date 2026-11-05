@@ -124,12 +124,19 @@ export function validateCustomerData(
   const errors: string[] = [];
   const sanitized: Partial<SanitizedCustomer> = {};
 
+  if (!data.name && data.firstName) {
+    data.name = [data.firstName.trim(), (data.lastName || '').trim()].filter(Boolean).join(' ');
+  }
+
   const nameResult = validateName(data.name, 'Name', MAX_CUSTOMER_NAME_LENGTH);
 
   if (!nameResult.valid) {
     errors.push(nameResult.error!);
   } else {
     sanitized.name = nameResult.sanitized;
+    const parts = (sanitized.name || '').split(/\s+/);
+    sanitized.firstName = data.firstName?.trim() || parts[0] || '';
+    sanitized.lastName = data.lastName?.trim() || parts.slice(1).join(' ') || '';
   }
 
   const ageResult = validateAge(data.age);
@@ -148,13 +155,6 @@ export function validateCustomerData(
     sanitized.gender = genderResult.sanitized;
   }
 
-  const mobileResult = validateMobile(data.mobile);
-
-  if (!mobileResult.valid) {
-    errors.push(mobileResult.error!);
-  } else {
-    sanitized.mobile = mobileResult.sanitized;
-  }
 
   const customerTypeResult = validateEnum(data.customerType, 'Customer type', VALID_CUSTOMER_TYPES);
 
@@ -335,15 +335,8 @@ function validateAge(value: unknown): FieldResult {
 
   const num = parseInt(str, 10);
 
-  if (isNaN(num) || num < 18 || num > 120) {
-    if (!isNaN(num) && num < 18 && num >= 0) {
-      return {
-        error:
-          'Customers under 18 years of age cannot be registered for tele-optometry (Children Data Protection policy).',
-        valid: false,
-      };
-    }
-    return { error: 'Age must be a valid number between 18 and 120', valid: false };
+  if (isNaN(num) || num < 1 || num > 120) {
+    return { error: 'Age must be a valid number between 1 and 120', valid: false };
   }
 
   return { sanitized: str, valid: true };
@@ -357,19 +350,7 @@ function validateEnum(value: string | undefined, fieldName: string, allowed: str
   return { sanitized: value, valid: true };
 }
 
-function validateMobile(value: string | undefined): FieldResult {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return { error: 'Mobile number is required', valid: false };
-  }
 
-  const sanitized = value.trim();
-
-  if (!/^\+?[\d\s\-()]{6,15}$/.test(sanitized)) {
-    return { error: 'Mobile number format is invalid', valid: false };
-  }
-
-  return { sanitized, valid: true };
-}
 
 function validateName(value: string | undefined, fieldName: string, maxLength: number): FieldResult {
   const base = validateString(value, fieldName, maxLength);

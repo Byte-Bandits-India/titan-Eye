@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 
-import { logger } from '../utils/logger.js';
+import { logError, logMonitoringMetric } from '../utils/logger.js';
 import { AuthenticatedRequest } from './auth.js';
 
 declare module 'express-serve-static-core' {
@@ -38,8 +38,13 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
       userEmail: user?.email,
     };
 
-    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
-    logger.log(level, `${req.method} ${req.path} ${res.statusCode}`, meta);
+    // 1. Record in logs/monitoring/monitoring-YYYY-MM-DD.log
+    logMonitoringMetric(meta);
+
+    // 2. If server error (5xx), also capture in logs/err/error-YYYY-MM-DD.log
+    if (res.statusCode >= 500) {
+      logError(`HTTP ${res.statusCode} ${req.method} ${req.path}`, undefined, meta);
+    }
   });
 
   next();

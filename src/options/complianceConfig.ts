@@ -60,7 +60,7 @@ export const COMPLIANCE_CONFIG: ComplianceConfig = {
   // 1. Store Customer Registration Consent Clause
   REGISTRATION_CONSENT: {
     checkboxLabel:
-      'I hereby provide my explicit consent to Titan Eye+ to collect and process my personal details (Name, Mobile, Age, Gender) and ophthalmic measurements (Refraction and prescription images) to conduct a remote tele-optometry consultation, issue a spectacle prescription, and fulfill my optical orders.',
+      'I hereby provide my explicit consent to Titan Eye+ to collect and process my personal details (Name, Age, Gender) and ophthalmic measurements (Refraction and prescription images) to conduct a remote tele-optometry consultation, issue a spectacle prescription, and fulfill my optical orders.',
     errorMessage:
       'Customer consent to personal data collection and the Privacy Notice is required to initiate tele-optometry testing.',
     privacyNoticeLinkText: 'Privacy Notice',
@@ -74,7 +74,7 @@ export const COMPLIANCE_CONFIG: ComplianceConfig = {
     categoriesOfData: [
       {
         category: 'Personal Identity & Contact Information',
-        fields: 'Full Name, 10-Digit Mobile Number, Age, Gender, Store Code',
+        fields: 'Full Name, Age, Gender, Store Code',
         purpose: 'Customer identification, queue sequencing, and prescription delivery',
       },
       {
@@ -135,10 +135,10 @@ export const COMPLIANCE_CONFIG: ComplianceConfig = {
 
   // 4. Children’s Data Policy (Under 18 Protection)
   CHILDREN_POLICY: {
-    minAge: 18,
+    minAge: 1,
     noticeTitle: 'Age Requirement for Tele-Optometry',
     policyStatement:
-      'Per Titan Eye+ Clinical & Children Data Protection Policy, remote tele-optometry testing is strictly restricted to individuals aged 18 and older. For minors (under 18), please conduct an in-store physical consultation with an in-house optometrist.',
+      'Tele-optometry testing is available for patients of all ages, including individuals under 18 years of age.',
   },
 
   // 5. Retention Purge Timelines (Days)
