@@ -68,12 +68,12 @@ export function generateCaptcha(): CaptchaResult {
   // Render individual letters with distortion
   let textElements = '';
   const letterSpacing = 24;
-  const startX = 16;
+  const startX = 20;
 
   for (let i = 0; i < solution.length; i++) {
     const char = solution[i];
     const x = startX + i * letterSpacing + randomInt(-2, 3);
-    const y = 32 + randomInt(-3, 3);
+    const y = 32 + randomInt(-2, 2);
     const rotate = randomInt(-15, 15);
     const color = randomColor();
     const fontSize = randomInt(22, 26);
@@ -92,7 +92,7 @@ export function generateCaptcha(): CaptchaResult {
     `;
   }
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="background-color: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; user-select: none;">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="user-select: none;">
     ${noiseDots}
     ${noiseLines}
     ${textElements}

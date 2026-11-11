@@ -47,6 +47,24 @@ export function LoginScreen() {
   const [captchaSolution, setCaptchaSolution] = React.useState('');
   const [isCaptchaLoading, setIsCaptchaLoading] = React.useState(false);
 
+  const displayCaptchaSvg = React.useMemo(() => {
+    if (!captchaSvg) return '';
+    try {
+      const prefix = 'data:image/svg+xml;utf8,';
+      if (captchaSvg.startsWith(prefix)) {
+        const rawSvg = decodeURIComponent(captchaSvg.slice(prefix.length));
+        const cleanedSvg = rawSvg
+          .replace(/border-radius:\s*[^;"]+;?/gi, '')
+          .replace(/border:\s*[^;"]+;?/gi, '')
+          .replace(/background-color:\s*[^;"]+;?/gi, '');
+        return `${prefix}${encodeURIComponent(cleanedSvg)}`;
+      }
+    } catch {
+      // Fallback to raw captchaSvg if decoding fails
+    }
+    return captchaSvg;
+  }, [captchaSvg]);
+
   const dispatch = useAppDispatch();
   const { loading: isLoading } = useAppSelector((state) => state.auth);
   const { toast } = useToast();
@@ -209,12 +227,12 @@ export function LoginScreen() {
                   </button>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-44 items-center justify-center overflow-hidden border border-black bg-gray-50">
-                    {captchaSvg ? (
+                  <div className="flex h-14 w-44 shrink-0 items-center justify-center overflow-hidden border border-black bg-gray-50">
+                    {displayCaptchaSvg ? (
                       <img
                         alt="Security verification code"
-                        className="h-full w-full object-contain"
-                        src={captchaSvg}
+                        className="h-full w-full select-none object-contain"
+                        src={displayCaptchaSvg}
                       />
                     ) : (
                       <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
@@ -223,7 +241,7 @@ export function LoginScreen() {
                   <input
                     autoComplete="off"
                     className={cn(inputClasses, 'font-mono text-center tracking-widest uppercase')}
-                    maxLength={6}
+                    maxLength={5}
                     onChange={(e) => setCaptchaSolution(e.target.value.toUpperCase())}
                     placeholder="Enter code"
                     required
@@ -350,12 +368,12 @@ export function LoginScreen() {
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex h-11 w-40 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-slate-50">
-                  {captchaSvg ? (
+                <div className="flex h-11 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-slate-50">
+                  {displayCaptchaSvg ? (
                     <img
                       alt="Security verification code"
                       className="h-full w-full select-none object-contain"
-                      src={captchaSvg}
+                      src={displayCaptchaSvg}
                     />
                   ) : (
                     <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -368,9 +386,12 @@ export function LoginScreen() {
                   />
                   <input
                     autoComplete="off"
-                    className={cn(inputClasses, 'font-mono font-semibold text-center tracking-widest uppercase')}
+                    className={cn(
+                      inputClasses,
+                      'font-mono font-semibold text-center tracking-widest uppercase px-10'
+                    )}
                     id="login-captcha"
-                    maxLength={6}
+                    maxLength={5}
                     onChange={(e) => setCaptchaSolution(e.target.value.toUpperCase())}
                     placeholder="CODE"
                     required
