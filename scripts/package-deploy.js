@@ -117,7 +117,7 @@ if (includeNodeModules) {
 
   if (fs.existsSync(srcNm)) {
     if (process.platform === 'win32') {
-      execSync(`robocopy "${srcNm}" "${destNm}" /E /XF *.log *.db .DS_Store /XD logs data uploads localData /NP /NFL /NDL /NJH /NJS || cmd /c "if %ERRORLEVEL% LEQ 7 exit 0"`, {
+      execSync(`robocopy "${srcNm}" "${destNm}" /E /XF *.log *.db .DS_Store /XD logs data uploads localData .vite .cache /NP /NFL /NDL /NJH /NJS || cmd /c "if %ERRORLEVEL% LEQ 7 exit 0"`, {
         stdio: 'inherit',
       });
     } else {
