@@ -35,7 +35,7 @@ import { UserFormDrawer } from './components/UserFormDrawer';
 import { VideoDirectoryBody } from './components/VideoDirectoryBody';
 import { VideoUploadDialog } from './components/VideoUploadDialog';
 
-export function SuperAdminScreen() {
+export function AdminScreen() {
   const currentUser = useAppSelector((state) => state.auth.user);
   const users = useAppSelector((state) => state.users.users);
   const isInitialUsersLoading = useAppSelector((state) => state.users.loading && state.users.users.length === 0);

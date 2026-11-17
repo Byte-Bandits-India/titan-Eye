@@ -97,13 +97,6 @@ const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 
 const defaultOrigins = [
   'https://trvc.titan.in',
-  'https://trvcstaging.titan.in',
-  'http://titan.thebytebandits.com',
-  'https://titan.thebytebandits.com',
-  'http://titan-dev.thebytebandits.com',
-  'https://titan-dev.thebytebandits.com',
-  'http://titan.xylozentech.com',
-  'https://titan.xylozentech.com',
   ...(process.env.NODE_ENV === 'production'
     ? []
     : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001']),
@@ -118,12 +111,6 @@ function isAllowedOrigin(origin: string): boolean {
     return true;
   }
   if (/^https?:\/\/([a-zA-Z0-9-]+\.)*titan\.in$/.test(normalized)) {
-    return true;
-  }
-  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*thebytebandits\.com$/.test(normalized)) {
-    return true;
-  }
-  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*xylozentech\.com$/.test(normalized)) {
     return true;
   }
   return false;
@@ -145,11 +132,7 @@ app.use(
         childSrc: ["'self'", 'blob:'],
         connectSrc: [
           "'self'",
-          'https://trvcstaging.titan.in',
           'https://trvc.titan.in',
-          'https://titan.thebytebandits.com',
-          'https://titan-dev.thebytebandits.com',
-          'https://titan.xylozentech.com',
           'https://*.communication.azure.com',
           'wss://*.communication.azure.com',
           'https://*.skype.com',

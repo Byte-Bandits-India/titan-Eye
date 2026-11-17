@@ -124,8 +124,8 @@ async function runVideoUploadVerification() {
   try {
     const adminUser: TestUser = {
       email: 'admin_upload_test@titan.in',
-      name: 'Super Admin Tester',
-      role: 'super_admin',
+      name: 'Admin Tester',
+      role: 'admin',
     };
 
     const adminToken = await setupAdminUser(adminUser);
@@ -262,7 +262,7 @@ async function runVideoUploadVerification() {
     const adminUser2: TestUser = {
       email: 'admin_upload_test_webm@titan.in',
       name: 'WebM Tester',
-      role: 'super_admin',
+      role: 'admin',
     };
     const adminToken2 = await setupAdminUser(adminUser2);
 

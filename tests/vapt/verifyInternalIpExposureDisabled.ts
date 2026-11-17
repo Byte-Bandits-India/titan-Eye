@@ -87,10 +87,10 @@ async function runInternalIpExposureVerification() {
           childSrc: ["'self'", 'blob:'],
           connectSrc: [
             "'self'",
-            'https://trvcstaging.titan.in',
             'https://trvc.titan.in',
-            'https://titan.thebytebandits.com',
-            'https://titan-dev.thebytebandits.com',
+            'https://trvc.titan.in',
+            'https://trvc.titan.in',
+            'https://trvc.titan.in',
             'https://*.communication.azure.com',
             'wss://*.communication.azure.com',
             'https://*.skype.com',

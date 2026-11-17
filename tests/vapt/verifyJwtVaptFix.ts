@@ -15,8 +15,8 @@ function runJwtVerification() {
   // Test 1: RFC 7519 NumericDate format compliance (seconds vs milliseconds)
   const adminUser: UserPayload = {
     email: 'admin@titan.in',
-    name: 'Super Admin',
-    role: 'super_admin',
+    name: 'Admin',
+    role: 'admin',
   };
 
   const adminTtlSec = getTtlSecondsForUser(adminUser.role, true);
@@ -54,7 +54,7 @@ function runJwtVerification() {
     `Admin token duration must be exactly 7200s (2 hours), got ${durationSec}s`
   );
   console.log('  [PASS] 1. RFC 7519 compliance: exp, iat, and nbf are formatted in seconds; jti UUID attached.');
-  console.log('  [PASS] 2. Super Admin accounts limited to strict 2-hour window (7,200s).');
+  console.log('  [PASS] 2. Admin accounts limited to strict 2-hour window (7,200s).');
 
   // Test 2: Standard user role expiration (Optometrist & Store)
   const storeUser: UserPayload = {
@@ -97,7 +97,7 @@ function runJwtVerification() {
 
   // Test 5: Tampered payload or signature
   const tamperedPayload = Buffer.from(
-    JSON.stringify({ ...payload, role: 'super_admin_hacked' })
+    JSON.stringify({ ...payload, role: 'admin_hacked' })
   ).toString('base64url');
   const tamperedToken = `${parts[0]}.${tamperedPayload}.${parts[2]}`;
   console.assert(verifyToken(tamperedToken) === null, 'Tampered token payload must fail signature check');

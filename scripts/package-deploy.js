@@ -79,7 +79,9 @@ if (!fs.existsSync(localDataDir)) {
 
 if (fs.existsSync(deployPkgDir)) {
   console.log('\n2. Cleaning existing deploy-package directory...');
-  fs.rmSync(deployPkgDir, { recursive: true, force: true });
+  try {
+    fs.rmSync(deployPkgDir, { recursive: true, force: true });
+  } catch {}
 }
 fs.mkdirSync(deployPkgDir, { recursive: true });
 
@@ -136,7 +138,7 @@ if (fs.existsSync(sslSourceDir)) {
   console.log('   ✓ Bundled SSL certificates (PFX, CRT, CER, PEM, CA_Bundle, Private Key)');
   const iisPfx = path.join(sslDestDir, 'PFX', 'titan_wildcard_iis.pfx');
   if (fs.existsSync(iisPfx)) {
-    console.log('   ✓ Verified IIS-ready PFX: PFX/titan_wildcard_iis.pfx (Password: Titan@2026)');
+    console.log('   ✓ Verified IIS-ready PFX: PFX/titan_wildcard_iis.pfx');
   }
 } else {
   console.warn('   ⚠️ SSL source directory not found at: ' + sslSourceDir);
@@ -166,6 +168,11 @@ if (fs.existsSync(winScriptsSource)) {
   const installCmdSrc = path.join(winScriptsSource, 'install.cmd');
   if (fs.existsSync(installCmdSrc)) {
     fs.copyFileSync(installCmdSrc, path.join(deployPkgDir, 'install.cmd'));
+  }
+  const quickUpdateCmd = path.join(localDataDir, 'quick-update', 'update.cmd');
+  if (fs.existsSync(quickUpdateCmd)) {
+    fs.copyFileSync(quickUpdateCmd, path.join(deployPkgDir, 'update.cmd'));
+    console.log('   ✓ Bundled update.cmd launcher');
   }
   console.log('   ✓ Bundled Windows PowerShell setup scripts and README-DEPLOYMENT.md');
 }
@@ -207,9 +214,12 @@ console.log('   ✓ Verified: No secret .env, .db, or sqlite files are present.'
 
 // 11. Create ZIP archive
 console.log('\n11. Creating clean ZIP archive (offline package with dependencies)...');
-if (fs.existsSync(zipFilePath)) {
-  fs.unlinkSync(zipFilePath);
+const tempZipPath = path.join(localDataDir, 'deploy-package-new.zip');
+let targetZipPath = zipFilePath;
+if (fs.existsSync(tempZipPath)) {
+  try { fs.unlinkSync(tempZipPath); } catch {}
 }
+
 
 try {
   if (process.platform === 'win32') {
@@ -223,24 +233,44 @@ try {
 
     if (useTar) {
       console.log('   Using Windows native tar.exe for rapid zip creation...');
-      execSync(`tar.exe -a -c -f "${zipFilePath}" -C "${deployPkgDir}" .`, { stdio: 'inherit' });
+      try {
+        execSync(`tar.exe -a -c -f "${tempZipPath}" -C "${deployPkgDir}" .`, { stdio: ['ignore', 'inherit', 'inherit'] });
+      } catch {
+        console.warn('   ⚠️ tar.exe failed, falling back to .NET ZipFile...');
+        if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+        execSync(
+          `powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('${deployPkgDir}', '${tempZipPath}')"`,
+          { stdio: ['ignore', 'inherit', 'inherit'] }
+        );
+      }
     } else {
       console.log('   Using PowerShell Compress-Archive fallback...');
       execSync(
-        `powershell -Command "Compress-Archive -Path '${deployPkgDir}\\*' -DestinationPath '${zipFilePath}' -Force"`,
+        `powershell -Command "Compress-Archive -Path '${deployPkgDir}\\*' -DestinationPath '${tempZipPath}' -Force"`,
         { stdio: 'inherit' }
       );
     }
   } else {
-    execSync(`cd "${deployPkgDir}" && zip -r -q -X "${zipFilePath}" . -x "*.DS_Store" -x "__MACOSX*" -x "*.db" -x "*.db-*" -x "*.env*"`, {
+    execSync(`cd "${deployPkgDir}" && zip -r -q -X "${tempZipPath}" . -x "*.DS_Store" -x "__MACOSX*" -x "*.db" -x "*.db-*" -x "*.env*"`, {
       stdio: 'inherit',
     });
   }
-  const stats = fs.statSync(zipFilePath);
+  try {
+    if (fs.existsSync(zipFilePath)) {
+      fs.unlinkSync(zipFilePath);
+    }
+    fs.renameSync(tempZipPath, zipFilePath);
+    targetZipPath = zipFilePath;
+  } catch {
+    console.warn('   ⚠️ deploy-package.zip is open/locked in another program. Saved as deploy-package-new.zip');
+    targetZipPath = tempZipPath;
+  }
+
+  const stats = fs.statSync(targetZipPath);
   const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
   console.log(`\n====================================================`);
   console.log(`   Offline Deployment Package ZIP successfully created!`);
-  console.log(`   Path: ${zipFilePath}`);
+  console.log(`   Path: ${targetZipPath}`);
   console.log(`   Size: ${sizeMB} MB`);
   console.log(`====================================================\n`);
 } catch (err) {

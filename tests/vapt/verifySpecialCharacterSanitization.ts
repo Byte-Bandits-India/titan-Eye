@@ -113,12 +113,12 @@ async function runSpecialCharacterVerification() {
   };
   const storeToken = await setupTestUser(storeUser);
 
-  const superAdmin: TestUser = {
+  const adminUser: TestUser = {
     email: 'admin_sanitization_test@titan.in',
     name: 'Admin Sanitization Tester',
-    role: 'super_admin',
+    role: 'admin',
   };
-  const adminToken = await setupTestUser(superAdmin);
+  const adminToken = await setupTestUser(adminUser);
 
   const createdCustomerIds: string[] = [];
   const createdVideoIds: number[] = [];
@@ -365,7 +365,7 @@ async function runSpecialCharacterVerification() {
       await run('DELETE FROM videos WHERE id = ?', [vidId]);
     }
 
-    await run('DELETE FROM users WHERE email IN (?, ?)', [storeUser.email, superAdmin.email]);
+    await run('DELETE FROM users WHERE email IN (?, ?)', [storeUser.email, adminUser.email]);
 
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

@@ -101,7 +101,7 @@ async function runCspVerification() {
           childSrc: ["'self'", 'blob:'],
           connectSrc: [
             "'self'",
-            'https://trvcstaging.titan.in',
+            'https://trvc.titan.in',
             'https://trvc.titan.in',
             'https://*.communication.azure.com',
             'wss://*.communication.azure.com',

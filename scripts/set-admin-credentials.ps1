@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-    Updates or creates Super Admin credentials in SQLite database and .env configuration.
+    Updates or creates Admin credentials in SQLite database and .env configuration.
 #>
 [CmdletBinding()]
 param (
     [string]$AppRoot = "D:\apps\titan",
-    [string]$Email = "admin@gmail.com",
-    [string]$Password = "Titan@2026"
+    [string]$Email = "admin@titan.in",
+    [Parameter(Mandatory=$true)]
+    [string]$Password
 )
 
 $ErrorActionPreference = "Stop"
@@ -42,11 +43,11 @@ const storedPassword = salt + ':' + hash;
 
 const existing = db.prepare('SELECT email FROM users WHERE LOWER(email) = LOWER(?)').get(email);
 if (existing) {
-  db.prepare('UPDATE users SET password = ?, role = ?, status = ?, failedLoginAttempts = 0, lockedUntil = NULL, microsoftUpn = ? WHERE LOWER(email) = LOWER(?)').run(storedPassword, 'super_admin', 'active', email, email);
+  db.prepare('UPDATE users SET password = ?, role = ?, status = ?, failedLoginAttempts = 0, lockedUntil = NULL, microsoftUpn = ? WHERE LOWER(email) = LOWER(?)').run(storedPassword, 'admin', 'active', email, email);
   console.log('[OK] Successfully updated existing user ' + email + ' in SQLite database.');
 } else {
-  db.prepare('INSERT INTO users (email, name, role, status, password, microsoftUpn, failedLoginAttempts, lockedUntil) VALUES (?, ?, ?, ?, ?, ?, 0, NULL)').run(email, 'Super Admin', 'super_admin', 'active', storedPassword, email);
-  console.log('[OK] Successfully created new super_admin user ' + email + ' in SQLite database.');
+  db.prepare('INSERT INTO users (email, name, role, status, password, microsoftUpn, failedLoginAttempts, lockedUntil) VALUES (?, ?, ?, ?, ?, ?, 0, NULL)').run(email, 'Admin', 'admin', 'active', storedPassword, email);
+  console.log('[OK] Successfully created new admin user ' + email + ' in SQLite database.');
 }
 
 const checkUser = db.prepare('SELECT email, password FROM users WHERE LOWER(email) = LOWER(?)').get(email);

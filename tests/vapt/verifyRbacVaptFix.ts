@@ -34,8 +34,8 @@ async function runRbacVerification() {
 
   const adminUser: TestUser = {
     email: 'admin@gmail.com',
-    name: 'Super Admin',
-    role: 'super_admin',
+    name: 'Admin',
+    role: 'admin',
   };
 
   const _optoToken = generateToken(optometristUser, JWT_TTL_MS);
@@ -44,7 +44,7 @@ async function runRbacVerification() {
 
   console.log('1. [POC 3 & 4] Customer Creation Authorization:');
   console.log('   - Role "optometrist" allowed to POST /api/customers?');
-  const allowedCreateRoles = ['store', 'super_admin'];
+  const allowedCreateRoles = ['store', 'admin'];
   if (!allowedCreateRoles.includes(optometristUser.role)) {
     console.log('     ✅ Optometrist blocked by RBAC: receives 403 Forbidden.');
   } else {
@@ -57,7 +57,7 @@ async function runRbacVerification() {
 
   console.log('\n2. [POC 5] Customer Deletion Authorization:');
   console.log('   - Role "optometrist" allowed to DELETE /api/customers/:id?');
-  const allowedDeleteRoles = ['store', 'super_admin'];
+  const allowedDeleteRoles = ['store', 'admin'];
   if (!allowedDeleteRoles.includes(optometristUser.role)) {
     console.log('     ✅ Optometrist blocked by RBAC: receives 403 Forbidden.');
   } else {
@@ -85,15 +85,15 @@ async function runRbacVerification() {
   const nonAdminRows = await all<{ email: string; name: string; role: string }>(
     "SELECT email, name, role FROM users WHERE role IN ('optometrist', 'senior_optometrist') AND status = 'active'"
   );
-  const exposedSuperAdmins = nonAdminRows.filter((u) => u.role === 'super_admin');
+  const exposedAdmins = nonAdminRows.filter((u) => u.role === 'admin');
   const exposedStores = nonAdminRows.filter((u) => u.role === 'store');
 
-  if (exposedSuperAdmins.length === 0 && exposedStores.length === 0) {
-    console.log('     ✅ Non-admin user query excludes all Super Admin and Store user accounts.');
+  if (exposedAdmins.length === 0 && exposedStores.length === 0) {
+    console.log('     ✅ Non-admin user query excludes all Admin and Store user accounts.');
     console.log(`     ✅ Only returns active optometrist availability projection (${nonAdminRows.length} doctors).`);
     console.log('     ✅ Mobile numbers, cities, locations, and passwords completely redacted to null.');
   } else {
-    throw new Error('FAIL: Super Admin or Store accounts exposed to non-admin query!');
+    throw new Error('FAIL: Admin or Store accounts exposed to non-admin query!');
   }
 
   console.log('\n🎉 ALL PRIVILEGE ESCALATION VAPT FIX CHECKS PASSED WITH 100% FIDELITY!\n');

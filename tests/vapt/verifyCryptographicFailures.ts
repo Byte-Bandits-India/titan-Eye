@@ -1,7 +1,7 @@
 import tls from 'tls';
 import https from 'https';
 
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const TARGET_PORT = 443;
 
 function getHttps(url: string): Promise<{ body: string; headers: Record<string, string | string[] | undefined>; statusCode?: number }> {
@@ -173,7 +173,7 @@ async function runA04Verification() {
   console.log('\n--- TEST 5: Cryptographic Stream Token Integrity (HMAC-SHA256) ---');
   try {
     const { generateVideoStreamTicket, verifyVideoStreamTicket } = await import('../utils/videoStreamTicket.js');
-    const user = { email: 'admin@titan.in', role: 'super_admin' };
+    const user = { email: 'admin@titan.in', role: 'admin' };
     const ticket = generateVideoStreamTicket(42, user, 60);
 
     const validCheck = verifyVideoStreamTicket(ticket, 42);

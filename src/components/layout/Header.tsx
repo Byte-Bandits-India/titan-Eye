@@ -151,7 +151,7 @@ export const Header = memo(function Header({
   }
 
   const unreadNotificationCount = logNotifications.length;
-  const isAdmin = user.role === 'admin' || (user.role as string) === 'super_admin';
+  const isAdmin = user.role === 'admin';
 
   const roleBadge =
     isAdmin
@@ -171,7 +171,7 @@ export const Header = memo(function Header({
           ? 'Optometrist'
           : 'Store';
 
-  const displayName = user.name ? user.name.replace(/super admin/gi, 'Admin') : 'Admin';
+  const displayName = user.name || 'Admin';
 
   const initials = displayName
     .split(' ')
@@ -269,7 +269,7 @@ export const Header = memo(function Header({
           />
           {consoleLabel && (
             <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:max-w-none sm:px-2.5 sm:text-sm">
-              {consoleLabel ? consoleLabel.replace(/super admin/gi, 'Admin') : ''}
+              {consoleLabel}
             </div>
           )}
         </div>

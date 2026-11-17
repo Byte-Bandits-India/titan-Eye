@@ -94,10 +94,10 @@ async function runVideoAccessRestrictionVerification() {
 
   try {
     // 1. Setup seed users
-    const superAdminUser: UserPayload = {
+    const adminUser: UserPayload = {
       email: 'admin_vapt23@titan.in',
-      name: 'VAPT 23 Super Admin',
-      role: 'super_admin',
+      name: 'VAPT 23 Admin',
+      role: 'admin',
     };
     const storeUser: UserPayload = {
       email: 'store_vapt23@titan.in',
@@ -110,7 +110,7 @@ async function runVideoAccessRestrictionVerification() {
       role: 'optometrist',
     };
 
-    const adminToken = await seedTestUser(superAdminUser);
+    const adminToken = await seedTestUser(adminUser);
     const storeToken = await seedTestUser(storeUser);
     const optomToken = await seedTestUser(optometristUser);
 
@@ -168,7 +168,7 @@ async function runVideoAccessRestrictionVerification() {
     // TEST 3: IDOR / Video ID Tampering Protection
     // =========================================================================
     console.log('\nTest 3: IDOR Protection: Using Video 1 ticket to stream Video 2');
-    const ticketForV1 = generateVideoStreamTicket(video1Id, superAdminUser, 900);
+    const ticketForV1 = generateVideoStreamTicket(video1Id, adminUser, 900);
     const res3 = await sendRawHttpRequest(port, 'GET', `/api/videos/${video2Id}/stream?ticket=${ticketForV1}`, {
       Cookie: `token=${adminToken}`,
     });
@@ -181,7 +181,7 @@ async function runVideoAccessRestrictionVerification() {
     // TEST 4: Expired Ticket Rejection
     // =========================================================================
     console.log('\nTest 4: Expired stream ticket rejection');
-    const expiredTicket = generateVideoStreamTicket(video1Id, superAdminUser, -10);
+    const expiredTicket = generateVideoStreamTicket(video1Id, adminUser, -10);
     const res4 = await sendRawHttpRequest(port, 'GET', `/api/videos/${video1Id}/stream?ticket=${expiredTicket}`, {
       Cookie: `token=${adminToken}`,
     });
@@ -242,9 +242,9 @@ async function runVideoAccessRestrictionVerification() {
     console.log('  [PASS] 7. Store user successfully streams active TV mode video with inline headers');
 
     // =========================================================================
-    // TEST 8: Super Admin Authorized Streaming (Full and HTTP 206 Range)
+    // TEST 8: Admin Authorized Streaming (Full and HTTP 206 Range)
     // =========================================================================
-    console.log('\nTest 8: Super admin authorized streaming (Full and Range requests)');
+    console.log('\nTest 8: Admin authorized streaming (Full and Range requests)');
     const res8Ticket = await sendRawHttpRequest(port, 'GET', `/api/videos/${video2Id}/ticket`, {
       Cookie: `token=${adminToken}`,
     });
@@ -266,7 +266,7 @@ async function runVideoAccessRestrictionVerification() {
     assert.strictEqual(res8Range.status, 206, `Expected HTTP 206 Partial Content, got: ${res8Range.status}`);
     assert(res8Range.headers['content-range']?.startsWith('bytes 0-15/'));
     assert.strictEqual(res8Range.headers['content-disposition'], 'inline');
-    console.log('  [PASS] 8. Super admin successfully streams video via HTTP 200 and HTTP 206 Range');
+    console.log('  [PASS] 8. Admin successfully streams video via HTTP 200 and HTTP 206 Range');
 
     // Clean up temporary files
     try {

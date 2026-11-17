@@ -91,7 +91,7 @@ export function useSSE(): void {
           };
           const currentUser = userRef.current;
 
-          if ((currentUser?.role === 'admin' || currentUser?.role === 'super_admin') || currentUser?.role === 'senior_optometrist') {
+          if (currentUser?.role === 'admin' || currentUser?.role === 'senior_optometrist') {
             addLogNotification({
               customerId: payload.customerId,
               description: `Store ${payload.storeName || 'Store'} requested immediate Optometrist support for customer ${payload.customerName} (${payload.customerId}).`,

@@ -26,8 +26,8 @@ async function runSourceCodeDisclosureVerification() {
     'src/Routes/index.tsx must use React.lazy() for dynamic imports'
   );
   assert(
-    routesContent.includes("import('../screens/admin/SuperAdminScreen')"),
-    'SuperAdminScreen must be dynamically imported via import()'
+    routesContent.includes("import('../screens/admin/AdminScreen')"),
+    'AdminScreen must be dynamically imported via import()'
   );
   assert(
     routesContent.includes("import('../screens/optometrist/OptometristScreen')"),
@@ -41,7 +41,7 @@ async function runSourceCodeDisclosureVerification() {
     routesContent.includes('<Suspense'),
     'src/Routes/index.tsx must wrap lazy routes in Suspense'
   );
-  console.log('  [PASS] 1. Protected screens (SuperAdminScreen, OptometristScreen, StoreScreen) are dynamically code-split');
+  console.log('  [PASS] 1. Protected screens (AdminScreen, OptometristScreen, StoreScreen) are dynamically code-split');
 
   // =========================================================================
   // TEST 2: Audit vite.config.js (Minification, Obfuscation & Sourcemap Policy)
@@ -134,19 +134,19 @@ async function runSourceCodeDisclosureVerification() {
     `Initial bundle size must be under 200 KB after code-splitting (got ${indexChunkSizeKb.toFixed(2)} KB)`
   );
 
-  const superAdminChunk = assetFiles.find((f) => f.startsWith('SuperAdminScreen-') && f.endsWith('.js'));
+  const adminUserChunk = assetFiles.find((f) => f.startsWith('AdminScreen-') && f.endsWith('.js'));
   const optometristChunk = assetFiles.find((f) => f.startsWith('OptometristScreen-') && f.endsWith('.js'));
   const storeChunk = assetFiles.find((f) => f.startsWith('StoreScreen-') && f.endsWith('.js'));
 
-  assert(superAdminChunk, 'SuperAdminScreen must be isolated in its own dynamic chunk');
+  assert(adminUserChunk, 'AdminScreen must be isolated in its own dynamic chunk');
   assert(optometristChunk, 'OptometristScreen must be isolated in its own dynamic chunk');
   assert(storeChunk, 'StoreScreen must be isolated in its own dynamic chunk');
 
-  console.log(`  [PASS] 4b. Verified dynamic chunks: ${superAdminChunk}, ${optometristChunk}, ${storeChunk}`);
+  console.log(`  [PASS] 4b. Verified dynamic chunks: ${adminUserChunk}, ${optometristChunk}, ${storeChunk}`);
 
   // Confirm administrative logic is isolated into separate chunk
-  const superAdminContent = fs.readFileSync(path.join(assetsDir, superAdminChunk), 'utf8');
-  assert(superAdminContent.length > 25000, 'SuperAdminScreen chunk must contain the isolated admin screen logic');
+  const adminUserContent = fs.readFileSync(path.join(assetsDir, adminUserChunk), 'utf8');
+  assert(adminUserContent.length > 25000, 'AdminScreen chunk must contain the isolated admin screen logic');
 
   const indexContent = fs.readFileSync(indexChunkPath, 'utf8');
   // Confirm dynamic lazy import is used in index chunk rather than inlining the admin component

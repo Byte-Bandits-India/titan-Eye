@@ -514,96 +514,29 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
-  try {
-    await run("UPDATE users SET role = 'admin' WHERE role = 'super_admin'");
-    await run("UPDATE users SET name = 'Admin' WHERE name = 'Super Admin'");
-    await run("DELETE FROM users WHERE LOWER(email) = 'admin@thebytebandits.onmicrosoft.com'");
-  } catch (e) {
-    logger.error('Failed to migrate super_admin roles to admin', {
-      errorMessage: e instanceof Error ? e.message : String(e),
-    });
-  }
-
   const configuredAdminEmail = process.env.ADMIN_EMAIL;
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'Titan@2026';
-  const defaultHashedPassword = hashPassword(defaultPassword);
+  const configuredAdminPassword = process.env.ADMIN_PASSWORD;
 
-  const initialUsers: Array<{
-    email: string;
-    microsoftUpn: string;
-    name: string;
-    role: string;
-    storeName: null | string;
-  }> = [
-    
-    {
-      email: 'optom-a@thebytebandits.onmicrosoft.com',
-      microsoftUpn: 'optom-a@thebytebandits.onmicrosoft.com',
-      name: 'senior optom',
-      role: 'senior_optometrist',
-      storeName: null,
-    },
-    {
-      email: 'optom-b@thebytebandits.onmicrosoft.com',
-      microsoftUpn: 'optom-b@thebytebandits.onmicrosoft.com',
-      name: 'optom a',
-      role: 'optometrist',
-      storeName: null,
-    },
-    {
-      email: 'store-a@thebytebandits.onmicrosoft.com',
-      microsoftUpn: 'store-a@thebytebandits.onmicrosoft.com',
-      name: 'store a',
-      role: 'store',
-      storeName: 'STRA',
-    },
-    {
-      email: 'store-b@thebytebandits.onmicrosoft.com',
-      microsoftUpn: 'store-b@thebytebandits.onmicrosoft.com',
-      name: 'store b',
-      role: 'store',
-      storeName: 'STRB',
-    },
-  ];
+  if (configuredAdminEmail && configuredAdminEmail.trim()) {
+    const adminEmail = configuredAdminEmail.trim();
+    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
 
-  const adminEmailToSeed = (configuredAdminEmail && configuredAdminEmail.trim()) || 'admin@gmail.com';
-  initialUsers.unshift({
-    email: adminEmailToSeed,
-    microsoftUpn: adminEmailToSeed,
-    name: 'Admin',
-    role: 'admin',
-    storeName: null,
-  });
-
-  for (const u of initialUsers) {
-    const existingUser = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [
-      u.email,
-    ]);
-
-    if (!existingUser) {
+    if (!existingAdmin) {
+      const hashedPassword = configuredAdminPassword ? hashPassword(configuredAdminPassword) : '';
       await run(
         `INSERT INTO users (email, name, role, storeName, mobile, status, password, microsoftUpn)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [u.email, u.name, u.role, u.storeName, null, 'active', defaultHashedPassword, u.microsoftUpn]
+        [adminEmail, 'Admin', 'admin', null, null, 'active', hashedPassword, adminEmail]
       );
-    } else {
-      await run(
-        `UPDATE users
-         SET role = ?, name = ?, storeName = ?, status = 'active', microsoftUpn = ?
-         WHERE LOWER(email) = LOWER(?)`,
-        [u.role, u.name, u.storeName, u.microsoftUpn, u.email]
-      );
-
-      if (!existingUser.password || !existingUser.password.includes(':')) {
-        await run('UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)', [
-          defaultHashedPassword,
-          u.email,
-        ]);
-      }
+      logger.info('Configured admin user created.');
+    } else if (configuredAdminPassword && (!existingAdmin.password || !existingAdmin.password.includes(':'))) {
+      await run('UPDATE users SET password = ?, role = ? WHERE LOWER(email) = LOWER(?)', [
+        hashPassword(configuredAdminPassword),
+        'admin',
+        adminEmail,
+      ]);
     }
   }
-
-  logger.info('Seeded default user accounts.');
 }
 
 export function query<T>(sql: string, params: SqlParam[] = []): T[] {

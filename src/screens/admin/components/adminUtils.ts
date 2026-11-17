@@ -72,7 +72,6 @@ export function getRoleBasedUserId(user: ManagedUser, allUsers: ManagedUser[]): 
 
   switch (user.role.toLowerCase()) {
     case 'admin':
-    case 'super_admin':
       return `ADMIN-${numStr}`;
     case 'senior_optometrist':
       return `SENIOROPTOM-${numStr}`;

@@ -31,7 +31,7 @@ router.param('email', (_req, res, next, email) => {
 
 const onlineEmails = new Set<string>();
 
-const VALID_ROLES = ['admin', 'optometrist', 'senior_optometrist', 'store', 'super_admin'];
+const VALID_ROLES = ['admin', 'optometrist', 'senior_optometrist', 'store'];
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {
@@ -107,8 +107,8 @@ function serializeLanguages(role: string, languages?: string[]): null | string {
 
 type UserListResponseBody = ErrorResponse | ManagedUserResponse[];
 
-function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
+  if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
@@ -117,9 +117,9 @@ function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () =>
 
 router.get('/', async (req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
   try {
-    const isSuperAdmin = req.user?.role === 'admin' || req.user?.role === 'super_admin';
+    const isAdmin = req.user?.role === 'admin';
 
-    if (isSuperAdmin) {
+    if (isAdmin) {
       const rows = await all<UserRow>(
         'SELECT email, name, role, storeName, mobile, location, city, languages, lastLogin, lastPing, status, activeTokenSig FROM users ORDER BY email'
       );
@@ -148,7 +148,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response<UserListResponse
       return res.json(result);
     }
 
-    // Non-super-admin roles (store, optometrist, senior_optometrist):
+    // Non-admin roles (store, optometrist, senior_optometrist):
     // Return only active optometrist availability projection with all personal PII redacted
     const rows = await all<UserRow>(
       "SELECT email, name, role, languages, lastPing, status FROM users WHERE role IN ('optometrist', 'senior_optometrist') AND status = 'active' ORDER BY name"
@@ -221,7 +221,7 @@ router.post('/offline', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.use(requireSuperAdmin);
+router.use(requireAdmin);
 
 router.post(
   '/',

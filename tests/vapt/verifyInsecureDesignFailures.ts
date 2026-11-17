@@ -9,7 +9,7 @@
  * 4. Multi-Tenant Store Location Isolation (Preventing cross-store operations)
  */
 
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const BASE_URL = `https://${TARGET_HOST}`;
 
 interface CaptchaResponse {
@@ -107,25 +107,25 @@ async function runA06Verification() {
     // Authenticate test actors
     console.log('[*] Authenticating actors for workflow tests...');
     const storeACookie = await solveCaptchaAndLogin(
-      'store-a@thebytebandits.onmicrosoft.com',
+      'store-a@titan.in',
       'TitanRemote@2026!#'
     );
     console.log('  ✅ [PASS] Store A user authenticated (Role: store, Location: STRA)');
 
     const storeBCookie = await solveCaptchaAndLogin(
-      'store-b@thebytebandits.onmicrosoft.com',
+      'store-b@titan.in',
       'TitanRemote@2026!#'
     );
     console.log('  ✅ [PASS] Store B user authenticated (Role: store, Location: STRB)');
 
     const optomCookie = await solveCaptchaAndLogin(
-      'optom-b@thebytebandits.onmicrosoft.com',
+      'optom-b@titan.in',
       'TitanRemote@2026!#'
     );
     console.log('  ✅ [PASS] Optometrist user authenticated (Role: optometrist)');
 
     const seniorOptomCookie = await solveCaptchaAndLogin(
-      'optom-a@thebytebandits.onmicrosoft.com',
+      'optom-a@titan.in',
       'TitanRemote@2026!#'
     );
     console.log('  ✅ [PASS] Senior Optometrist user authenticated (Role: senior_optometrist)\n');

@@ -1,4 +1,4 @@
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const BASE_URL = `https://${TARGET_HOST}`;
 
 interface CaptchaResponse {
@@ -92,7 +92,7 @@ async function runA07Verification() {
     console.log('  [1.1] Testing login attempt with missing CAPTCHA parameters...');
     const noCaptchaRes = await fetch(`${BASE_URL}/api/login`, {
       body: JSON.stringify({
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -114,7 +114,7 @@ async function runA07Verification() {
       body: JSON.stringify({
         captchaId: validId,
         captchaSolution: 'WRONG',
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -137,7 +137,7 @@ async function runA07Verification() {
       body: JSON.stringify({
         captchaId: replayId,
         captchaSolution: replaySolution,
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -156,7 +156,7 @@ async function runA07Verification() {
       body: JSON.stringify({
         captchaId: replayId,
         captchaSolution: replaySolution,
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },
@@ -175,9 +175,9 @@ async function runA07Verification() {
     // -------------------------------------------------------------
     console.log('\n--- TEST 2: JWT Expiration, RFC 7519 Compliance & Revocation (Finding 15 - CVSS 3.7) ---');
 
-    console.log('  [2.1] Authenticating Super Admin and inspecting JWT claims...');
+    console.log('  [2.1] Authenticating Admin and inspecting JWT claims...');
     const { rawToken: adminToken, cookie: _adminCookie } = await solveCaptchaAndLogin(
-      'admin@thebytebandits.onmicrosoft.com',
+      'admin@titan.in',
       'TitanRemote@2026!#'
     );
 
@@ -192,7 +192,7 @@ async function runA07Verification() {
       allPassed = false;
     }
 
-    // Check Short-Lived TTL (2 hours for Super Admin = 7200 seconds)
+    // Check Short-Lived TTL (2 hours for Admin = 7200 seconds)
     if (ttlSeconds <= 7200) {
       console.log(`  ✅ [PASS] Privileged token lifetime strictly enforced: ${ttlSeconds}s (2 hours, no 30-day token).`);
     } else {
@@ -245,7 +245,7 @@ async function runA07Verification() {
     // -------------------------------------------------------------
     console.log('\n--- TEST 3: Enterprise Password Policy Validation (Finding 6 - CVSS 3.7) ---');
     const { cookie: freshAdminCookie } = await solveCaptchaAndLogin(
-      'admin@thebytebandits.onmicrosoft.com',
+      'admin@titan.in',
       'TitanRemote@2026!#'
     );
 
@@ -334,7 +334,7 @@ async function runA07Verification() {
 
     console.log('  [4.1] Authenticating Optometrist user...');
     const { cookie: optomCookie } = await solveCaptchaAndLogin(
-      'optom-b@thebytebandits.onmicrosoft.com',
+      'optom-b@titan.in',
       'TitanRemote@2026!#'
     );
 
@@ -394,7 +394,7 @@ async function runA07Verification() {
         mobile?: string | null;
         role: string;
       }>;
-      const hasOtherRoles = users.some((u) => u.role === 'store' || u.role === 'super_admin');
+      const hasOtherRoles = users.some((u) => u.role === 'store' || u.role === 'admin');
       const hasExposedPii = users.some((u) => u.mobile !== null && u.mobile !== undefined);
 
       if (!hasOtherRoles && !hasExposedPii) {
@@ -417,7 +417,7 @@ async function runA07Verification() {
     const loginProbe = await fetch(`${BASE_URL}/api/login`, {
       body: JSON.stringify({
         ...(await fetchCaptcha().then((c) => ({ captchaId: c.id, captchaSolution: c.solution }))),
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },

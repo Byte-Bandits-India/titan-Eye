@@ -2,7 +2,7 @@ import type { ManagedUser } from '../types';
 
 export function getAdminAndSeniorOptomEmails(users: ManagedUser[]): string[] {
   const targetUsers = users.filter(
-    (u) => ((u.role === 'admin' || u.role === 'super_admin') || u.role === 'senior_optometrist') && u.status !== 'inactive'
+    (u) => (u.role === 'admin' || u.role === 'senior_optometrist') && u.status !== 'inactive'
   );
 
   const emails = targetUsers

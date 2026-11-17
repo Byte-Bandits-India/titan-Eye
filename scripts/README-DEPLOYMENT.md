@@ -99,7 +99,7 @@ Copy-Item .env.example .env
 Open `.env` in Notepad and verify/configure:
 - `PORT=3001`
 - `NODE_ENV=production`
-- `ALLOWED_ORIGINS=https://titan.xylozentech.com,http://localhost:3001`
+- `ALLOWED_ORIGINS=https://trvc.titan.in`
 - `LOG_ENCRYPTION_ENABLED=true`
 - `LOG_ENCRYPTION_KEY=<64-hex-character-key>` *(generate via `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)*
 - `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET`, `ENTRA_REDIRECT_URI`

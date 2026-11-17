@@ -20,7 +20,7 @@
  *    Source Code & Source Map Disclosure
  */
 
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const BASE_URL = `https://${TARGET_HOST}`;
 
 interface CaptchaResponse {
@@ -156,9 +156,9 @@ async function runA02Verification() {
     // TEST 5: Unrestricted File Upload on /api/videos (Finding 12 - CVSS 5.4)
     // -------------------------------------------------------------
     console.log('\n--- TEST 5: Unrestricted File Upload Prevention (Finding 12 - CVSS 5.4) ---');
-    console.log('  [*] Authenticating Super Admin...');
+    console.log('  [*] Authenticating Admin...');
     const adminCookie = await solveCaptchaAndLogin(
-      'admin@thebytebandits.onmicrosoft.com',
+      'admin@titan.in',
       'TitanRemote@2026!#'
     );
 
@@ -231,7 +231,7 @@ async function runA02Verification() {
             const sol = [...decoded.matchAll(/>([A-Za-z0-9])<\/text>/g)].map((m) => m[1]).join('');
             return { captchaId: c.captchaId, captchaSolution: sol };
           })),
-        email: 'admin@thebytebandits.onmicrosoft.com',
+        email: 'admin@titan.in',
         password: 'TitanRemote@2026!#',
       }),
       headers: { 'Content-Type': 'application/json' },

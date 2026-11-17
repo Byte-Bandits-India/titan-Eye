@@ -44,7 +44,7 @@ async function runRobotsTxtVerification() {
       `${name} must NOT disclose any sitemap`
     );
     assert(
-      !content.includes('thebytebandits.com'),
+      !content.includes('titan.in'),
       `${name} must NOT disclose vendor/dev domains`
     );
   }
@@ -173,7 +173,7 @@ async function runRobotsTxtVerification() {
     assert(!robotsBody.includes('/api/'), 'robots.txt must NOT leak "/api/"');
     assert(!robotsBody.includes('/assets/'), 'robots.txt must NOT leak "/assets/"');
     assert(!robotsBody.toLowerCase().includes('sitemap'), 'robots.txt must NOT leak sitemap');
-    assert(!robotsBody.includes('thebytebandits.com'), 'robots.txt must NOT leak vendor dev domain');
+    assert(!robotsBody.includes('titan.in'), 'robots.txt must NOT leak vendor dev domain');
 
     const robotsXRobotsTag = robotsRes.headers.get('x-robots-tag');
     assert.strictEqual(

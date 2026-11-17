@@ -37,7 +37,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const BASE_URL = `https://${TARGET_HOST}`;
 
 interface CaptchaResponse {
@@ -169,13 +169,13 @@ async function runA01Verification() {
       allPassed = false;
     }
 
-    // Authenticate as Super Admin
-    console.log('\n  [+] Authenticating as Super Admin (admin@thebytebandits.onmicrosoft.com)...');
+    // Authenticate as Admin
+    console.log('\n  [+] Authenticating as Admin (admin@titan.in)...');
     const adminSession = await solveCaptchaAndLogin(
-      'admin@thebytebandits.onmicrosoft.com',
+      'admin@titan.in',
       'TitanRemote@2026!#'
     );
-    console.log('        ✓ Super Admin authenticated successfully.');
+    console.log('        ✓ Admin authenticated successfully.');
 
     // Query active videos
     const videosListRes = await fetch(`${BASE_URL}/api/videos`, {
@@ -228,7 +228,7 @@ async function runA01Verification() {
       allPassed = false;
     }
 
-    // Test 1.4: Ticket generation for Super Admin
+    // Test 1.4: Ticket generation for Admin
     console.log(`\n  [1.4] Testing ticket generation for Video ${targetVideoId} via GET /api/videos/${targetVideoId}/ticket...`);
     const ticketRes = await fetch(`${BASE_URL}/api/videos/${targetVideoId}/ticket`, {
       headers: {
@@ -307,9 +307,9 @@ async function runA01Verification() {
 
     // Test 1.7: RBAC enforcement on ticket generation (Store & Optometrist accounts)
     console.log('\n  [1.7] Testing RBAC ticket generation restrictions (Store & Optometrist)...');
-    console.log('        Authenticating as Store User (store-a@thebytebandits.onmicrosoft.com)...');
+    console.log('        Authenticating as Store User (store-a@titan.in)...');
     const storeSession = await solveCaptchaAndLogin(
-      'store-a@thebytebandits.onmicrosoft.com',
+      'store-a@titan.in',
       'TitanRemote@2026!#'
     );
     const storeTicketRes = await fetch(`${BASE_URL}/api/videos/${targetVideoId}/ticket`, {
@@ -331,9 +331,9 @@ async function runA01Verification() {
       allPassed = false;
     }
 
-    console.log('        Authenticating as Optometrist (optom-b@thebytebandits.onmicrosoft.com)...');
+    console.log('        Authenticating as Optometrist (optom-b@titan.in)...');
     const optomSession = await solveCaptchaAndLogin(
-      'optom-b@thebytebandits.onmicrosoft.com',
+      'optom-b@titan.in',
       'TitanRemote@2026!#'
     );
     const optomTicketRes = await fetch(`${BASE_URL}/api/videos/${targetVideoId}/ticket`, {
@@ -357,7 +357,7 @@ async function runA01Verification() {
 
     // Test 1.8: Cryptographic verification of expired and tampered tickets
     console.log('\n  [1.8] Testing cryptographic verification of expired & tampered stream tickets...');
-    const expiredTicket = generateVideoStreamTicket(targetVideoId, { email: 'admin@titan.in', role: 'super_admin' }, -10);
+    const expiredTicket = generateVideoStreamTicket(targetVideoId, { email: 'admin@titan.in', role: 'admin' }, -10);
     const expiredCheck = verifyVideoStreamTicket(expiredTicket, targetVideoId);
     console.log(`        Expired Ticket Check: valid=${expiredCheck.valid}, error="${expiredCheck.error}"`);
     if (!expiredCheck.valid && expiredCheck.error === 'Stream ticket has expired.') {
@@ -370,7 +370,7 @@ async function runA01Verification() {
     // Tampered payload
     const parts = expiredTicket.split('.');
     const tamperedPayloadB64 = Buffer.from(
-      JSON.stringify({ videoId: 999, email: 'hacker@evil.com', role: 'super_admin', exp: 9999999999 })
+      JSON.stringify({ videoId: 999, email: 'hacker@evil.com', role: 'admin', exp: 9999999999 })
     ).toString('base64url');
     const tamperedTicket = `${tamperedPayloadB64}.${parts[1]}`;
     const tamperedCheck = verifyVideoStreamTicket(tamperedTicket, 999);

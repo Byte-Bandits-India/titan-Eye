@@ -458,7 +458,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authorizeRoles('store', 'admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const c = req.body as CustomerInput;
 
@@ -793,7 +793,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', authorizeRoles('store', 'admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -831,7 +831,7 @@ router.delete('/:id', authorizeRoles('store', 'admin', 'super_admin'), async (re
   }
 });
 
-router.post('/:id/initiate-call', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/initiate-call', authorizeRoles('store', 'admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -953,7 +953,7 @@ router.post('/:id/initiate-call', authorizeRoles('store', 'admin', 'super_admin'
 
 router.post(
   '/:id/accept-call',
-  authorizeRoles('optometrist', 'senior_optometrist', 'admin', 'super_admin'),
+  authorizeRoles('optometrist', 'senior_optometrist', 'admin'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = String(req.params.id);
@@ -974,8 +974,8 @@ router.post(
       const callerName = req.user!.name;
       const callerRole = req.user!.role;
 
-      // 2. Assignment validation: If 'Initiated', must be offered to this optometrist (or caller is super_admin)
-      if (customer.status === 'Initiated' && callerRole !== 'super_admin' && callerRole !== 'admin') {
+      // 2. Assignment validation: If 'Initiated', must be offered to this optometrist (or caller is admin)
+      if (customer.status === 'Initiated' && callerRole !== 'admin') {
         const offeredEmail = (customer.offeredToOptometristEmail || '').toLowerCase();
         if (offeredEmail && offeredEmail !== callerEmail) {
           logSecurityEvent('UNAUTHORIZED_CALL_ACCEPT_ATTEMPT', {
@@ -1019,7 +1019,7 @@ router.post(
         WHERE id = ?
           AND status IN ('Initiated', 'Queued')
           AND (
-            (? = 'admin' OR ? = 'super_admin')
+            ? = 'admin'
             OR status = 'Queued'
             OR LOWER(offeredToOptometristEmail) = ?
             OR offeredToOptometristEmail IS NULL
@@ -1054,7 +1054,7 @@ router.post(
   }
 );
 
-router.post('/:id/notify-admin-teams', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/notify-admin-teams', authorizeRoles('store', 'admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -1064,7 +1064,7 @@ router.post('/:id/notify-admin-teams', authorizeRoles('store', 'admin', 'super_a
     }
 
     const adminUsers = await all<UserRow>(
-      `SELECT email, microsoftUpn, name, role FROM users WHERE role IN ('admin', 'super_admin', 'senior_optometrist') AND status = 'active'`
+      `SELECT email, microsoftUpn, name, role FROM users WHERE role IN ('admin', 'senior_optometrist') AND status = 'active'`
     );
 
     const recipientEmails = adminUsers
@@ -1387,7 +1387,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 
 const FEEDBACK_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-router.post('/:id/complete', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/complete', authorizeRoles('store', 'admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user!.role !== 'store') {
       return res.status(403).json({ error: 'Only Store users can mark a call as completed.' });
@@ -1534,7 +1534,7 @@ function feedbackImageColumn(slot: string): 'storeFeedbackImage1' | 'storeFeedba
 router.post(
   '/:id/feedback-image/:slot',
   feedbackImageUploadLimiter,
-  authorizeRoles('store', 'admin', 'super_admin'),
+  authorizeRoles('store', 'admin'),
   (req: AuthenticatedRequest, res: Response, next) => {
     feedbackImageUpload.single('image')(req, res, (err: unknown) => {
       if (err) {

@@ -9,7 +9,7 @@
  * 3. Content Security Policy (CSP) & Defense-in-Depth against Script Execution
  */
 
-const TARGET_HOST = 'titan.xylozentech.com';
+const TARGET_HOST = 'trvc.titan.in';
 const BASE_URL = `https://${TARGET_HOST}`;
 
 interface CaptchaResponse {
@@ -111,7 +111,7 @@ async function runA05Verification() {
   try {
     console.log('[*] Authenticating with store user credentials...');
     const storeCookie = await solveCaptchaAndLogin(
-      'store-a@thebytebandits.onmicrosoft.com',
+      'store-a@titan.in',
       'TitanRemote@2026!#'
     );
     console.log('  ✅ [PASS] Successfully authenticated with store user session.');

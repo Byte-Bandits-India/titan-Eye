@@ -10,8 +10,8 @@ import { useAppSelector } from '../store';
 
 // VAPT Finding 17 Remediation: Dynamic code-splitting for protected routes
 // Prevents exposing admin logic, customer deletion, and private APIs in the initial bundle
-const SuperAdminScreen = lazy(() =>
-  import('../screens/admin/SuperAdminScreen').then((m) => ({ default: m.SuperAdminScreen }))
+const AdminScreen = lazy(() =>
+  import('../screens/admin/AdminScreen').then((m) => ({ default: m.AdminScreen }))
 );
 const OptometristScreen = lazy(() =>
   import('../screens/optometrist/OptometristScreen').then((m) => ({ default: m.OptometristScreen }))
@@ -144,16 +144,13 @@ export const routes = [
     element: (
       <ProtectedRoute allowedRole="admin">
         <Suspense fallback={<AuthChecking />}>
-          <SuperAdminScreen />
+          <AdminScreen />
         </Suspense>
       </ProtectedRoute>
     ),
     path: '/admin',
   },
-  {
-    element: <Navigate replace to="/admin" />,
-    path: '/super-admin',
-  },
+
   {
     element: (
       <Suspense fallback={<AuthChecking />}>

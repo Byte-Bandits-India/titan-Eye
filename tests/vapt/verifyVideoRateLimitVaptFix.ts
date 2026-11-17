@@ -102,19 +102,19 @@ async function runVideoRateLimitVerification() {
   const port = (server.address() as AddressInfo).port;
   const VIDEOS_URL = `http://127.0.0.1:${port}/api/videos`;
 
-  const superAdmin1: TestUser = {
+  const admin1: TestUser = {
     email: 'admin_rate_limit_1@titan.in',
     name: 'Admin Limit Tester 1',
-    role: 'super_admin',
+    role: 'admin',
   };
-  const token1 = await setupTestUser(superAdmin1);
+  const token1 = await setupTestUser(admin1);
 
-  const superAdmin2: TestUser = {
+  const admin2: TestUser = {
     email: 'admin_duplicate_test@titan.in',
     name: 'Admin Duplicate Tester',
-    role: 'super_admin',
+    role: 'admin',
   };
-  const token2 = await setupTestUser(superAdmin2);
+  const token2 = await setupTestUser(admin2);
 
   const createdVideoIds: number[] = [];
 
@@ -333,8 +333,8 @@ async function runVideoRateLimitVerification() {
     }
 
     await run('DELETE FROM users WHERE email IN (?, ?, ?)', [
-      superAdmin1.email,
-      superAdmin2.email,
+      admin1.email,
+      admin2.email,
       'store_rate_limit_test@titan.in',
     ]);
 

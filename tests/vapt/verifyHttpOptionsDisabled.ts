@@ -136,7 +136,7 @@ async function runHttpOptionsVerification() {
   });
 
   // CORS middleware (identical to server/index.ts)
-  const allowedOrigins = ['http://localhost:5173', 'https://trvc.titan.in', 'https://titan-dev.thebytebandits.com'];
+  const allowedOrigins = ['http://localhost:5173', 'https://trvc.titan.in', 'https://trvc.titan.in'];
   app.use(
     cors({
       allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id'],

@@ -96,9 +96,9 @@ const videoUploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
 });
 
-function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
-    return res.status(403).json({ error: 'Super Admin access required' });
+function requireAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
   }
 
   next();
@@ -161,7 +161,7 @@ router.get('/:id/ticket', async (req: AuthenticatedRequest, res: Response) => {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // RBAC: super_admin and admin can request tickets for any video
+    // RBAC: admin can request tickets for any video
     // store can ONLY request ticket for the active TV mode video
     if (user.role === 'store') {
       const setting = await get<TvModeSettingRow>('SELECT * FROM tvmode_settings WHERE id = 1');
@@ -177,7 +177,7 @@ router.get('/:id/ticket', async (req: AuthenticatedRequest, res: Response) => {
 
         return res.status(403).json({ error: 'Store accounts can only stream the active TV mode video.' });
       }
-    } else if (user.role !== 'super_admin' && user.role !== 'admin') {
+    } else if (user.role !== 'admin') {
       logSecurityEvent('UNAUTHORIZED_VIDEO_TICKET_REQUEST', {
         email: user.email,
         ip: req.ip,
@@ -279,7 +279,7 @@ router.get('/:id/stream', async (req: AuthenticatedRequest, res: Response) => {
           error: 'Access denied. Store accounts can only stream the active TV mode video.',
         });
       }
-    } else if (ticketPayload.role !== 'super_admin' && ticketPayload.role !== 'admin') {
+    } else if (ticketPayload.role !== 'admin') {
       logSecurityEvent('UNAUTHORIZED_ROLE_STREAM_ATTEMPT', {
         email: ticketPayload.email,
         ip: req.ip,
@@ -345,7 +345,7 @@ router.get('/:id/stream', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.use(requireSuperAdmin);
+router.use(requireAdmin);
 
 type VideoListResponseBody = ErrorResponse | ManagedVideoWithTicket[];
 
@@ -383,7 +383,7 @@ interface UploadVideoBody {
 router.post(
   '/',
   videoUploadLimiter,
-  requireSuperAdmin,
+  requireAdmin,
   (req: AuthenticatedRequest, res: Response<VideoUploadResponseBody>, next) => {
     upload.single('video')(req, res, (err: unknown) => {
       if (err) {

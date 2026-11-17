@@ -3,7 +3,7 @@ import crypto from 'crypto';
 export const JWT_SECRET = process.env.JWT_SECRET ?? '';
 
 // RFC 7519 standard expirations (in seconds)
-export const JWT_EXPIRY_ADMIN_SEC = 2 * 60 * 60; // 2 hours for privileged super_admin accounts
+export const JWT_EXPIRY_ADMIN_SEC = 2 * 60 * 60; // 2 hours for privileged admin accounts
 export const JWT_EXPIRY_STANDARD_SEC = 8 * 60 * 60; // 8 hours for standard clinic staff (working shift)
 export const JWT_EXPIRY_SHORT_SEC = 2 * 60 * 60; // 2 hours for non-remembered sessions
 
@@ -27,7 +27,7 @@ export interface UserPayload {
  * Returns role-appropriate token TTL in seconds based on security privilege level.
  */
 export function getTtlSecondsForUser(role: string, rememberMe = false): number {
-  if (role === 'admin' || role === 'super_admin') {
+  if (role === 'admin') {
     return JWT_EXPIRY_ADMIN_SEC;
   }
 

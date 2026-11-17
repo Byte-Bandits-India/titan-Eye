@@ -288,7 +288,7 @@ router.get('/users/:email/photo', async (req: AuthenticatedRequest, res: Respons
   }
 });
 
-router.get('/audit-logs', authorizeRoles('admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.get('/audit-logs', authorizeRoles('admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const logDir = resolveLogDir();
     if (!fs.existsSync(logDir)) {
