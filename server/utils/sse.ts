@@ -55,6 +55,28 @@ export interface BroadcastOptions {
 }
 
 /**
+ * Mirrors the customer visibility rule of GET /api/customers for optometrist roles.
+ */
+function isCustomerVisibleToClinician(client: SseClient, c: any): boolean {
+  if (!c || typeof c !== 'object') {
+    return false;
+  }
+  const email = client.user?.email?.trim().toLowerCase() ?? '';
+  const name = client.user?.name?.trim().toLowerCase() ?? '';
+  const offeredTo = typeof c.offeredToOptometristEmail === 'string' ? c.offeredToOptometristEmail.trim().toLowerCase() : '';
+  const takenBy = typeof c.callTakenBy === 'string' ? c.callTakenBy.trim().toLowerCase() : '';
+  const assigned = (!!takenBy && takenBy === name) || (!!offeredTo && offeredTo === email);
+
+  if (assigned) {
+    return true;
+  }
+  if (c.status === 'Initiated' || c.status === 'Queued') {
+    return !offeredTo;
+  }
+  return false;
+}
+
+/**
  * Evaluates whether a connected SSE client is authorized to receive a specific event.
  * Enforces strict role-based access control (RBAC) and store-level multi-tenant isolation.
  */
@@ -63,7 +85,7 @@ export function isClientAuthorizedForEvent(
   type: string,
   data: any,
   options?: BroadcastOptions
-): { authorized: boolean; sanitizedPayload?: any } {
+): { authorized: boolean; sanitizedPayload?: any; sanitizedType?: string } {
   const clientRole = client.user?.role;
   const clientStore = client.user?.storeName ? client.user.storeName.trim().toLowerCase() : null;
   const clientEmail = client.user?.email ? client.user.email.trim().toLowerCase() : null;
@@ -139,14 +161,25 @@ export function isClientAuthorizedForEvent(
       return { authorized: true };
     }
 
-    // Admins & Senior Optometrists have full oversight
-    if (clientRole === 'admin' || clientRole === 'senior_optometrist') {
+    // Admins have full oversight
+    if (clientRole === 'admin') {
       return { authorized: true };
     }
 
-    // Optometrists: receive queue and patient updates for active triage / consultations
-    if (clientRole === 'optometrist') {
-      return { authorized: true };
+    // Optometrists & Senior Optometrists: same visibility rule as GET /api/customers and
+    // verifyCustomerAccess (queue entries not offered to someone else, or consultations assigned to them).
+    if (clientRole === 'optometrist' || clientRole === 'senior_optometrist') {
+      if (type === 'CUSTOMER_DELETED') {
+        return { authorized: true }; // payload is { id } only
+      }
+      if (isCustomerVisibleToClinician(client, data)) {
+        return { authorized: true };
+      }
+      // Record is not (or no longer) visible to this clinician: tell the UI to drop it, send no PII.
+      if (type === 'CUSTOMER_UPDATED' && data && typeof data.id === 'string') {
+        return { authorized: true, sanitizedPayload: { id: data.id }, sanitizedType: 'CUSTOMER_DELETED' };
+      }
+      return { authorized: false };
     }
 
     return { authorized: false };
@@ -231,7 +264,7 @@ export function broadcastEvent<T extends object | string | number | boolean>(
       }
 
       const payloadToSend = authResult.sanitizedPayload !== undefined ? authResult.sanitizedPayload : data;
-      client.res.write(`data: ${JSON.stringify({ data: payloadToSend, type })}\n\n`);
+      client.res.write(`data: ${JSON.stringify({ data: payloadToSend, type: authResult.sanitizedType ?? type })}\n\n`);
       deliveryCount++;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));

@@ -293,3 +293,15 @@ Get-Content <AppRoot>\logs\service-out.log -Wait
 # Recycle IIS application pool
 Restart-WebAppPool -Name "DefaultAppPool"
 ```
+
+---
+
+## 🔐 Security Hardening (VAPT Remediation) — run once as Administrator
+
+**Step 4.1 — Server header suppression (VAPT Findings 21, 22):**
+`powershell -ExecutionPolicy Bypass -File .\disable-iis-server-header.ps1`
+Sets HTTP.sys `DisableServerHeader = 2` (removes `Server: Microsoft-HTTPAPI/2.0` / `Microsoft-IIS/10.0`), disables ARR `X-Powered-By: ARR/3.0`, enables the `web.config` outbound rules, and removes WebDAV.
+
+**Step 4.2 — D(HE)ater DoS (VAPT Finding 9):**
+`powershell -ExecutionPolicy Bypass -File .\disable-dhe-ciphers.ps1`
+Disables all `TLS_DHE_*` cipher suites and Schannel Diffie-Hellman key exchange, keeps ECDHE. **Reboot afterwards**, then verify with `nmap --script ssl-enum-ciphers -p 443 trvc.titan.in`.

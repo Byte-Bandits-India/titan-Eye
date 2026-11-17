@@ -482,7 +482,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       query += ' WHERE storeName = ?';
       params.push(req.user?.storeName ?? null);
     } else if (role === 'optometrist' || role === 'senior_optometrist') {
-      query += ` WHERE status IN ('Initiated', 'Queued', 'Accepted', 'Testing')
+      // Same rule as verifyCustomerAccess: unassigned queue entries (not offered to someone else)
+      // or consultations assigned to / offered to this clinician. Never other clinicians' Accepted/Testing.
+      query += ` WHERE (status IN ('Initiated', 'Queued') AND (offeredToOptometristEmail IS NULL OR offeredToOptometristEmail = ''))
                  OR (callTakenBy IS NOT NULL AND LOWER(callTakenBy) = LOWER(?))
                  OR (offeredToOptometristEmail IS NOT NULL AND LOWER(offeredToOptometristEmail) = LOWER(?))`;
       params.push(req.user?.name ?? '', req.user?.email ?? '');
