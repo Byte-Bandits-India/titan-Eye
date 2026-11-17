@@ -14,7 +14,8 @@
 param (
     [string]$AppRoot = "",
     [string]$ToolsDir = "",
-    [string]$SiteName = "TitanEye"
+    [string]$SiteName = "TitanEye",
+    [string]$HostName = "trvc.titan.in"
 )
 
 $ErrorActionPreference = "Stop"
@@ -128,7 +129,12 @@ Write-Host "`n--- Phase 2: Setting up Background Service ---" -ForegroundColor C
 
 # 3. Setup IIS Website & Routing
 Write-Host "`n--- Phase 3: Configuring IIS Web Site & Reverse Proxy ---" -ForegroundColor Cyan
-& "$PSScriptRoot\03-setup-iis-website.ps1" -AppRoot $AppRoot -SiteName $SiteName
+& "$PSScriptRoot\03-setup-iis-website.ps1" -AppRoot $AppRoot -SiteName $SiteName -HostName $HostName
+
+# Hardening: Suppress all server version and runtime disclosure headers
+if (Test-Path "$PSScriptRoot\disable-iis-server-header.ps1") {
+    & "$PSScriptRoot\disable-iis-server-header.ps1"
+}
 
 # 4. Setup Automated Backup Task Scheduler
 Write-Host "`n--- Phase 4: Setting up Daily Backup Scheduler ---" -ForegroundColor Cyan

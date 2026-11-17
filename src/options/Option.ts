@@ -82,6 +82,26 @@ export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const PASSWORD_REGEX =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~` ]).{8,128}$/;
 
+const COMMON_WEAK_PASSWORDS = new Set([
+  'admin@123',
+  'admin@123456',
+  'admin123',
+  'admin123456',
+  'password@123',
+  'password@123456',
+  'password123',
+  'password123456',
+  'titan@123',
+  'titan@123456',
+  'titan123456',
+  'welcome@123',
+  'welcome@123456',
+  'welcome123',
+  'welcome123456',
+  'pass@123',
+  'pass@123456',
+]);
+
 export function validateClientPassword(
   password: string,
   userContext?: { email?: string; storeName?: string }
@@ -112,6 +132,10 @@ export function validateClientPassword(
 
   if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~` ]/.test(password)) {
     return 'Password must include at least one special character (!@#$%^&*...)';
+  }
+
+  if (COMMON_WEAK_PASSWORDS.has(password.toLowerCase())) {
+    return 'This password is too common or easily guessable. Please choose a stronger password.';
   }
 
   if (userContext?.email) {

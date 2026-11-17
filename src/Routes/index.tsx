@@ -51,12 +51,12 @@ export function BaseRedirect() {
 }
 
 export function getHomeRoute(role: UserRole): string {
-  if (role === 'store' || role === 'crm_user') {
+  if (role === 'store') {
     return '/store';
   }
 
-  if (role === 'super_admin') {
-    return '/super-admin';
+  if (role === 'admin') {
+    return '/admin';
   }
 
   return '/optometrist';
@@ -112,7 +112,7 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole={['store', 'crm_user']}>
+      <ProtectedRoute allowedRole="store">
         <Suspense fallback={<AuthChecking />}>
           <StoreScreen />
         </Suspense>
@@ -122,7 +122,7 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole={['store', 'crm_user']}>
+      <ProtectedRoute allowedRole="store">
         <Suspense fallback={<AuthChecking />}>
           <TvModeScreen />
         </Suspense>
@@ -142,12 +142,16 @@ export const routes = [
   },
   {
     element: (
-      <ProtectedRoute allowedRole="super_admin">
+      <ProtectedRoute allowedRole="admin">
         <Suspense fallback={<AuthChecking />}>
           <SuperAdminScreen />
         </Suspense>
       </ProtectedRoute>
     ),
+    path: '/admin',
+  },
+  {
+    element: <Navigate replace to="/admin" />,
     path: '/super-admin',
   },
   {

@@ -6,7 +6,7 @@
 param (
     [string]$AppRoot     = "",
     [string]$SiteName    = "TitanEye",
-    [string]$HostName    = "titan.xylozentech.com",
+    [string]$HostName    = "trvc.titan.in",
     [string]$CertPath    = "",
     [string]$CertPassword= ""
 )

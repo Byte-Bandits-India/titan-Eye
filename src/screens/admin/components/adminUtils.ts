@@ -34,15 +34,15 @@ export const DEFAULT_FEEDBACK_COLUMNS = [
 ];
 
 export const ROLE_OPTIONS = [
+  { label: 'Admin', value: 'admin' },
   { label: 'Store', value: 'store' },
   { label: 'Optometrist', value: 'optometrist' },
   { label: 'Senior Optometrist', value: 'senior_optometrist' },
-  { label: 'CRM User', value: 'crm_user' },
 ];
 
 export const EMPTY_FORM: UserFormData = {
   city: '',
-  consentAccepted: false,
+  consentAccepted: true,
   email: '',
   languages: [],
   location: '',
@@ -71,8 +71,9 @@ export function getRoleBasedUserId(user: ManagedUser, allUsers: ManagedUser[]): 
   const numStr = String(indexInRole > 0 ? indexInRole : 1).padStart(3, '0');
 
   switch (user.role.toLowerCase()) {
+    case 'admin':
     case 'super_admin':
-      return `SUPERADMIN-${numStr}`;
+      return `ADMIN-${numStr}`;
     case 'senior_optometrist':
       return `SENIOROPTOM-${numStr}`;
     case 'optometrist':

@@ -27,7 +27,7 @@ export interface UserPayload {
  * Returns role-appropriate token TTL in seconds based on security privilege level.
  */
 export function getTtlSecondsForUser(role: string, rememberMe = false): number {
-  if (role === 'super_admin') {
+  if (role === 'admin' || role === 'super_admin') {
     return JWT_EXPIRY_ADMIN_SEC;
   }
 

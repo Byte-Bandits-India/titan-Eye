@@ -96,6 +96,8 @@ const rawAllowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean);
 
 const defaultOrigins = [
+  'https://trvc.titan.in',
+  'https://trvcstaging.titan.in',
   'http://titan.thebytebandits.com',
   'https://titan.thebytebandits.com',
   'http://titan-dev.thebytebandits.com',
@@ -113,6 +115,9 @@ const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https:
 function isAllowedOrigin(origin: string): boolean {
   const normalized = origin.trim().replace(/\/$/, '');
   if (allowedOrigins.includes(normalized)) {
+    return true;
+  }
+  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*titan\.in$/.test(normalized)) {
     return true;
   }
   if (/^https?:\/\/([a-zA-Z0-9-]+\.)*thebytebandits\.com$/.test(normalized)) {

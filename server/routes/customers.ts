@@ -275,8 +275,7 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
   return (await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id])) ?? null;
 }
 
-export function toApiCustomer(row: CustomerRow, viewerRole?: string) {
-  const isCrm = viewerRole === 'crm_user';
+export function toApiCustomer(row: CustomerRow, _viewerRole?: string) {
   return {
     ...row,
     firstName: row.firstName || (row.name ? row.name.split(' ')[0] : ''),
@@ -287,11 +286,11 @@ export function toApiCustomer(row: CustomerRow, viewerRole?: string) {
     consentAcceptedAt: row.consentAcceptedAt || null,
     isPriority: row.isPriority === 1,
     optometristCallStartTime: row.optometristCallStartTime || null,
-    optometristFeedback: isCrm ? '' : (row.optometristFeedback || ''),
-    optometristRxData: isCrm ? undefined : (row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined),
-    rxData: isCrm ? undefined : (row.rxData ? JSON.parse(row.rxData) : undefined),
-    storeFeedbackImage1: isCrm ? null : row.storeFeedbackImage1,
-    storeFeedbackImage2: isCrm ? null : row.storeFeedbackImage2,
+    optometristFeedback: row.optometristFeedback || '',
+    optometristRxData: row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined,
+    rxData: row.rxData ? JSON.parse(row.rxData) : undefined,
+    storeFeedbackImage1: row.storeFeedbackImage1,
+    storeFeedbackImage2: row.storeFeedbackImage2,
   };
 }
 
@@ -459,7 +458,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.post('/', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const c = req.body as CustomerInput;
 
@@ -794,7 +793,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
-router.delete('/:id', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -832,7 +831,7 @@ router.delete('/:id', authorizeRoles('store', 'super_admin'), async (req: Authen
   }
 });
 
-router.post('/:id/initiate-call', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/initiate-call', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -954,7 +953,7 @@ router.post('/:id/initiate-call', authorizeRoles('store', 'super_admin'), async 
 
 router.post(
   '/:id/accept-call',
-  authorizeRoles('optometrist', 'senior_optometrist', 'super_admin'),
+  authorizeRoles('optometrist', 'senior_optometrist', 'admin', 'super_admin'),
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = String(req.params.id);
@@ -976,7 +975,7 @@ router.post(
       const callerRole = req.user!.role;
 
       // 2. Assignment validation: If 'Initiated', must be offered to this optometrist (or caller is super_admin)
-      if (customer.status === 'Initiated' && callerRole !== 'super_admin') {
+      if (customer.status === 'Initiated' && callerRole !== 'super_admin' && callerRole !== 'admin') {
         const offeredEmail = (customer.offeredToOptometristEmail || '').toLowerCase();
         if (offeredEmail && offeredEmail !== callerEmail) {
           logSecurityEvent('UNAUTHORIZED_CALL_ACCEPT_ATTEMPT', {
@@ -1020,7 +1019,7 @@ router.post(
         WHERE id = ?
           AND status IN ('Initiated', 'Queued')
           AND (
-            ? = 'super_admin'
+            (? = 'admin' OR ? = 'super_admin')
             OR status = 'Queued'
             OR LOWER(offeredToOptometristEmail) = ?
             OR offeredToOptometristEmail IS NULL
@@ -1055,7 +1054,7 @@ router.post(
   }
 );
 
-router.post('/:id/notify-admin-teams', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/notify-admin-teams', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id);
     const customer = await verifyCustomerAccess(req, res, id);
@@ -1065,7 +1064,7 @@ router.post('/:id/notify-admin-teams', authorizeRoles('store', 'super_admin'), a
     }
 
     const adminUsers = await all<UserRow>(
-      `SELECT email, microsoftUpn, name, role FROM users WHERE role IN ('super_admin', 'senior_optometrist') AND status = 'active'`
+      `SELECT email, microsoftUpn, name, role FROM users WHERE role IN ('admin', 'super_admin', 'senior_optometrist') AND status = 'active'`
     );
 
     const recipientEmails = adminUsers
@@ -1388,7 +1387,7 @@ router.post('/:id/end-call', async (req: AuthenticatedRequest, res: Response) =>
 
 const FEEDBACK_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-router.post('/:id/complete', authorizeRoles('store', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/complete', authorizeRoles('store', 'admin', 'super_admin'), async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (req.user!.role !== 'store') {
       return res.status(403).json({ error: 'Only Store users can mark a call as completed.' });
@@ -1535,7 +1534,7 @@ function feedbackImageColumn(slot: string): 'storeFeedbackImage1' | 'storeFeedba
 router.post(
   '/:id/feedback-image/:slot',
   feedbackImageUploadLimiter,
-  authorizeRoles('store', 'super_admin'),
+  authorizeRoles('store', 'admin', 'super_admin'),
   (req: AuthenticatedRequest, res: Response, next) => {
     feedbackImageUpload.single('image')(req, res, (err: unknown) => {
       if (err) {
@@ -1682,10 +1681,6 @@ router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: R
       return;
     }
 
-    if (req.user?.role === 'crm_user') {
-      return res.status(403).json({ error: 'Access Denied: CRM users cannot access clinical prescription images.' });
-    }
-
     const filename = customer[column];
 
     if (!filename) {
@@ -1759,10 +1754,6 @@ router.delete('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res
 
     if (!customer) {
       return;
-    }
-
-    if (req.user?.role === 'crm_user') {
-      return res.status(403).json({ error: 'Access Denied: CRM users cannot access clinical prescription images.' });
     }
 
     const filename = customer[column];

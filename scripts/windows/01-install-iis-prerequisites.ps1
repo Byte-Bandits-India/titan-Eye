@@ -143,13 +143,15 @@ if (Test-Path $arrDll) {
     }
 }
 
-# 5. Enable ARR proxy mode
-Write-Host "`n5. Enabling ARR proxy mode..." -ForegroundColor Yellow
+# 5. Enable ARR proxy mode & Suppress Server Fingerprint Headers
+Write-Host "`n5. Enabling ARR proxy mode & Hardening Server Headers..." -ForegroundColor Yellow
 $appcmd = "$env:SystemRoot\System32\inetsrv\appcmd.exe"
 if (Test-Path $appcmd) {
     try {
         & $appcmd set config -section:system.webServer/proxy /enabled:True /commit:apphost 2>$null | Out-Null
-        Write-Host "   [OK] ARR Proxy mode enabled via appcmd.exe" -ForegroundColor Green
+        # VAPT Finding #22: Suppress "X-Powered-By: ARR/3.0" reverse proxy response header
+        & $appcmd set config -section:system.webServer/proxy /arrResponseHeader:False /commit:apphost 2>$null | Out-Null
+        Write-Host "   [OK] ARR Proxy mode enabled and arrResponseHeader suppressed via appcmd.exe" -ForegroundColor Green
     } catch {
         Write-Warning "Could not enable ARR proxy via appcmd. Trying WebAdministration..."
     }
@@ -158,8 +160,20 @@ if (Test-Path $appcmd) {
 try {
     Import-Module WebAdministration -ErrorAction SilentlyContinue
     Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Section 'system.webServer/proxy' -Name 'enabled' -Value 'true' -ErrorAction SilentlyContinue
+    Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Section 'system.webServer/proxy' -Name 'arrResponseHeader' -Value 'false' -ErrorAction SilentlyContinue
 } catch {
     # Non-blocking since appcmd already configured proxy
+}
+
+# VAPT Finding #21 & #24: Suppress HTTP.sys kernel "Server: Microsoft-HTTPAPI/2.0" header
+try {
+    $httpParamPath = "HKLM:\SYSTEM\CurrentControlSet\Services\HTTP\Parameters"
+    if (Test-Path $httpParamPath) {
+        Set-ItemProperty -Path $httpParamPath -Name "DisableServerHeader" -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
+        Write-Host "   [OK] HTTP.sys DisableServerHeader set to 2 (suppresses Microsoft-HTTPAPI/2.0)" -ForegroundColor Green
+    }
+} catch {
+    Write-Warning "Could not configure HTTP.sys DisableServerHeader: $_"
 }
 
 Write-Host "`n====================================================" -ForegroundColor Cyan

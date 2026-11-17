@@ -116,17 +116,20 @@ foreach ($sub in @("audit", "signin", "err", "monitoring")) {
     }
 }
 
-# Stop and remove existing service if present
-$existing = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-if ($existing) {
-    Write-Host "Stopping and removing existing $ServiceName service..." -ForegroundColor Yellow
-    if ($existing.Status -eq "Running") {
-        Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+# Stop and remove existing service if present (including legacy TitanService or TitanEyeAPI)
+$servicesToClean = @($ServiceName, "TitanService", "TitanEyeAPI", "TitanEye") | Select-Object -Unique
+foreach ($svcName in $servicesToClean) {
+    $existing = Get-Service -Name $svcName -ErrorAction SilentlyContinue
+    if ($existing) {
+        Write-Host "Stopping and removing existing $svcName service..." -ForegroundColor Yellow
+        if ($existing.Status -eq "Running") {
+            Stop-Service -Name $svcName -Force -ErrorAction SilentlyContinue
+        }
+        cmd /c "`"$NssmExe`" stop `"$svcName`" >nul 2>&1"
+        Start-Sleep -Seconds 2
+        cmd /c "`"$NssmExe`" remove `"$svcName`" confirm >nul 2>&1"
+        Start-Sleep -Seconds 1
     }
-    cmd /c "`"$NssmExe`" stop `"$ServiceName`" >nul 2>&1"
-    Start-Sleep -Seconds 2
-    cmd /c "`"$NssmExe`" remove `"$ServiceName`" confirm >nul 2>&1"
-    Start-Sleep -Seconds 1
 }
 
 # Install service with NSSM using cmd /c to avoid PowerShell NativeCommandError

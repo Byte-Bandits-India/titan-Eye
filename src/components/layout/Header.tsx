@@ -151,9 +151,10 @@ export const Header = memo(function Header({
   }
 
   const unreadNotificationCount = logNotifications.length;
+  const isAdmin = user.role === 'admin' || (user.role as string) === 'super_admin';
 
   const roleBadge =
-    user.role === 'super_admin'
+    isAdmin
       ? 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200'
       : user.role === 'senior_optometrist'
         ? 'bg-purple-100 text-purple-700 border-purple-200'
@@ -162,15 +163,17 @@ export const Header = memo(function Header({
           : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 
   const roleLabel =
-    user.role === 'super_admin'
-      ? 'Super Admin'
+    isAdmin
+      ? 'Admin'
       : user.role === 'senior_optometrist'
         ? 'Senior Optometrist'
         : user.role === 'optometrist'
           ? 'Optometrist'
           : 'Store';
 
-  const initials = user.name
+  const displayName = user.name ? user.name.replace(/super admin/gi, 'Admin') : 'Admin';
+
+  const initials = displayName
     .split(' ')
     .map((w: string) => w[0])
     .join('')
@@ -179,11 +182,11 @@ export const Header = memo(function Header({
 
   const firstTab = user.role === 'senior_optometrist' ? 'queue' : 'customers';
   const firstTabLabel =
-    firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'Users' : 'Dashboard';
+    firstTab === 'queue' ? 'Queue Requests' : isAdmin ? 'Users' : 'Dashboard';
   const firstTabLabelLong =
-    firstTab === 'queue' ? 'Queue Requests' : user.role === 'super_admin' ? 'User Directory' : 'Dashboard';
+    firstTab === 'queue' ? 'Queue Requests' : isAdmin ? 'User Directory' : 'Dashboard';
   const firstTabLabelShort =
-    firstTab === 'queue' ? 'Queue' : user.role === 'super_admin' ? 'Users' : 'Customers';
+    firstTab === 'queue' ? 'Queue' : isAdmin ? 'Users' : 'Customers';
 
   const renderProfileDropdown = (avatarSize = 'w-8 h-8') => (
     <DropdownMenu>
@@ -216,7 +219,7 @@ export const Header = memo(function Header({
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-gray-900">{user.name}</div>
+              <div className="truncate text-sm font-medium text-gray-900">{displayName}</div>
               <div
                 className={`mt-0.5 inline-block rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${roleBadge}`}
               >
@@ -266,7 +269,7 @@ export const Header = memo(function Header({
           />
           {consoleLabel && (
             <div className="flex max-w-[120px] shrink-0 items-center truncate rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 sm:max-w-none sm:px-2.5 sm:text-sm">
-              {consoleLabel}
+              {consoleLabel ? consoleLabel.replace(/super admin/gi, 'Admin') : ''}
             </div>
           )}
         </div>
@@ -305,7 +308,7 @@ export const Header = memo(function Header({
               />
               <span className="whitespace-nowrap">Feedback</span>
             </button>
-            {user.role === 'super_admin' && (
+            {isAdmin && (
               <>
                 <button
                   className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
@@ -456,7 +459,7 @@ export const Header = memo(function Header({
                 <span className="hidden sm:inline">Customer Feedback</span>
               </span>
             </button>
-            {user.role === 'super_admin' && (
+            {isAdmin && (
               <>
                 <button
                   className={`flex min-w-0 flex-1 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3.5 sm:py-2 sm:text-sm ${

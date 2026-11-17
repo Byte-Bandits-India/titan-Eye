@@ -2,7 +2,7 @@ import type { ManagedUser } from '../types';
 
 export function getAdminAndSeniorOptomEmails(users: ManagedUser[]): string[] {
   const targetUsers = users.filter(
-    (u) => (u.role === 'super_admin' || u.role === 'senior_optometrist') && u.status !== 'inactive'
+    (u) => ((u.role === 'admin' || u.role === 'super_admin') || u.role === 'senior_optometrist') && u.status !== 'inactive'
   );
 
   const emails = targetUsers
@@ -10,7 +10,7 @@ export function getAdminAndSeniorOptomEmails(users: ManagedUser[]): string[] {
     .filter(Boolean);
 
   if (emails.length === 0) {
-    return ['admin@thebytebandits.onmicrosoft.com', 'optom-a@thebytebandits.onmicrosoft.com'];
+    return [];
   }
 
   return Array.from(new Set(emails));

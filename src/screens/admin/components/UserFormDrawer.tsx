@@ -1,10 +1,9 @@
-import { ExternalLink, Eye, EyeOff, MapPin, ShieldCheck, User } from 'lucide-react';
+import { Eye, EyeOff, MapPin, ShieldCheck, User } from 'lucide-react';
 import * as React from 'react';
 
 import type { UserFormData, UserRole } from '../../../types';
 
 import { Button } from '../../../components/ui/button';
-import { Checkbox } from '../../../components/ui/checkbox';
 import { Input } from '../../../components/ui/input';
 import { LegacySelect as Select } from '../../../components/ui/select';
 import { SheetBody, SheetFooter } from '../../../components/ui/sheet';
@@ -144,9 +143,7 @@ export const UserFormDrawer = React.memo(
       }
     }
 
-    if (!editingEmail && !form.consentAccepted) {
-      newErrors.consent = 'You must agree to the Terms and Conditions to create a user account';
-    }
+
 
     setErrors(newErrors);
 
@@ -171,6 +168,16 @@ export const UserFormDrawer = React.memo(
 
     try {
       await onSubmitUser(form, !!editingEmail);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast({
+        description: msg,
+        title: 'Error Saving User',
+        type: 'error',
+      });
+      if (msg.toLowerCase().includes('password')) {
+        setErrors((prev) => ({ ...prev, password: msg }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -267,7 +274,7 @@ export const UserFormDrawer = React.memo(
           {/* Email */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">
-              {form.role === 'super_admin' ? 'Admin Email' : 'Email Address'}{' '}
+              {form.role === 'admin' ? 'Admin Email' : 'Email Address'}{' '}
               <span className="text-rose-500">*</span>
             </label>
             <Input
@@ -290,7 +297,7 @@ export const UserFormDrawer = React.memo(
           {/* Password */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-muted-foreground">
-              {form.role === 'super_admin' ? 'Admin Password' : 'Password'}{' '}
+              {form.role === 'admin' ? 'Admin Password' : 'Password'}{' '}
               {!editingEmail && <span className="text-rose-500">*</span>}
             </label>
             <div className="relative">
@@ -330,7 +337,7 @@ export const UserFormDrawer = React.memo(
           </div>
 
           {/* Mobile Number (store, optometrist & senior optometrist) */}
-          {form.role !== 'super_admin' && (
+          {form.role !== 'admin' && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">
                 Mobile Number {isOptomLikeRole(form.role) && <span className="text-rose-500">*</span>}
@@ -403,60 +410,14 @@ export const UserFormDrawer = React.memo(
             </div>
           )}
 
-          {/* Consent Checkbox (Create User only) */}
-          {!editingEmail && (
-            <div className="pt-2">
-              <div
-                className={cn(
-                  'rounded-lg border p-3 transition-colors',
-                  errors.consent
-                    ? 'border-rose-500/60 bg-rose-50/40 dark:bg-rose-950/20'
-                    : 'border-border/60 bg-muted/30 hover:bg-muted/50'
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Checkbox
-                    checked={form.consentAccepted}
-                    id="consent-checkbox"
-                    onCheckedChange={(checked) => {
-                      setForm((prev) => ({ ...prev, consentAccepted: Boolean(checked) }));
 
-                      if (errors.consent) {
-                        clearError('consent');
-                      }
-                    }}
-                  />
-                  <label
-                    className="cursor-pointer select-none text-xs leading-normal text-foreground"
-                    htmlFor="consent-checkbox"
-                  >
-                    I have read and agree to the{' '}
-                    <a
-                      className="inline font-medium text-primary underline underline-offset-2 hover:text-primary/80"
-                      href="https://www.titaneyeplus.com/terms-and-conditions"
-                      onClick={(e) => e.stopPropagation()}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                    >
-                      Terms and Conditions
-                      <ExternalLink className="ml-1 inline size-3 align-[-1px]" />
-                    </a>
-                    <span className="ml-0.5 text-rose-500">*</span>
-                  </label>
-                </div>
-                {errors.consent && (
-                  <p className="mt-1.5 pl-[26px] text-[10px] font-medium text-rose-500">{errors.consent}</p>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </SheetBody>
 
       <SheetFooter className="sticky bottom-0 bg-card px-6 py-4">
         <Button
           className="active:scale-98 h-10 w-full cursor-pointer rounded-md px-6 text-sm font-medium shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={submitting || (!editingEmail && !form.consentAccepted)}
+          disabled={submitting}
           type="submit"
           variant="primary"
         >

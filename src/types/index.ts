@@ -400,7 +400,7 @@ export type UserFormData = {
   storeName: string;
 };
 
-export type UserRole = 'crm_user' | 'optometrist' | 'senior_optometrist' | 'store' | 'super_admin';
+export type UserRole = 'admin' | 'optometrist' | 'senior_optometrist' | 'store';
 
 export type UserState = {
   error: null | string;

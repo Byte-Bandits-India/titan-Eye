@@ -31,7 +31,7 @@ router.param('email', (_req, res, next, email) => {
 
 const onlineEmails = new Set<string>();
 
-const VALID_ROLES = ['crm_user', 'optometrist', 'senior_optometrist', 'store', 'super_admin'];
+const VALID_ROLES = ['admin', 'optometrist', 'senior_optometrist', 'store', 'super_admin'];
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
 
 interface CreateUserBody {
@@ -108,8 +108,8 @@ function serializeLanguages(role: string, languages?: string[]): null | string {
 type UserListResponseBody = ErrorResponse | ManagedUserResponse[];
 
 function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || req.user.role !== 'super_admin') {
-    return res.status(403).json({ error: 'Super Admin access required' });
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+    return res.status(403).json({ error: 'Admin access required' });
   }
 
   next();
@@ -117,7 +117,7 @@ function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () =>
 
 router.get('/', async (req: AuthenticatedRequest, res: Response<UserListResponseBody>) => {
   try {
-    const isSuperAdmin = req.user?.role === 'super_admin';
+    const isSuperAdmin = req.user?.role === 'admin' || req.user?.role === 'super_admin';
 
     if (isSuperAdmin) {
       const rows = await all<UserRow>(
@@ -232,7 +232,7 @@ router.post(
     try {
       const { city, consentAccepted, email, languages, location, mobile, name, password, role, storeName } = req.body;
 
-      if (!consentAccepted) {
+      if (consentAccepted === false) {
         return res.status(400).json({ error: 'Consent to Terms and Conditions is required' });
       }
 

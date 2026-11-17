@@ -97,7 +97,7 @@ const videoUploadLimiter = rateLimit({
 });
 
 function requireSuperAdmin(req: AuthenticatedRequest, res: Response, next: () => void) {
-  if (!req.user || req.user.role !== 'super_admin') {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
     return res.status(403).json({ error: 'Super Admin access required' });
   }
 

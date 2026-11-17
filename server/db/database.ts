@@ -514,8 +514,18 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
+  try {
+    await run("UPDATE users SET role = 'admin' WHERE role = 'super_admin'");
+    await run("UPDATE users SET name = 'Admin' WHERE name = 'Super Admin'");
+    await run("DELETE FROM users WHERE LOWER(email) = 'admin@thebytebandits.onmicrosoft.com'");
+  } catch (e) {
+    logger.error('Failed to migrate super_admin roles to admin', {
+      errorMessage: e instanceof Error ? e.message : String(e),
+    });
+  }
+
   const configuredAdminEmail = process.env.ADMIN_EMAIL;
-  const defaultPassword = process.env.ADMIN_PASSWORD || 'TitanRemote@2026!#';
+  const defaultPassword = process.env.ADMIN_PASSWORD || 'Titan@2026';
   const defaultHashedPassword = hashPassword(defaultPassword);
 
   const initialUsers: Array<{
@@ -525,13 +535,7 @@ export async function initializeDatabase(): Promise<void> {
     role: string;
     storeName: null | string;
   }> = [
-    {
-      email: 'admin@thebytebandits.onmicrosoft.com',
-      microsoftUpn: 'admin@thebytebandits.onmicrosoft.com',
-      name: 'Super Admin',
-      role: 'super_admin',
-      storeName: null,
-    },
+    
     {
       email: 'optom-a@thebytebandits.onmicrosoft.com',
       microsoftUpn: 'optom-a@thebytebandits.onmicrosoft.com',
@@ -562,19 +566,14 @@ export async function initializeDatabase(): Promise<void> {
     },
   ];
 
-  if (
-    configuredAdminEmail &&
-    configuredAdminEmail.trim() &&
-    configuredAdminEmail.toLowerCase() !== 'admin@thebytebandits.onmicrosoft.com'
-  ) {
-    initialUsers.push({
-      email: configuredAdminEmail.trim(),
-      microsoftUpn: configuredAdminEmail.trim(),
-      name: 'Super Admin',
-      role: 'super_admin',
-      storeName: null,
-    });
-  }
+  const adminEmailToSeed = (configuredAdminEmail && configuredAdminEmail.trim()) || 'admin@gmail.com';
+  initialUsers.unshift({
+    email: adminEmailToSeed,
+    microsoftUpn: adminEmailToSeed,
+    name: 'Admin',
+    role: 'admin',
+    storeName: null,
+  });
 
   for (const u of initialUsers) {
     const existingUser = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [

@@ -345,7 +345,7 @@ export function SuperAdminScreen() {
             city: formData.role === 'store' ? formData.city || undefined : undefined,
             languages: isOptomLike ? formData.languages : undefined,
             location: formData.role === 'store' ? formData.location || undefined : undefined,
-            mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
+            mobile: formData.role !== 'admin' ? formData.mobile || undefined : undefined,
             name: isOptomLike ? formData.name || undefined : undefined,
             password: formData.password || undefined,
             role: formData.role,
@@ -365,7 +365,7 @@ export function SuperAdminScreen() {
             email: formData.email,
             languages: isOptomLike ? formData.languages : undefined,
             location: formData.role === 'store' ? formData.location || undefined : undefined,
-            mobile: formData.role !== 'super_admin' ? formData.mobile || undefined : undefined,
+            mobile: formData.role !== 'admin' ? formData.mobile || undefined : undefined,
             name: isOptomLike ? formData.name || undefined : undefined,
             password: formData.password,
             role: formData.role,
@@ -457,7 +457,7 @@ export function SuperAdminScreen() {
   return (
     <AppLayout
       activeTab={activeTab}
-      consoleLabel="Super Admin Console"
+      consoleLabel="Admin Console"
       onSelectCustomer={handleSelectCustomerFromNotification}
       setActiveTab={setActiveTab}
     >
