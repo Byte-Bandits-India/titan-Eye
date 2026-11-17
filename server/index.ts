@@ -166,11 +166,14 @@ app.use(
         workerSrc: ["'self'", 'blob:'],
       },
     },
+    // Single policy shared with web.config / nginx (static layer). Express owns headers on /api responses.
+    frameguard: { action: 'deny' },
     hsts: {
       includeSubDomains: true,
       maxAge: 31536000, // 1 year
       preload: true,
     },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
 
