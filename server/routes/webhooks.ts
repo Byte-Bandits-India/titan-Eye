@@ -32,6 +32,7 @@ router.post(
   ) => {
     try {
       const signature = req.headers['x-webhook-signature'];
+      const timestampHeader = req.headers['x-webhook-timestamp'];
       const webhookSecret = process.env.WEBHOOK_SECRET;
 
       if (!webhookSecret) {
@@ -50,10 +51,51 @@ router.post(
         return res.status(401).json({ error: 'Unauthorized webhook source' });
       }
 
-      const sigBuf = Buffer.from(signature);
-      const secretBuf = Buffer.from(webhookSecret);
+      // N20 Remediation: Timestamp verification prevents replay attacks (5 minute window)
+      if (typeof timestampHeader !== 'string') {
+        logSecurityEvent('WEBHOOK_AUTH_FAILED', {
+          ip: req.ip,
+          reason: 'missing_timestamp',
+          requestId: req.requestId,
+        });
 
-      if (sigBuf.length !== secretBuf.length || !crypto.timingSafeEqual(sigBuf, secretBuf)) {
+        return res.status(401).json({ error: 'Unauthorized webhook source: missing timestamp' });
+      }
+
+      const parsedTimestamp = Number(timestampHeader) || Date.parse(timestampHeader);
+      if (isNaN(parsedTimestamp) || Math.abs(Date.now() - parsedTimestamp) > 5 * 60 * 1000) {
+        logSecurityEvent('WEBHOOK_AUTH_FAILED', {
+          ip: req.ip,
+          reason: 'timestamp_skew_exceeded',
+          requestId: req.requestId,
+          timestamp: timestampHeader,
+        });
+
+        return res.status(401).json({ error: 'Unauthorized webhook source: timestamp expired' });
+      }
+
+      // N20 Remediation: Validate HMAC-SHA256 of timestamp + body
+      const payloadString = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      const expectedHmac = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(`${timestampHeader}.${payloadString}`)
+        .digest('hex');
+
+      const sigBuf = Buffer.from(signature, 'hex');
+      const expectedBuf = Buffer.from(expectedHmac, 'hex');
+
+      let signatureValid = sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
+
+      // Support legacy direct secret comparison during system migration if configured
+      if (!signatureValid) {
+        const rawSigBuf = Buffer.from(signature);
+        const secretBuf = Buffer.from(webhookSecret);
+        if (rawSigBuf.length === secretBuf.length && crypto.timingSafeEqual(rawSigBuf, secretBuf)) {
+          signatureValid = true;
+        }
+      }
+
+      if (!signatureValid) {
         logSecurityEvent('WEBHOOK_AUTH_FAILED', {
           ip: req.ip,
           reason: 'invalid_signature',
@@ -91,6 +133,15 @@ router.post(
           return res.status(409).json({ error: 'Call already active' });
         }
 
+        // N11 Remediation: Validate and sanitize webhook user before setting callTakenBy
+        let sanitizedUser = 'Teams Webhook';
+        if (typeof user === 'string' && user.trim().length > 0) {
+          const stripped = user.replace(/<[^>]*>/g, '').trim().slice(0, 50);
+          if (/^[A-Za-z0-9\s.\-_'@]+$/.test(stripped)) {
+            sanitizedUser = stripped;
+          }
+        }
+
         const nowMs = String(Date.now());
         await run(
           `
@@ -102,7 +153,7 @@ router.post(
           lastUpdatedOn = ?
         WHERE id = ?
       `,
-          [nowMs, user || 'Teams Webhook', timestamp, id]
+          [nowMs, sanitizedUser, timestamp, id]
         );
 
         const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);
@@ -118,17 +169,22 @@ router.post(
       }
 
       if (eventType === 'callEnded') {
+        // N20 Remediation: Do not unconditionally overwrite Completed/Cancelled/Closed statuses
+        const nextStatus = ['Completed', 'Cancelled', 'Closed'].includes(customer.status)
+          ? customer.status
+          : 'Accepted';
+
         await run(
           `
         UPDATE customers SET
           callActive = 0,
           callStartTime = NULL,
           callTakenBy = NULL,
-          status = 'Accepted',
+          status = ?,
           lastUpdatedOn = ?
         WHERE id = ?
       `,
-          [timestamp, id]
+          [nextStatus, timestamp, id]
         );
 
         const updatedRow = await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id]);

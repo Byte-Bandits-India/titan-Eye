@@ -56,44 +56,25 @@ export function StoreScreen() {
     []
   );
 
+  // N23 Remediation: Scrub client-side PII at rest
+  React.useEffect(() => {
+    try {
+      sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+    } catch {}
+  }, []);
+
   const [statusTab, setStatusTab] = React.useState<StatusTab>('Pending');
   const [customerSearchTerm, setCustomerSearchTerm] = React.useState('');
   const [customerDateRange, setCustomerDateRange] = React.useState<DateFilterRange>('all');
   const [conversionStatusFilter, setConversionStatusFilter] =
     React.useState<ConversionStatusFilterValue>('all');
   const [isNarrowScreen, setIsNarrowScreen] = React.useState(false);
-  const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>(() => {
-    try {
-      const draft = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-      if (draft) {
-        const parsed = JSON.parse(draft);
-
-        if (parsed?.active) {
-          return null;
-        }
-      }
-    } catch {}
-
-    return '#0492';
-  });
+  const [selectedCustomerId, setSelectedCustomerId] = React.useState<null | string>('#0492');
   const [isEditing, setIsEditing] = React.useState(false);
   const [isEditingRx, setIsEditingRx] = React.useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
   const [isViewingConversionDetail, setIsViewingConversionDetail] = React.useState(false);
-  const [isCreatingTest, setIsCreatingTest] = React.useState(() => {
-    try {
-      const draft = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-      if (draft) {
-        const parsed = JSON.parse(draft);
-
-        return Boolean(parsed?.active);
-      }
-    } catch {}
-
-    return false;
-  });
+  const [isCreatingTest, setIsCreatingTest] = React.useState(false);
   const [isViewingSalesConversion, setIsViewingSalesConversion] = React.useState(false);
   const [pageSize, setPageSize] = React.useState<number>(PAGINATION.STORE_PAGE_SIZE);
   const [completingCallId, setCompletingCallId] = React.useState<null | string>(null);
@@ -562,13 +543,6 @@ export function StoreScreen() {
     setSelectedCustomerId(null);
     setStatusTab('Pending');
     resetPage();
-
-    try {
-      sessionStorage.setItem(
-        STORAGE_KEYS.CREATE_CUSTOMER_DRAFT,
-        JSON.stringify({ active: true, activeStep: 1 })
-      );
-    } catch {}
 
     setIsCreatingTest(true);
   }, [resetPage]);

@@ -33,6 +33,9 @@ const onlineEmails = new Set<string>();
 
 const VALID_ROLES = ['admin', 'optometrist', 'senior_optometrist', 'store'];
 const STORE_CODE_REGEX = /^[A-Za-z0-9]{1,4}$/;
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const MOBILE_REGEX = /^[0-9+\-\s()]{7,20}$/;
+const LANGUAGE_REGEX = /^[A-Za-z\s\-]{2,50}$/;
 
 interface CreateUserBody {
   city?: string;
@@ -153,9 +156,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response<UserListResponse
     const rows = await all<UserRow>(
       "SELECT email, name, role, languages, lastPing, status FROM users WHERE role IN ('optometrist', 'senior_optometrist') AND status = 'active' ORDER BY name"
     );
-    const sanitizedResult = rows.map((u) => ({
+    const sanitizedResult = rows.map((u, idx) => ({
       city: null,
-      email: u.email,
+      email: `optom-${idx + 1}@trvc.titan.in`, // Masked pseudonymous email to prevent store staff harvesting doctor emails
       isLoggedIn: isPresenceOnline(u),
       languages: parseLanguages(u.languages),
       lastLogin: null,
@@ -289,7 +292,29 @@ router.post(
         }
       }
 
+      if (mobile !== undefined && mobile !== null && mobile !== '') {
+        const trimmedMobile = String(mobile).trim();
+        if (!MOBILE_REGEX.test(trimmedMobile)) {
+          return res.status(400).json({ error: 'Invalid mobile phone number format' });
+        }
+      }
+
+      if (languages !== undefined && languages !== null) {
+        if (!Array.isArray(languages)) {
+          return res.status(400).json({ error: 'Languages must be an array of strings' });
+        }
+        for (const lang of languages) {
+          if (typeof lang !== 'string' || !LANGUAGE_REGEX.test(lang.trim())) {
+            return res.status(400).json({ error: 'Invalid language format' });
+          }
+        }
+      }
+
       const normalizedEmail = email.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(normalizedEmail) || normalizedEmail.length > 254) {
+        return res.status(400).json({ error: 'Invalid email address format' });
+      }
+
       const existing = await get<{ email: string }>('SELECT email FROM users WHERE LOWER(email) = ?', [
         normalizedEmail,
       ]);
@@ -422,6 +447,24 @@ router.put(
         }
       }
 
+      if (mobile !== undefined && mobile !== null && mobile !== '') {
+        const trimmedMobile = String(mobile).trim();
+        if (!MOBILE_REGEX.test(trimmedMobile)) {
+          return res.status(400).json({ error: 'Invalid mobile phone number format' });
+        }
+      }
+
+      if (languages !== undefined && languages !== null) {
+        if (!Array.isArray(languages)) {
+          return res.status(400).json({ error: 'Languages must be an array of strings' });
+        }
+        for (const lang of languages) {
+          if (typeof lang !== 'string' || !LANGUAGE_REGEX.test(lang.trim())) {
+            return res.status(400).json({ error: 'Invalid language format' });
+          }
+        }
+      }
+
       const finalStoreName = role === 'store' ? storeName || null : null;
       const newPassword = password ? hashPassword(password) : existing.password;
       const derivedName = deriveName(role, existing.email, name, storeName);
@@ -441,6 +484,11 @@ router.put(
           email,
         ]
       );
+
+      // N9 Remediation: Invalidate active session if role or password was updated
+      if (existing.role !== role || password) {
+        await run('UPDATE users SET activeTokenSig = NULL WHERE LOWER(email) = LOWER(?)', [email]);
+      }
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
 
@@ -528,7 +576,11 @@ router.put(
         return res.status(404).json({ error: 'User not found' });
       }
 
-      await run('UPDATE users SET status = ? WHERE LOWER(email) = LOWER(?)', [status, email]);
+      // If deactivating user, invalidate active session immediately
+      await run(
+        "UPDATE users SET status = ?, activeTokenSig = CASE WHEN ? = 'inactive' THEN NULL ELSE activeTokenSig END WHERE LOWER(email) = LOWER(?)",
+        [status, status, email]
+      );
 
       const adminEmail = req.user?.email || 'admin@gmail.com';
 

@@ -37,11 +37,16 @@ export function LoginScreen() {
   const [isTabletShortcut] = React.useState(
     () => new URLSearchParams(window.location.search).get('src') === 'tablet-shortcut'
   );
-  const rememberedEmail = React.useMemo(() => localStorage.getItem(STORAGE_KEYS.REMEMBERED_EMAIL) ?? '', []);
-  const [email, setEmail] = React.useState(rememberedEmail);
+  // N23 Remediation: Do not persist user identity / email PII in localStorage at rest. Scrub legacy entry.
+  React.useEffect(() => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.REMEMBERED_EMAIL);
+    } catch {}
+  }, []);
+  const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
-  const [rememberMe, setRememberMe] = React.useState(Boolean(rememberedEmail));
+  const [rememberMe, setRememberMe] = React.useState(false);
   const [captchaId, setCaptchaId] = React.useState('');
   const [captchaSvg, setCaptchaSvg] = React.useState('');
   const [captchaSolution, setCaptchaSolution] = React.useState('');
@@ -147,11 +152,10 @@ export function LoginScreen() {
     try {
       await dispatch(loginAction(email, password, rememberMe, captchaId, captchaSolution.trim()));
 
-      if (rememberMe) {
-        localStorage.setItem(STORAGE_KEYS.REMEMBERED_EMAIL, email);
-      } else {
+      // N23 Remediation: Always ensure no credential or identity PII remains stored at rest in browser storage
+      try {
         localStorage.removeItem(STORAGE_KEYS.REMEMBERED_EMAIL);
-      }
+      } catch {}
 
       toast({
         description: `Logged in successfully.`,

@@ -485,70 +485,19 @@ export const StoreCustomerTestPage = React.memo(
       [user]
     );
 
-    const [form, setForm] = React.useState<CustomerForm>(() => {
-      if (!selectedCustomer) {
-        try {
-          const raw = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-          if (raw) {
-            const parsed = JSON.parse(raw);
-
-            if (parsed?.form) {
-              return {
-                ...buildFormState(null),
-                ...parsed.form,
-              };
-            }
-          }
-        } catch {}
-      }
-
-      return buildFormState(selectedCustomer);
-    });
+    // N23 Remediation: Do not persist customer clinical/demographic PII in browser sessionStorage at rest.
+    const [form, setForm] = React.useState<CustomerForm>(() => buildFormState(selectedCustomer));
     const [errors, setErrors] = React.useState<Record<string, string>>({});
-
-    const [storeFeedback, setStoreFeedback] = React.useState(() => {
-      if (!selectedCustomer) {
-        try {
-          const raw = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-          if (raw) {
-            const parsed = JSON.parse(raw);
-
-            if (typeof parsed?.storeFeedback === 'string') {
-              return parsed.storeFeedback;
-            }
-          }
-        } catch {}
-      }
-
-      return selectedCustomer?.storeFeedback || '';
-    });
+    const [storeFeedback, setStoreFeedback] = React.useState(() => selectedCustomer?.storeFeedback || '');
     const [rxErrors, setRxErrors] = React.useState<Record<string, boolean>>({});
-    const [rxForm, setRxForm] = React.useState<RxFormState>(() => {
-      if (!selectedCustomer) {
-        try {
-          const raw = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-          if (raw) {
-            const parsed = JSON.parse(raw);
-
-            if (parsed?.rxForm) {
-              return parsed.rxForm;
-            }
-          }
-        } catch {}
+    const [rxForm, setRxForm] = React.useState<RxFormState>(() => (
+      selectedCustomer?.rxData || {
+        autoRefLe: { ...emptyRxValues },
+        autoRefRe: { ...emptyRxValues },
+        pgpLe: { ...emptyRxValues },
+        pgpRe: { ...emptyRxValues },
       }
-
-      return (
-        selectedCustomer?.rxData || {
-          autoRefLe: { ...emptyRxValues },
-          autoRefRe: { ...emptyRxValues },
-          pgpLe: { ...emptyRxValues },
-          pgpRe: { ...emptyRxValues },
-        }
-      );
-    });
+    ));
     const [optometristRxForm, setOptometristRxForm] = React.useState<OptometristRxFormState>(() => {
       const optometristRx = selectedCustomer?.optometristRxData;
 
@@ -563,33 +512,7 @@ export const StoreCustomerTestPage = React.memo(
     const [isCancellingRequest, setIsCancellingRequest] = React.useState(false);
     const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const [activeStep, setActiveStep] = React.useState<number>(() => {
-      if (!selectedCustomer) {
-        try {
-          const raw = sessionStorage.getItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
-
-          if (raw) {
-            const parsed = JSON.parse(raw);
-
-            if (parsed?.activeStep === 2 && parsed?.form) {
-              const f = parsed.form;
-              const valid =
-                (Boolean(f.firstName?.trim()) || Boolean(f.name?.trim())) &&
-                Boolean(f.age) &&
-                AGE_REGEX.test(f.age.trim()) &&
-                Boolean(f.gender) &&
-                Boolean(f.preferredLanguage);
-
-              if (valid) {
-                return 2;
-              }
-            }
-          }
-        } catch {}
-      }
-
-      return 1;
-    });
+    const [activeStep, setActiveStep] = React.useState<number>(1);
 
     const hasPendingRequest =
       selectedCustomer?.status === 'Initiated' || selectedCustomer?.status === 'Queued';
@@ -620,21 +543,16 @@ export const StoreCustomerTestPage = React.memo(
     }
 
     React.useEffect(() => {
-      if (!selectedCustomer) {
+      // N23 Remediation: Scrub client-side PII at rest
+      try {
+        sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
+      } catch {}
+      return () => {
         try {
-          sessionStorage.setItem(
-            STORAGE_KEYS.CREATE_CUSTOMER_DRAFT,
-            JSON.stringify({
-              active: true,
-              activeStep,
-              form,
-              rxForm,
-              storeFeedback,
-            })
-          );
+          sessionStorage.removeItem(STORAGE_KEYS.CREATE_CUSTOMER_DRAFT);
         } catch {}
-      }
-    }, [selectedCustomer, form, rxForm, storeFeedback, activeStep]);
+      };
+    }, []);
 
     const handleBack = React.useCallback(() => {
       try {

@@ -78,7 +78,7 @@ function validateOptionalEnum(
   return { sanitized: value, valid: true };
 }
 
-function validateString(
+export function validateString(
   value: string | undefined,
   fieldName: string,
   maxLength: number,
@@ -117,6 +117,31 @@ export interface CustomerValidationResult {
   valid: boolean;
 }
 
+function validateRxObject(rx: unknown, fieldName: string): { valid: boolean; error?: string; sanitized?: any } {
+  if (rx === undefined || rx === null || rx === '') {
+    return { sanitized: null, valid: true };
+  }
+  let parsed = rx;
+  if (typeof rx === 'string') {
+    try {
+      parsed = JSON.parse(rx);
+    } catch {
+      return { error: `${fieldName} must be valid JSON`, valid: false };
+    }
+  }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { error: `${fieldName} must be an object`, valid: false };
+  }
+  const str = JSON.stringify(parsed);
+  if (str.length > 8192) {
+    return { error: `${fieldName} exceeds maximum size of 8KB`, valid: false };
+  }
+  if (/("__proto__"|"constructor"|"prototype")/i.test(str)) {
+    return { error: `${fieldName} contains forbidden properties`, valid: false };
+  }
+  return { sanitized: parsed, valid: true };
+}
+
 export function validateCustomerData(
   data: CustomerInput,
   _isUpdate: boolean = false
@@ -124,19 +149,42 @@ export function validateCustomerData(
   const errors: string[] = [];
   const sanitized: Partial<SanitizedCustomer> = {};
 
-  if (!data.name && data.firstName) {
-    data.name = [data.firstName.trim(), (data.lastName || '').trim()].filter(Boolean).join(' ');
+  // N10 Remediation: Strictly validate firstName and lastName to neutralize XSS (<svg/onload=alert(1)>)
+  if (data.firstName !== undefined && data.firstName !== null && String(data.firstName).trim() !== '') {
+    const fnResult = validateName(String(data.firstName), 'First name', MAX_CUSTOMER_NAME_LENGTH);
+    if (!fnResult.valid) {
+      errors.push(fnResult.error!);
+    } else {
+      sanitized.firstName = fnResult.sanitized;
+    }
   }
 
-  const nameResult = validateName(data.name, 'Name', MAX_CUSTOMER_NAME_LENGTH);
+  if (data.lastName !== undefined && data.lastName !== null && String(data.lastName).trim() !== '') {
+    const lnResult = validateName(String(data.lastName), 'Last name', MAX_CUSTOMER_NAME_LENGTH);
+    if (!lnResult.valid) {
+      errors.push(lnResult.error!);
+    } else {
+      sanitized.lastName = lnResult.sanitized;
+    }
+  }
+
+  if (!data.name) {
+    data.name = [sanitized.firstName || '', sanitized.lastName || ''].filter(Boolean).join(' ');
+  }
+
+  const nameResult = validateName(data.name, 'Name', MAX_CUSTOMER_NAME_LENGTH * 2);
 
   if (!nameResult.valid) {
     errors.push(nameResult.error!);
   } else {
     sanitized.name = nameResult.sanitized;
     const parts = (sanitized.name || '').split(/\s+/);
-    sanitized.firstName = data.firstName?.trim() || parts[0] || '';
-    sanitized.lastName = data.lastName?.trim() || parts.slice(1).join(' ') || '';
+    if (!sanitized.firstName) {
+      sanitized.firstName = parts[0] || '';
+    }
+    if (!sanitized.lastName) {
+      sanitized.lastName = parts.slice(1).join(' ') || '';
+    }
   }
 
   const ageResult = validateAge(data.age);
@@ -297,13 +345,56 @@ export function validateCustomerData(
   }
 
   sanitized.activeProfile = data.activeProfile === true || data.activeProfile === 1;
-  sanitized.lastUpdatedOn =
-    typeof data.lastUpdatedOn === 'string' ? stripHtml(data.lastUpdatedOn).slice(0, MAX_GENERIC_LENGTH) : '';
 
-  sanitized.rxData = data.rxData ?? null;
-  sanitized.optometristRxData = data.optometristRxData ?? null;
+  // N11 Remediation: Validate lastUpdatedOn format
+  if (data.lastUpdatedOn !== undefined && data.lastUpdatedOn !== null) {
+    const updatedStr = stripHtml(String(data.lastUpdatedOn)).trim();
+    sanitized.lastUpdatedOn = updatedStr.slice(0, 50);
+  } else {
+    sanitized.lastUpdatedOn = '';
+  }
 
-  sanitized.callStartTime = typeof data.callStartTime === 'string' ? data.callStartTime : null;
+  // N11 Remediation: Validate rxData and optometristRxData JSON structure & size
+  const rxResult = validateRxObject(data.rxData, 'rxData');
+  if (!rxResult.valid) {
+    errors.push(rxResult.error!);
+  } else {
+    sanitized.rxData = rxResult.sanitized;
+  }
+
+  const optomRxResult = validateRxObject(data.optometristRxData, 'optometristRxData');
+  if (!optomRxResult.valid) {
+    errors.push(optomRxResult.error!);
+  } else {
+    sanitized.optometristRxData = optomRxResult.sanitized;
+  }
+
+  // N11 Remediation: Validate callStartTime format
+  if (data.callStartTime !== undefined && data.callStartTime !== null) {
+    const startStr = String(data.callStartTime).trim();
+    if (startStr === '') {
+      sanitized.callStartTime = null;
+    } else if (/^[0-9]{1,16}$/.test(startStr) || !isNaN(Date.parse(startStr))) {
+      sanitized.callStartTime = startStr.slice(0, 50);
+    } else {
+      errors.push('callStartTime must be a valid timestamp or numeric string');
+    }
+  } else {
+    sanitized.callStartTime = null;
+  }
+
+  // N11 Remediation: Validate lastUpdatedOn format
+  if (data.lastUpdatedOn !== undefined && data.lastUpdatedOn !== null) {
+    const updatedStr = String(data.lastUpdatedOn).trim();
+    if (updatedStr === '') {
+      sanitized.lastUpdatedOn = undefined;
+    } else if (updatedStr.length <= 50 && (!isNaN(Date.parse(updatedStr)) || /^[A-Za-z0-9,:\s\-]+$/.test(updatedStr))) {
+      sanitized.lastUpdatedOn = updatedStr;
+    } else {
+      errors.push('lastUpdatedOn must be a valid date or timestamp string');
+    }
+  }
+
   sanitized.callActive = data.callActive === true || data.callActive === 1;
 
   if (typeof data.callTakenBy === 'string') {

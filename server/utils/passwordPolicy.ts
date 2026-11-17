@@ -15,7 +15,7 @@ export interface PasswordValidationResult {
   valid: boolean;
 }
 
-const MIN_LENGTH = 8;
+const MIN_LENGTH = 12;
 const MAX_LENGTH = 128;
 
 // Common breached or easily predictable passwords (normalized to lowercase)

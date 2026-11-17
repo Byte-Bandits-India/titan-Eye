@@ -1,5 +1,6 @@
 import '../config/env.js';
 import crypto from 'crypto';
+import { getJwtSecret } from '../config/jwt.js';
 
 const PREFIX = 'ENC:v1:';
 const ALGORITHM = 'aes-256-gcm';
@@ -9,7 +10,7 @@ let cachedKey: Buffer | null = null;
 
 /**
  * Resolves the 256-bit (32-byte) log encryption key from environment.
- * Accepts a 64-char hex string, 32-byte base64, or derives a 32-byte key via SHA-256.
+ * Accepts a 64-char hex string, 32-byte base64, or derives a dedicated 32-byte key via domain separation.
  */
 export function getLogEncryptionKey(): Buffer | null {
   if (cachedKey) {
@@ -19,10 +20,10 @@ export function getLogEncryptionKey(): Buffer | null {
   const rawKey = process.env.LOG_ENCRYPTION_KEY || process.env.LOGS_SECRET;
 
   if (!rawKey) {
-    // If explicit encryption is enabled but no key is set, derive one from JWT_SECRET as fallback
+    // If explicit encryption is enabled but no key is set, derive a dedicated purpose key
     if (process.env.LOG_ENCRYPTION_ENABLED === 'true') {
-      const fallbackSecret = process.env.JWT_SECRET || process.env.INTER_SERVER_SECRET || 'titan-default-logs-salt-key';
-      cachedKey = crypto.createHash('sha256').update(fallbackSecret).digest();
+      const masterSecret = getJwtSecret();
+      cachedKey = crypto.createHmac('sha256', masterSecret).update('trvc-log-encryption-purpose-v1').digest();
       return cachedKey;
     }
     return null;

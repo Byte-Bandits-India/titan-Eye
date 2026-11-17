@@ -419,6 +419,14 @@ export async function initializeDatabase(): Promise<void> {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS token_blacklist (
+      signature TEXT PRIMARY KEY,
+      expiresAt INTEGER NOT NULL
+    )
+  `);
+  await run(`CREATE INDEX IF NOT EXISTS idx_token_blacklist_expires ON token_blacklist(expiresAt)`);
+
+  await run(`
     CREATE TABLE IF NOT EXISTS videos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -514,27 +522,44 @@ export async function initializeDatabase(): Promise<void> {
     FROM customers
   `);
 
-  const configuredAdminEmail = process.env.ADMIN_EMAIL;
+  // Ensure all administrative roles are normalized strictly to 'admin' (no super_admin)
+  await run("UPDATE users SET role = 'admin' WHERE role = 'super_admin'");
+
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim();
   const configuredAdminPassword = process.env.ADMIN_PASSWORD;
 
-  if (configuredAdminEmail && configuredAdminEmail.trim()) {
-    const adminEmail = configuredAdminEmail.trim();
-    const existingAdmin = await get<UserRow>('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [adminEmail]);
+  // N7 Remediation:
+  // 1. Seed only in non-production OR first-time bootstrap when database is completely empty.
+  // 2. Strictly require explicit ADMIN_PASSWORD in environment (zero hard-coded default passwords).
+  // 3. Never touch, mutate, re-activate, or reset existing user records on restart.
+  if (configuredAdminEmail && configuredAdminPassword) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const userCountRow = await get<{ count: number }>('SELECT COUNT(*) as count FROM users');
+    const isBrandNewDb = !userCountRow || userCountRow.count === 0;
 
-    if (!existingAdmin) {
-      const hashedPassword = configuredAdminPassword ? hashPassword(configuredAdminPassword) : '';
-      await run(
-        `INSERT INTO users (email, name, role, storeName, mobile, status, password, microsoftUpn)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [adminEmail, 'Admin', 'admin', null, null, 'active', hashedPassword, adminEmail]
-      );
-      logger.info('Configured admin user created.');
-    } else if (configuredAdminPassword && (!existingAdmin.password || !existingAdmin.password.includes(':'))) {
-      await run('UPDATE users SET password = ?, role = ? WHERE LOWER(email) = LOWER(?)', [
-        hashPassword(configuredAdminPassword),
-        'admin',
-        adminEmail,
+    if (!isProduction || isBrandNewDb) {
+      const existingUser = await get<UserRow>('SELECT email FROM users WHERE LOWER(email) = LOWER(?)', [
+        configuredAdminEmail,
       ]);
+
+      if (!existingUser) {
+        const hashedPassword = hashPassword(configuredAdminPassword);
+        await run(
+          `INSERT INTO users (email, name, role, storeName, mobile, status, password, microsoftUpn)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            configuredAdminEmail,
+            'Admin',
+            'admin',
+            null,
+            null,
+            'active',
+            hashedPassword,
+            configuredAdminEmail,
+          ]
+        );
+        logger.info('Initial bootstrap admin user created.');
+      }
     }
   }
 }

@@ -1,5 +1,22 @@
+import './env.js';
 import crypto from 'crypto';
 
+/**
+ * Validates and retrieves the master JWT secret.
+ * Fails hard if JWT_SECRET is missing, empty, or shorter than 32 bytes (256 bits).
+ */
+export function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || typeof secret !== 'string' || Buffer.byteLength(secret, 'utf8') < 32) {
+    const errorMsg =
+      'FATAL: JWT_SECRET environment variable is missing, empty, or shorter than 32 bytes (256 bits). ' +
+      'A cryptographically secure secret (minimum 32 bytes) is required to prevent token forgery.';
+    throw new Error(errorMsg);
+  }
+  return secret;
+}
+
+// Backward-compatible export; runtime functions use getJwtSecret()
 export const JWT_SECRET = process.env.JWT_SECRET ?? '';
 
 // RFC 7519 standard expirations (in seconds)
@@ -13,12 +30,14 @@ export const PRESENCE_IDLE_MS = 35 * 1000;
 export const SESSION_ABANDONED_MS = 10 * 60 * 1000;
 
 export interface UserPayload {
+  authTime?: number; // Absolute timestamp (seconds since epoch) when the user initially logged in
   email: string;
   exp?: number; // Expiration time (seconds since Unix epoch per RFC 7519)
   iat?: number; // Issued at (seconds since Unix epoch per RFC 7519)
   jti?: string; // Unique JWT identifier
   name: string;
   nbf?: number; // Not before (seconds since Unix epoch per RFC 7519)
+  rememberMe?: boolean; // Whether the user selected Remember Me at login
   role: string;
   storeName?: string;
 }
@@ -39,6 +58,7 @@ export function getTtlSecondsForUser(role: string, rememberMe = false): number {
  * All standard time claims (iat, nbf, exp) are strictly formatted in SECONDS since Unix epoch.
  */
 export function generateToken(payload: UserPayload, ttlSeconds: number = JWT_EXPIRY_STANDARD_SEC): string {
+  const secret = getJwtSecret();
   // Guard against callers mistakenly passing milliseconds (> 10 million)
   const normalizedTtlSec = ttlSeconds > 10_000_000 ? Math.floor(ttlSeconds / 1000) : ttlSeconds;
   const nowSec = Math.floor(Date.now() / 1000);
@@ -46,20 +66,23 @@ export function generateToken(payload: UserPayload, ttlSeconds: number = JWT_EXP
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const fullPayload: UserPayload = {
     ...payload,
+    authTime: payload.authTime ?? nowSec,
     exp: nowSec + normalizedTtlSec,
     iat: nowSec,
     jti: crypto.randomUUID(),
     nbf: nowSec,
+    rememberMe: payload.rememberMe ?? false,
   };
 
   const body = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', JWT_SECRET).update(`${header}.${body}`).digest('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(`${header}.${body}`).digest('base64url');
 
   return `${header}.${body}.${signature}`;
 }
 
 export function verifyToken(token: string): null | UserPayload {
   try {
+    const secret = getJwtSecret();
     const parts = token.split('.');
 
     if (parts.length !== 3) {
@@ -81,7 +104,7 @@ export function verifyToken(token: string): null | UserPayload {
 
     // 2. Constant-time signature verification
     const expectedSignature = crypto
-      .createHmac('sha256', JWT_SECRET)
+      .createHmac('sha256', secret)
       .update(`${headerStr}.${bodyStr}`)
       .digest('base64url');
 

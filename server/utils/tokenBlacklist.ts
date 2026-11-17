@@ -1,3 +1,5 @@
+import { db } from '../db/database.js';
+
 interface RevokedEntry {
   expiresAt: number;
   signature: string;
@@ -12,7 +14,29 @@ export function isRevoked(token: string): boolean {
     return false;
   }
 
-  return revokedTokens.has(sig);
+  if (revokedTokens.has(sig)) {
+    return true;
+  }
+
+  try {
+    const row = db
+      .prepare('SELECT expiresAt FROM token_blacklist WHERE signature = ?')
+      .get(sig) as { expiresAt: number } | undefined;
+
+    if (row) {
+      if (row.expiresAt > Date.now()) {
+        revokedTokens.set(sig, { expiresAt: row.expiresAt, signature: sig });
+        return true;
+      } else {
+        db.prepare('DELETE FROM token_blacklist WHERE signature = ?').run(sig);
+        return false;
+      }
+    }
+  } catch {
+    // If table not initialized yet during bootstrap, fall back to memory
+  }
+
+  return false;
 }
 
 export function revokeToken(token: string): void {
@@ -24,6 +48,15 @@ export function revokeToken(token: string): void {
 
   const expiresAt = extractExpiry(token);
   revokedTokens.set(sig, { expiresAt, signature: sig });
+
+  try {
+    db.prepare('INSERT OR REPLACE INTO token_blacklist (signature, expiresAt) VALUES (?, ?)').run(
+      sig,
+      expiresAt
+    );
+  } catch {
+    // Memory store fallback if DB is temporarily busy
+  }
 }
 
 function extractExpiry(token: string): number {
@@ -65,6 +98,10 @@ function purgeExpired(): void {
       revokedTokens.delete(key);
     }
   }
+
+  try {
+    db.prepare('DELETE FROM token_blacklist WHERE expiresAt < ?').run(now);
+  } catch {}
 }
 
 setInterval(purgeExpired, 60 * 60 * 1000).unref();

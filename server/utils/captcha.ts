@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { getJwtSecret } from '../config/jwt.js';
 
 const CAPTCHA_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluded ambiguous chars: 0, O, 1, I, l
@@ -14,12 +15,17 @@ setInterval(() => {
   }
 }, 60 * 1000).unref();
 
-function getCaptchaSecret(): string {
-  return process.env.JWT_SECRET || process.env.INTER_SERVER_SECRET || 'trvc-captcha-secure-salt-key';
+export function getCaptchaSecret(): string {
+  if (process.env.CAPTCHA_SECRET && Buffer.byteLength(process.env.CAPTCHA_SECRET, 'utf8') >= 32) {
+    return process.env.CAPTCHA_SECRET;
+  }
+  // Cryptographically isolated key derived from master secret (prevents cross-protocol token reuse)
+  const masterSecret = getJwtSecret();
+  return crypto.createHmac('sha256', masterSecret).update('trvc-captcha-purpose-v1').digest('hex');
 }
 
 function randomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return crypto.randomInt(min, max + 1);
 }
 
 function randomColor(): string {
@@ -101,10 +107,7 @@ export function generateCaptcha(): CaptchaResult {
   const timestamp = Date.now();
   const secret = getCaptchaSecret();
   const normalizedSolution = solution.toUpperCase().trim();
-  const hmac = crypto
-    .createHmac('sha256', secret)
-    .update(`${timestamp}.${normalizedSolution}`)
-    .digest('hex');
+  const hmac = crypto.createHmac('sha256', secret).update(`${timestamp}.${normalizedSolution}`).digest('hex');
 
   const captchaId = `${timestamp}.${hmac}`;
 

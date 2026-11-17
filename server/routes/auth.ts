@@ -13,12 +13,15 @@ import {
 import { db, get, run, UserRow } from '../db/database.js';
 import { AuthenticatedRequest, authenticateToken } from '../middleware/auth.js';
 import { generateCaptcha, verifyCaptcha } from '../utils/captcha.js';
-import { verifyPassword } from '../utils/hash.js';
+import { hashPassword, verifyPassword } from '../utils/hash.js';
 import { alertCritical, logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
 import { revokeToken } from '../utils/tokenBlacklist.js';
 
 const router = Router();
+
+// Constant dummy hash computed once at boot to neutralize user-enumeration timing attacks on unknown emails
+const DUMMY_HASH = hashPassword('timing-mitigation-dummy-password-value-2026');
 
 const LOCKOUT_THRESHOLD = 5;
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000;
@@ -75,20 +78,28 @@ router.post(
         [email.trim()]
       );
 
-      if (user && user.lockedUntil) {
+      // N17 Remediation: Timing attack defense. If account does not exist, run scrypt on dummy hash
+      // so elapsed verification time is identical to an existing account.
+      if (!user) {
+        verifyPassword(password, DUMMY_HASH);
+        logSecurityEvent('LOGIN_FAILED_UNKNOWN_EMAIL', { ip: req.ip, requestId: req.requestId });
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      if (user.lockedUntil) {
         const lockExpiry = new Date(user.lockedUntil).getTime();
 
         if (Date.now() < lockExpiry) {
-          const minutesLeft = Math.ceil((lockExpiry - Date.now()) / 60000);
+          // Perform scrypt work to maintain consistent response timing
+          verifyPassword(password, user.password || DUMMY_HASH);
           logSecurityEvent('LOGIN_BLOCKED_ACCOUNT_LOCKED', {
             email: user.email,
             ip: req.ip,
             requestId: req.requestId,
           });
 
-          return res.status(423).json({
-            error: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`,
-          });
+          // N17: Generic 401 prevents account lockout status from serving as a user-existence oracle
+          return res.status(401).json({ error: 'Invalid email or password' });
         }
 
         await run('UPDATE users SET failedLoginAttempts = 0, lockedUntil = NULL WHERE email = ?', [
@@ -96,14 +107,22 @@ router.post(
         ]);
       }
 
-      if (user && verifyPassword(password, user.password)) {
+      if (verifyPassword(password, user.password)) {
         if (user.status === 'inactive') {
           return res.status(403).json({ error: 'This account has been deactivated' });
         }
 
         const ttlSec = getTtlSecondsForUser(user.role, Boolean(rememberMe));
+        const authTime = Math.floor(Date.now() / 1000);
         const token = generateToken(
-          { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
+          {
+            authTime,
+            email: user.email,
+            name: user.name,
+            rememberMe: Boolean(rememberMe),
+            role: user.role,
+            storeName: user.storeName ?? undefined,
+          },
           ttlSec
         );
         const newTokenSig = token.split('.')[2];
@@ -150,7 +169,9 @@ router.post(
         });
       }
 
-      if (user) {
+      // Password mismatch
+      // N17 Remediation: Do not allow public password brute-force to lock out admin accounts (DoS defense)
+      if (user.role !== 'admin') {
         const newCount = (user.failedLoginAttempts || 0) + 1;
 
         if (newCount >= LOCKOUT_THRESHOLD) {
@@ -171,21 +192,21 @@ router.post(
             failedAttempts: newCount,
             ip: req.ip,
           });
-
-          return res.status(423).json({
-            error: 'Account locked due to too many failed attempts. Try again after 30 minutes.',
+        } else {
+          await run('UPDATE users SET failedLoginAttempts = ? WHERE email = ?', [newCount, user.email]);
+          logSecurityEvent('LOGIN_FAILED', {
+            email: user.email,
+            failedAttempts: newCount,
+            ip: req.ip,
+            requestId: req.requestId,
           });
         }
-
-        await run('UPDATE users SET failedLoginAttempts = ? WHERE email = ?', [newCount, user.email]);
-        logSecurityEvent('LOGIN_FAILED', {
+      } else {
+        logSecurityEvent('ADMIN_LOGIN_FAILED', {
           email: user.email,
-          failedAttempts: newCount,
           ip: req.ip,
           requestId: req.requestId,
         });
-      } else {
-        logSecurityEvent('LOGIN_FAILED_UNKNOWN_EMAIL', { ip: req.ip, requestId: req.requestId });
       }
 
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -212,16 +233,32 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
       return res.status(401).json({ error: 'Session is no longer valid' });
     }
 
-    if (req.user?.exp) {
-      const nowSec = Math.floor(Date.now() / 1000);
+    // N16 Remediation: Hard absolute max session age prevents perpetual sliding refresh.
+    // Preserves session cookie behavior (does not convert non-rememberMe into persistent cookie).
+    const nowSec = Math.floor(Date.now() / 1000);
+    const authTime = req.user?.authTime || req.user?.iat || nowSec;
+    const isRememberMe = Boolean(req.user?.rememberMe);
+    const maxSessionAgeSec = isRememberMe ? 24 * 60 * 60 : 8 * 60 * 60;
+    const sessionAgeSec = nowSec - authTime;
+
+    if (req.user?.exp && sessionAgeSec < maxSessionAgeSec) {
       const expSec = req.user.exp < 100_000_000_000 ? req.user.exp : Math.floor(req.user.exp / 1000);
-      const ttlSec = getTtlSecondsForUser(user.role, true);
+      const standardTtl = getTtlSecondsForUser(user.role, isRememberMe);
+      const remainingAllowedSec = maxSessionAgeSec - sessionAgeSec;
+      const refreshTtlSec = Math.min(standardTtl, remainingAllowedSec);
 
       // If more than 50% of the token's lifetime has elapsed, slide/refresh token
-      if (expSec - nowSec < ttlSec / 2) {
+      if (expSec - nowSec < refreshTtlSec / 2 && refreshTtlSec > 60) {
         const refreshedToken = generateToken(
-          { email: user.email, name: user.name, role: user.role, storeName: user.storeName ?? undefined },
-          ttlSec
+          {
+            authTime,
+            email: user.email,
+            name: user.name,
+            rememberMe: isRememberMe,
+            role: user.role,
+            storeName: user.storeName ?? undefined,
+          },
+          refreshTtlSec
         );
         const refreshedTokenSig = refreshedToken.split('.')[2];
 
@@ -234,7 +271,7 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res: Resp
           AUTH_COOKIE_NAME,
           refreshedToken,
           getAuthCookieOptions(req, {
-            maxAgeMs: ttlSec * 1000,
+            maxAgeMs: isRememberMe ? refreshTtlSec * 1000 : undefined,
             sameSite: 'strict',
           })
         );

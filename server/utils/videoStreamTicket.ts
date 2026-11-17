@@ -1,5 +1,13 @@
 import crypto from 'crypto';
-import { JWT_SECRET } from '../config/jwt.js';
+import { getJwtSecret } from '../config/jwt.js';
+
+export function getVideoTicketSecret(): string {
+  if (process.env.VIDEO_TICKET_SECRET && Buffer.byteLength(process.env.VIDEO_TICKET_SECRET, 'utf8') >= 32) {
+    return process.env.VIDEO_TICKET_SECRET;
+  }
+  const masterSecret = getJwtSecret();
+  return crypto.createHmac('sha256', masterSecret).update('trvc-video-ticket-purpose-v1').digest('hex');
+}
 
 export interface VideoStreamTicketPayload {
   videoId: number;
@@ -41,7 +49,7 @@ export function generateVideoStreamTicket(
   const payloadJson = JSON.stringify(payload);
   const payloadB64 = Buffer.from(payloadJson, 'utf8').toString('base64url');
 
-  const hmac = crypto.createHmac('sha256', JWT_SECRET);
+  const hmac = crypto.createHmac('sha256', getVideoTicketSecret());
   hmac.update(`video_stream_ticket:${payloadB64}`);
   const signature = hmac.digest('base64url');
 
@@ -71,7 +79,7 @@ export function verifyVideoStreamTicket(
   const [payloadB64, providedSignature] = parts;
 
   // Timing-safe HMAC verification
-  const hmac = crypto.createHmac('sha256', JWT_SECRET);
+  const hmac = crypto.createHmac('sha256', getVideoTicketSecret());
   hmac.update(`video_stream_ticket:${payloadB64}`);
   const expectedSignature = hmac.digest('base64url');
 

@@ -6,8 +6,9 @@ import { logSecurityEvent } from '../utils/logger.js';
 export function authorizeRoles(...allowedRoles: string[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userRole = req.user?.role;
+    const isAllowed = userRole && allowedRoles.includes(userRole);
 
-    if (!userRole || !allowedRoles.includes(userRole)) {
+    if (!isAllowed) {
       logSecurityEvent('UNAUTHORIZED_ROLE_ACCESS', {
         callerEmail: req.user?.email,
         callerRole: userRole ?? 'anonymous',

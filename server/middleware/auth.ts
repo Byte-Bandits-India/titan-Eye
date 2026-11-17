@@ -45,8 +45,16 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
   try {
     const tokenSig = token.split('.')[2];
     const row = db
-      .prepare('SELECT status, activeTokenSig FROM users WHERE LOWER(email) = LOWER(?)')
-      .get(user.email) as undefined | { activeTokenSig: null | string; status: string };
+      .prepare('SELECT role, name, storeName, status, activeTokenSig FROM users WHERE LOWER(email) = LOWER(?)')
+      .get(user.email) as
+      | undefined
+      | {
+          activeTokenSig: null | string;
+          name: string;
+          role: string;
+          status: string;
+          storeName: null | string;
+        };
 
     if (!row) {
       return res.status(401).json({ error: 'User account no longer exists' });
@@ -54,6 +62,14 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
 
     if (row.status !== 'active') {
       return res.status(401).json({ error: 'This account has been deactivated' });
+    }
+
+    // N9 Remediation: Dynamically synchronize role and profile from database on every request.
+    // Neutralizes JWT stale-role privilege escalation (e.g. demoted admins retaining admin powers).
+    user.role = row.role;
+    user.name = row.name;
+    if (row.storeName) {
+      user.storeName = row.storeName;
     }
 
     if (user.role !== 'store') {
@@ -78,6 +94,7 @@ export function authenticateToken(req: AuthenticatedRequest, res: Response, next
       errorMessage: e instanceof Error ? e.message : String(e),
       requestId: req.requestId,
     });
+    return res.status(500).json({ error: 'Internal security authentication check failed' });
   }
 
   req.user = user;

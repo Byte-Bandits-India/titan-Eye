@@ -7,8 +7,8 @@ import fs from 'fs';
 import helmet from 'helmet';
 import path from 'path';
 
-import { verifyToken } from './config/jwt.js';
-import { initializeDatabase } from './db/database.js';
+import { getJwtSecret, verifyToken } from './config/jwt.js';
+import { db, initializeDatabase } from './db/database.js';
 import { authenticateToken } from './middleware/auth.js';
 import { internalInfraSanitizer, sanitizeInternalInfraString } from './middleware/internalInfraSanitizer.js';
 import { pathTraversalGuard } from './middleware/pathTraversalGuard.js';
@@ -25,7 +25,8 @@ import { callsRouter } from './routes/calls.js';
 import webhooksRouter from './routes/webhooks.js';
 import { runRetentionPurge } from './scripts/retentionPurge.js';
 import { alertCritical, logger, logSecurityEvent, resolveLogDir } from './utils/logger.js';
-import { addSseClient, removeSseClient } from './utils/sse.js';
+import { addSseClient, getSseClientsCountForUser, removeSseClient } from './utils/sse.js';
+import { isRevoked } from './utils/tokenBlacklist.js';
 
 process.on('uncaughtException', (err) => {
   alertCritical('Uncaught exception — process is exiting', { errorMessage: err.message, stack: err.stack });
@@ -107,13 +108,7 @@ const hasHttpsOrigin = allowedOrigins.some((origin) => origin.startsWith('https:
 
 function isAllowedOrigin(origin: string): boolean {
   const normalized = origin.trim().replace(/\/$/, '');
-  if (allowedOrigins.includes(normalized)) {
-    return true;
-  }
-  if (/^https?:\/\/([a-zA-Z0-9-]+\.)*titan\.in$/.test(normalized)) {
-    return true;
-  }
-  return false;
+  return allowedOrigins.includes(normalized);
 }
 
 const app = express();
@@ -317,10 +312,58 @@ app.get('/api/events', (req: Request, res: Response) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
+  // N14 & N15 Remediation: Token revocation check (persisted blacklist)
+  if (isRevoked(token)) {
+    return res.status(401).json({ error: 'Token has been revoked' });
+  }
+
   const user = verifyToken(token);
 
   if (!user) {
     return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  // N14 Remediation: Validate active account and session integrity from live DB
+  try {
+    const userRow = db
+      .prepare('SELECT role, name, storeName, status, activeTokenSig FROM users WHERE LOWER(email) = LOWER(?)')
+      .get(user.email) as
+      | undefined
+      | {
+          activeTokenSig: null | string;
+          name: string;
+          role: string;
+          status: string;
+          storeName: null | string;
+        };
+
+    if (!userRow || userRow.status !== 'active') {
+      return res.status(401).json({ error: 'Account is deactivated or not found' });
+    }
+
+    const tokenSig = token.split('.')[2];
+    if (userRow.role !== 'store' && userRow.activeTokenSig !== null && userRow.activeTokenSig !== tokenSig) {
+      return res.status(401).json({ error: 'Session superseded' });
+    }
+
+    // N14 Remediation: Enforce per-user connection cap
+    const userConnectionCount = getSseClientsCountForUser(user.email);
+    if (userConnectionCount >= 5) {
+      return res.status(429).json({ error: 'Too many active SSE connections for this account' });
+    }
+
+    // Synchronize current DB role and identity
+    user.role = userRow.role;
+    user.name = userRow.name;
+    if (userRow.storeName) {
+      user.storeName = userRow.storeName;
+    }
+  } catch (err) {
+    logger.error('SSE auth check error', {
+      errorMessage: err instanceof Error ? err.message : String(err),
+      requestId: req.requestId,
+    });
+    return res.status(500).json({ error: 'Internal security authentication check failed' });
   }
 
   res.writeHead(200, {
@@ -329,13 +372,51 @@ app.get('/api/events', (req: Request, res: Response) => {
     'Content-Type': 'text/event-stream',
     'X-Accel-Buffering': 'no',
   });
-  res.write('\n');
+  res.write(': connected\n\n');
 
-  const clientId = Date.now();
-  const newClient = { id: clientId, res };
+  const clientId = Date.now() + Math.random();
+  const newClient = { id: clientId, res, user };
   addSseClient(newClient);
 
+  // N14 Remediation: Periodic heartbeat and live revocation monitor
+  const heartbeatInterval = setInterval(() => {
+    try {
+      if (isRevoked(token)) {
+        clearInterval(heartbeatInterval);
+        removeSseClient(clientId);
+        res.end();
+        return;
+      }
+
+      const check = db
+        .prepare('SELECT status, activeTokenSig, role FROM users WHERE LOWER(email) = LOWER(?)')
+        .get(user.email) as { activeTokenSig: string | null; role: string; status: string } | undefined;
+
+      if (!check || check.status !== 'active') {
+        clearInterval(heartbeatInterval);
+        removeSseClient(clientId);
+        res.end();
+        return;
+      }
+
+      const currentSig = token.split('.')[2];
+      if (check.role !== 'store' && check.activeTokenSig && check.activeTokenSig !== currentSig) {
+        clearInterval(heartbeatInterval);
+        removeSseClient(clientId);
+        res.end();
+        return;
+      }
+
+      res.write(': keep-alive\n\n');
+    } catch {
+      clearInterval(heartbeatInterval);
+      removeSseClient(clientId);
+      res.end();
+    }
+  }, 20000);
+
   req.on('close', () => {
+    clearInterval(heartbeatInterval);
     removeSseClient(clientId);
   });
 });
@@ -348,7 +429,11 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use('/api/login', authLimiter);
-app.use('/api/react-scan', reactScanLogRouter);
+app.use('/api/captcha', authLimiter);
+app.use('/api/auth/captcha', authLimiter);
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/react-scan', reactScanLogRouter);
+}
 app.use('/api', authRouter);
 app.use('/api/auth/microsoft', authLimiter, ssoAuthRouter);
 app.post('/api/customers', customerCreateLimiter);
@@ -471,15 +556,29 @@ app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
-const PORT = 3001;
+// N6 Remediation: Enforce cryptographic secret health at boot
+try {
+  getJwtSecret();
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  alertCritical('FATAL STARTUP ERROR: Cryptographic secret validation failed', { error: message });
+  console.error(message);
+  process.exit(1);
+}
+
+const PORT = Number(process.env.PORT) || 3001;
+// N8 Remediation: Bind strictly to loopback (127.0.0.1) so Express is only accessible
+// via the reverse proxy (IIS/nginx) and cannot be directly probed from external interfaces.
+const HOST = process.env.HOST || '127.0.0.1';
+
 initializeDatabase()
   .then(() => {
-    app.listen(PORT, () => {
-      logger.info(`API server running on http://localhost:${PORT}`, {
+    app.listen(PORT, HOST, () => {
+      logger.info(`API server running on http://${HOST}:${PORT}`, {
         env: process.env.NODE_ENV || 'development',
+        host: HOST,
         logDir: resolveLogDir(),
         port: PORT,
-
       });
 
       runRetentionPurge().catch((e) => {

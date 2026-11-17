@@ -13,7 +13,7 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import { authorizeRoles } from '../middleware/rbac.js';
 import { logger, logSecurityEvent } from '../utils/logger.js';
 import { broadcastEvent } from '../utils/sse.js';
-import { validateCustomerData } from '../utils/validation.js';
+import { validateCustomerData, validateString } from '../utils/validation.js';
 import { sendTeamsDirectMessage } from '../services/microsoft/graph.js';
 import {
   ALLOWED_IMAGE_EXTENSIONS,
@@ -275,16 +275,16 @@ async function reassignOrReleaseCall(id: string, customer: CustomerRow): Promise
   return (await get<CustomerRow>('SELECT * FROM customer_summary WHERE id = ?', [id])) ?? null;
 }
 
-export function toApiCustomer(row: CustomerRow, _viewerRole?: string) {
-  return {
+export function toApiCustomer(row: CustomerRow, viewerRole?: string) {
+  const base: any = {
     ...row,
-    firstName: row.firstName || (row.name ? row.name.split(' ')[0] : ''),
-    lastName: row.lastName || (row.name ? row.name.split(' ').slice(1).join(' ') : ''),
     activeProfile: row.activeProfile === 1,
     callActive: row.callActive === 1,
     consentAccepted: row.consentAccepted === 1,
     consentAcceptedAt: row.consentAcceptedAt || null,
+    firstName: row.firstName || (row.name ? row.name.split(' ')[0] : ''),
     isPriority: row.isPriority === 1,
+    lastName: row.lastName || (row.name ? row.name.split(' ').slice(1).join(' ') : ''),
     optometristCallStartTime: row.optometristCallStartTime || null,
     optometristFeedback: row.optometristFeedback || '',
     optometristRxData: row.optometristRxData ? JSON.parse(row.optometristRxData) : undefined,
@@ -292,6 +292,27 @@ export function toApiCustomer(row: CustomerRow, _viewerRole?: string) {
     storeFeedbackImage1: row.storeFeedbackImage1,
     storeFeedbackImage2: row.storeFeedbackImage2,
   };
+
+  // N24 Remediation: Role-based Data Minimization
+  if (viewerRole !== 'admin') {
+    delete base.declinedByOptometristEmails;
+
+    if (viewerRole === 'optometrist' || viewerRole === 'senior_optometrist') {
+      delete base.storeContactEmail;
+      delete base.salesOrderNumber;
+      delete base.orderDate;
+      delete base.conversionStatus;
+      delete base.nonConversionReason;
+      delete base.nonConversionComment;
+      delete base.consentAcceptedAt;
+    }
+
+    if (viewerRole === 'store') {
+      delete base.offeredToOptometristEmail;
+    }
+  }
+
+  return base;
 }
 
 function parseTimestampValue(val: null | string | undefined): number {
@@ -388,28 +409,62 @@ async function verifyCustomerAccess(
   }
 
   if (role === 'optometrist' || role === 'senior_optometrist') {
-    const isQueueStatus = ['Initiated', 'Queued', 'Accepted', 'Testing'].includes(customer.status);
     const isAssigned =
       (customer.callTakenBy && customer.callTakenBy.toLowerCase() === req.user?.name?.toLowerCase()) ||
       (customer.offeredToOptometristEmail &&
         customer.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase());
 
-    if (!isQueueStatus && !isAssigned) {
-      logSecurityEvent('UNAUTHORIZED_OPTOMETRIST_CUSTOMER_ACCESS', {
-        callerEmail: req.user?.email,
-        callerName: req.user?.name,
-        customerStatus: customer.status,
-        customerStore: customer.storeName,
-        ip: req.ip,
-        requestId: req.requestId,
-        targetCustomerId: customerId,
-      });
+    // N12 Remediation: Scoping access for optometrists.
+    // In-progress or completed/cancelled consultations require explicit assignment.
+    if (['Accepted', 'Testing', 'Completed', 'Cancelled'].includes(customer.status)) {
+      if (!isAssigned) {
+        logSecurityEvent('UNAUTHORIZED_OPTOMETRIST_CUSTOMER_ACCESS', {
+          callerEmail: req.user?.email,
+          callerName: req.user?.name,
+          customerStatus: customer.status,
+          customerStore: customer.storeName,
+          ip: req.ip,
+          requestId: req.requestId,
+          targetCustomerId: customerId,
+        });
 
-      res.status(403).json({
-        error: 'Access Denied: Optometrists can only access active queue records or their assigned consultations.',
-      });
+        res.status(403).json({
+          error: 'Access Denied: You can only access consultation records assigned to you.',
+        });
 
-      return null;
+        return null;
+      }
+    } else if (['Initiated', 'Queued'].includes(customer.status)) {
+      // If a queued consultation has been offered exclusively to another clinician, block other optometrists
+      if (
+        customer.offeredToOptometristEmail &&
+        customer.offeredToOptometristEmail.toLowerCase() !== req.user?.email?.toLowerCase()
+      ) {
+        logSecurityEvent('UNAUTHORIZED_OPTOMETRIST_CUSTOMER_ACCESS', {
+          callerEmail: req.user?.email,
+          callerName: req.user?.name,
+          customerStatus: customer.status,
+          customerStore: customer.storeName,
+          ip: req.ip,
+          offeredTo: customer.offeredToOptometristEmail,
+          requestId: req.requestId,
+          targetCustomerId: customerId,
+        });
+
+        res.status(403).json({
+          error: 'Access Denied: This consultation in queue has been offered to another optometrist.',
+        });
+
+        return null;
+      }
+    } else {
+      if (!isAssigned) {
+        res.status(403).json({
+          error: 'Access Denied: You do not have access to this consultation record.',
+        });
+
+        return null;
+      }
     }
   }
 
@@ -426,7 +481,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     if (role === 'store') {
       query += ' WHERE storeName = ?';
       params.push(req.user?.storeName ?? null);
-    } else if (role === 'optometrist') {
+    } else if (role === 'optometrist' || role === 'senior_optometrist') {
       query += ` WHERE status IN ('Initiated', 'Queued', 'Accepted', 'Testing')
                  OR (callTakenBy IS NOT NULL AND LOWER(callTakenBy) = LOWER(?))
                  OR (offeredToOptometristEmail IS NOT NULL AND LOWER(offeredToOptometristEmail) = LOWER(?))`;
@@ -591,25 +646,55 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
         return res.status(403).json({ error: 'Access Denied: Store location mismatch' });
       }
 
+      // Store cannot overwrite clinical examination data
       c.optometristRxData = existingOptometristRx ? JSON.parse(existingOptometristRx) : null;
       c.optometristFeedback = existingOptometristFeedback;
-      c.storeName = req.user.storeName ?? undefined;
+      c.optometristCallStartTime = existing.optometristCallStartTime;
+
+      // Store cannot bypass consultation workflow states or call assignments
+      c.status = existing.status;
+      c.callTakenBy = existing.callTakenBy;
+      c.callActive = existing.callActive === 1;
+      c.callStartTime = existing.callStartTime;
+      c.callDuration = existing.callDuration;
+
+      // Store cannot bypass conversion workflow endpoint
+      c.conversionStatus = existing.conversionStatus;
+      c.salesOrderNumber = existing.salesOrderNumber;
+      c.orderDate = existing.orderDate;
+      c.nonConversionReason = existing.nonConversionReason;
+      c.nonConversionComment = existing.nonConversionComment;
+
+      c.storeName = existing.storeName;
     }
 
-    if (role === 'optometrist') {
+    if (role === 'optometrist' || role === 'senior_optometrist') {
       const isAssigned =
         (existing.callTakenBy && existing.callTakenBy.toLowerCase() === req.user?.name?.toLowerCase()) ||
         (existing.offeredToOptometristEmail &&
-          existing.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase()) ||
-        ['Accepted', 'Testing'].includes(existing.status);
+          existing.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase());
 
       if (!isAssigned) {
+        logSecurityEvent('UNAUTHORIZED_OPTOMETRIST_RECORD_UPDATE', {
+          callerEmail: req.user?.email,
+          callerName: req.user?.name,
+          callerRole: role,
+          customerCallTakenBy: existing.callTakenBy,
+          customerId: id,
+          customerStatus: existing.status,
+          ip: req.ip,
+          requestId: req.requestId,
+        });
+
         return res.status(403).json({
           error: 'Access Denied: You can only update clinical examination records for consultations assigned to you.',
         });
       }
 
+      // Optometrists / Senior Optometrists cannot modify patient demographics or store feedback
       c.name = existing.name;
+      c.firstName = existing.firstName || '';
+      c.lastName = existing.lastName || '';
       c.age = existing.age;
       c.gender = existing.gender;
       c.customerType = existing.customerType;
@@ -617,6 +702,22 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
       c.preferredLanguage = existing.preferredLanguage;
       c.preferredLanguage2 = existing.preferredLanguage2;
       c.storeFeedback = existing.storeFeedback;
+      c.rxData = existing.rxData ? JSON.parse(existing.rxData) : null;
+      c.activeProfile = existing.activeProfile === 1;
+
+      // Optometrists cannot modify call timing or assignment directly via PUT
+      c.callTakenBy = existing.callTakenBy;
+      c.callActive = existing.callActive === 1;
+      c.callStartTime = existing.callStartTime;
+      c.callDuration = existing.callDuration;
+      c.optometristCallStartTime = existing.optometristCallStartTime;
+
+      // Optometrists cannot modify post-consultation conversion status
+      c.conversionStatus = existing.conversionStatus;
+      c.salesOrderNumber = existing.salesOrderNumber;
+      c.orderDate = existing.orderDate;
+      c.nonConversionReason = existing.nonConversionReason;
+      c.nonConversionComment = existing.nonConversionComment;
     }
 
     if (c.name === undefined) {
@@ -820,7 +921,11 @@ router.delete('/:id', authorizeRoles('store', 'admin'), async (req: Authenticate
       viewerRole: req.user?.role,
     });
 
-    broadcastEvent('CUSTOMER_DELETED', { id });
+    broadcastEvent(
+      'CUSTOMER_DELETED',
+      { id, storeName: customer.storeName },
+      { targetStore: customer.storeName }
+    );
 
     return res.json({ ok: true });
   } catch (err) {
@@ -1100,7 +1205,6 @@ router.post('/:id/notify-admin-teams', authorizeRoles('store', 'admin'), async (
       graphError: result.error,
       message: 'Admin & Senior Optometrists notified successfully',
       ok: true,
-      recipients: recipientEmails,
       teamsSent: result.ok,
     });
   } catch (err) {
@@ -1272,11 +1376,29 @@ router.post(
         return;
       }
 
-      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : '';
+      // N12 Remediation: Clinicians may only cancel consultations assigned or offered to them
+      if (req.user?.role === 'optometrist' || req.user?.role === 'senior_optometrist') {
+        const isAssigned =
+          (customer.callTakenBy && customer.callTakenBy.toLowerCase() === req.user?.name?.toLowerCase()) ||
+          (customer.offeredToOptometristEmail &&
+            customer.offeredToOptometristEmail.toLowerCase() === req.user?.email?.toLowerCase());
 
-      if (!reason) {
-        return res.status(400).json({ error: 'A cancellation reason is required' });
+        if (!isAssigned) {
+          return res.status(403).json({
+            error: 'Access Denied: You can only cancel consultations assigned or offered to you.',
+          });
+        }
       }
+
+      // N11 Remediation: Validate cancellation reason
+      const rawReason = typeof req.body?.reason === 'string' ? req.body.reason : '';
+      const reasonResult = validateString(rawReason, 'Cancellation reason', 500);
+
+      if (!reasonResult.valid) {
+        return res.status(400).json({ error: reasonResult.error });
+      }
+
+      const reason = reasonResult.sanitized!;
 
       const timestamp = new Date().toLocaleString('en-US', {
         day: 'numeric',
@@ -1737,18 +1859,21 @@ router.get('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: R
   }
 });
 
-router.delete('/:id/feedback-image/:slot', async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const id = String(req.params.id);
-    const column = feedbackImageColumn(String(req.params.slot));
+router.delete(
+  '/:id/feedback-image/:slot',
+  authorizeRoles('store', 'admin'),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const column = feedbackImageColumn(String(req.params.slot));
 
-    if (!column) {
-      return res.status(400).json({ error: 'Invalid image slot' });
-    }
+      if (!column) {
+        return res.status(400).json({ error: 'Invalid image slot' });
+      }
 
-    if (req.user?.role === 'optometrist') {
-      return res.status(403).json({ error: 'Optometrist users cannot remove store feedback images' });
-    }
+      if (req.user?.role === 'optometrist' || req.user?.role === 'senior_optometrist') {
+        return res.status(403).json({ error: 'Optometrist users cannot remove store feedback images' });
+      }
 
     const customer = await verifyCustomerAccess(req, res, id);
 
